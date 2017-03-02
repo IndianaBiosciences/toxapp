@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+  <p>Available Experiments</p>
+  <ul>
+    <table>
+    <tr><th>Select</th><th>Name</th><th>Tech Detail</th><th>Study ID</th><th>Date Created</th></tr></td>
+    {% for exp in experiments %}
+        <tr>
+            <td><input type="checkbox" name="{{  exp.id }}"</td></input></td>
+            <td>{{ exp.experiment_name }}</td>
+            <td>{{ exp.tech_detail }}</td>
+            <td>{{ exp.study_id }}</td>
+            <td>{{ exp.date_created }}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="5">No experiments have been added yet.</td>td></tr>
+    {% endfor %}
+    </table>
+  </ul>
+
+{% endblock content %}
+
+

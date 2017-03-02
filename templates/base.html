@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+
+<html lang="en-us" >
+<head>
+    <title>IBRI Toxicogenomic Platform</title>
+    <link rel="stylesheet" type="text/css" href="/static/admin/css/base.css" />
+    <link rel="stylesheet" type="text/css" href="/static/admin/css/dashboard.css" />
+    <meta name="robots" content="NONE,NOARCHIVE" />
+    <link rel="stylesheet" type="text/css" href="/static/css/styles.css">
+</head>
+
+
+<body class=" dashboard"
+  data-admin-utc-offset="-18000">
+
+<!-- Container -->
+<div id="container">
+
+    <!-- Header -->
+    <div id="header">
+        <div id="branding">
+
+        <h1 id="site-name">IBRI Toxicogenomics Platform</h1>
+
+        </div>
+
+
+        <div id="user-tools">
+
+                {% if user.is_anonymous %}
+
+                    <a href="/">Home</a> |
+
+                    <a href="{% url 'login' %}">login</a>
+
+                {% else %}
+
+                    Welcome, <strong>{{ user }}</strong>.
+
+
+
+                   {% if user.is_superuser %}
+
+                        <a href="/">View Site</a> /
+
+                        <a href="/admin">Admin</a> /
+
+                        <a href="/logout">Log out</a>
+
+                   {%  else  %}
+
+                        <a href="/">Home</a> |
+
+                        <a href="/experiments">Experiments</a> |
+
+                        <a href="/profile">My Profile</a> |
+
+                        <a href="/logout">Log out</a>
+
+                    {%  endif %}
+
+                {% endif %}
+
+        </div>
+
+
+
+    </div>
+    <!-- END Header -->
+</div>
+
+<div id="content">
+
+      {% block content %}{% endblock %}
+
+</div>
+
+</body>
+
+
