@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from . import views
 
+admin.site.site_header = "IBRI Toxicogenomics Platform | Admin"
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
@@ -25,9 +26,6 @@ urlpatterns = [
     url(r'^profile/$', views.profile, name='profile'),
 
     url(r'^', include('django.contrib.auth.urls')),
-
-#    url(r'^login/$', auth_views.login, name='login'),
-#    url(r'^logout/$', auth_views.logout, name='logout'),
 
     url(r'^admin/', admin.site.urls),
 
