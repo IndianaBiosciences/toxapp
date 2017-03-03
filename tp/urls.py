@@ -8,8 +8,10 @@ urlpatterns = [
     # view all experiments
     url(r'^experiments/$', views.experiments, name='experiments'),
 
-    # view to create or edit an entry
-    #url(r'^experiment/(?P<experiment_id>\d+)/$', views.experiment, name='experiment'),
-    url(r'^experiment/$', views.get_experiment, name='get_experiment'),
+    # view single experiment
+    url(r'^new_experiment/$', views.new_experiment, name='new_experiment'),
+
+    # view single experiment
+    url(r'^upload_data/$', views.upload_data, name='upload_data'),
 ]
 
