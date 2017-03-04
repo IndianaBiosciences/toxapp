@@ -58,8 +58,6 @@ class Experiment(models.Model):
     )
 
     experiment_name = models.CharField(max_length=200)
-    date_created = models.DateTimeField(default=datetime.now, blank=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1)
 
     tech = models.CharField(max_length=20, choices=TECH_CHOICES, default='1')
     tech_detail = models.CharField(max_length=50) # type of microarray or sequencer
@@ -79,6 +77,10 @@ class Experiment(models.Model):
     single_repeat_type = models.CharField(max_length=10, choices=REPEAT_TYPE_CHOICES, default='1')
     route = models.CharField(max_length=10, choices=ROUTE_CHOICES, default='1')
     source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='1')
+
+    date_created = models.DateTimeField(default=datetime.now, blank=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1)
+
 
     def __str__(self):
         return self.experiment_name
