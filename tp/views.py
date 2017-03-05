@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect
 
 from .models import Experiment
-from .forms import newExperimentForm, uploadDataForm
+from .forms import experimentForm, uploadDataForm
 
 
 def index(request):
@@ -20,13 +20,13 @@ def experiments(request):
     context = {'experiments': experiments}
     return render(request, 'experiments.html', context)
 
-def new_experiment(request):
+def experiment(request, experiment_id=None):
     """ edit/view the definition of an experiment"""
 
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
-        form = newExperimentForm(request.POST)
+        form = experimentForm(request.POST)
         # check whether it's valid:
         if form.is_valid():
             # process the data in form.cleaned_data as required
@@ -36,9 +36,9 @@ def new_experiment(request):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = newExperimentForm()
+        form = experimentForm()
 
-    return render(request, 'get_experiment.html', {'form': form})
+    return render(request, 'experiment.html', {'form': form})
 
 def upload_data(request):
     """ upload the data for the experiment after experiment meta data is captured"""
