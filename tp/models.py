@@ -59,7 +59,7 @@ class Experiment(models.Model):
 
     experiment_name = models.CharField(max_length=200)
 
-    tech = models.CharField(max_length=20, choices=TECH_CHOICES, default='1')
+    tech = models.CharField(max_length=20, choices=TECH_CHOICES, default=TECH_CHOICES[0][0])
     tech_detail = models.CharField(max_length=50) # type of microarray or sequencer
 
     study_id = models.CharField(blank=True, max_length=50) # source of sthe study, GEO accession etc
@@ -69,18 +69,18 @@ class Experiment(models.Model):
     dose_unit = models.CharField(max_length=20)
     time = models.DecimalField(max_digits=3, decimal_places=2)
 
-    tissue = models.CharField(max_length=20, choices=TISSUE_CHOICES, default='1')
-    organism = models.CharField(max_length=20, choices=ORGANISM_CHOICES, default='1')
+    tissue = models.CharField(max_length=20, choices=TISSUE_CHOICES, default=TISSUE_CHOICES[0][0])
+    organism = models.CharField(max_length=20, choices=ORGANISM_CHOICES, default=ORGANISM_CHOICES[0][0])
     strain = models.CharField(max_length=50)
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='1')
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default=GENDER_CHOICES[0][0])
 
-    single_repeat_type = models.CharField(max_length=10, choices=REPEAT_TYPE_CHOICES, default='1')
-    route = models.CharField(max_length=10, choices=ROUTE_CHOICES, default='1')
-    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='1')
+    single_repeat_type = models.CharField(max_length=10, choices=REPEAT_TYPE_CHOICES, default=REPEAT_TYPE_CHOICES[0][0])
+    route = models.CharField(max_length=10, choices=ROUTE_CHOICES, default=ROUTE_CHOICES[0][0])
+    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_CHOICES[0][0])
 
     date_created = models.DateTimeField(default=datetime.now, blank=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1)
-
+    permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0])
 
     def __str__(self):
         return self.experiment_name
