@@ -1,0 +1,20 @@
+table.baseFooter {
+    width: 95%;
+}
+
+table.baseFooter td {
+    border-top: 1px solid #eee;
+    border-bottom: none;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+table.experiments th {
+    white-space: nowrap;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+table.experiments td {
+    white-space: nowrap;
+}

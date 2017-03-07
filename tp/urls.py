@@ -14,5 +14,9 @@ urlpatterns = [
 
     # upload expression dialog
     url(r'^upload_data/$', views.upload_data, name='upload_data'),
+
+    # setup analysis
+    url(r'^analyze/$', views.analyze, name='analyze'),
+    url(r'^analyze/(?P<experiment_id>\d+)/$', views.analyze, name='analyze'),
 ]
 

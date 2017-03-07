@@ -3,22 +3,47 @@
 {% block content %}
 
   <p>Available Experiments</p>
-  <ul>
-    <table>
-    <tr><th>Select</th><th>Name</th><th>Tech Detail</th><th>Study ID</th><th>Date Created</th></tr></td>
+  <form action="/analyze/" method="post">{% csrf_token %}
+    <table class="experiments">
+        <tr>
+            <th>Analyze</th>
+            <th></th>
+            <th>ID</td>
+            <th>Compound Name</td>
+            <th>Dose</th>
+            <th>Time (days)</th>
+            <th>Chip Name</th>
+            <th>Organism</th>
+            <th>Repeat Type</th>
+            <th>Route</th>
+            <th>Experiment Name</th>
+            <th>Date Created</th>
+        </tr>
     {% for exp in experiments %}
         <tr>
-            <td><input type="checkbox" name="{{  exp.id }}"</td></input></td>
-            <td>{{ exp.experiment_name }}</td>
+            <td align="center"><input type="checkbox" id="selected_experiments" value="{{ exp.id }}"</td></input></td>
+            <td><a href="/experiment/{{ exp.id }}" class="changelink">Edit</td>
+            <td>{{ exp.id }}</td>
+            <td>{{ exp.compound_name }}</td>
+            <td>{{ exp.dose }} {{ exp.dose_unit }}</td>
+            <td>{{ exp.time }}</td>
             <td>{{ exp.tech_detail }}</td>
-            <td>{{ exp.study_id }}</td>
+            <td>{{ exp.organism }}</td>
+            <td>{{ exp.single_repeat_type }}</td>
+            <td>{{ exp.route }}</td>
+            <td>{{ exp.experiment_name }}</td>
             <td>{{ exp.date_created }}</td>
-        </tr>
+         </tr>
     {% empty %}
-        <tr><td colspan="5">No experiments have been added yet.</td>td></tr>
+        <tr><td colspan="12">No experiments have been added yet.</td></tr>
     {% endfor %}
+        <tr><th colspan="12"><input type="submit" value="Analyze Selected Experiments"></th></tr>
     </table>
-  </ul>
+  </form>
+
+    <br>
+
+    <a href="/experiment" class="addlink">Add New Experiment</a>
 
 {% endblock content %}
 

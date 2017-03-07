@@ -18,3 +18,7 @@ class experimentForm(ModelForm):
 
 class uploadDataForm(forms.Form):
     experiment_name = forms.CharField(label='Experiment name', max_length=100)
+
+
+class analyzeForm(forms.Form):
+    hello = "Hello"

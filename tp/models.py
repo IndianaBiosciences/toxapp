@@ -78,9 +78,9 @@ class Experiment(models.Model):
     route = models.CharField(max_length=10, choices=ROUTE_CHOICES, default=ROUTE_CHOICES[0][0])
     source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_CHOICES[0][0])
 
-    date_created = models.DateTimeField(default=datetime.now, blank=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1)
-    permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0])
+    date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
+    permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)
 
     def __str__(self):
         return self.experiment_name
