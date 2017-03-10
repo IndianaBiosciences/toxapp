@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+
+{% block content %}
+
+<form role="form" action="" class="form-horizontal" method="post">
+  {% csrf_token %}
+  {% bootstrap_form_errors form type='non_fields' %}
+
+  {% for field in form %}
+    {% bootstrap_field field layout='horizontal' %}
+  {% endfor %}
+  {% buttons layout='horizontal' %}
+    {% bootstrap_button "Save and continue" button_type="submit" name="_save" button_class="btn-primary" %}
+    {% bootstrap_button "Save and add another" button_type="submit" name="_addanother" %}
+    {% bootstrap_button "Save and continue editing" button_type="submit" name="_continue" %}
+    {#  TODO can't get href to work with {%  url %} reverse lookup; refactored with plain link #}
+    {#% bootstrap_button "Cancel" button_type="link" href="/experiments" %#}
+    <a class="btn btn-default" role="button" href="{% url 'tp:experiments' %}">Cancel</a>
+  {% endbuttons %}
+</form>
+
+{% endblock content %}

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'bootstrap3',
     'tp',
 ]
 
@@ -130,3 +131,5 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'tp/static')
 
 LOGIN_REDIRECT_URL = '/'
+
+BOOTSTRAP3 = {'include_jquery': True}

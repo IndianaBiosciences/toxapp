@@ -29,5 +29,5 @@ urlpatterns = [
 
     url(r'^admin/', admin.site.urls),
 
-    url(r'', include('tp.urls', namespace="tp")),
+    url(r'', include('tp.urls', namespace='tp')),
 ]

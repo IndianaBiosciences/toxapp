@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from datetime import datetime
+from django.urls import reverse
 
 # Create your models here.
 
@@ -81,6 +82,10 @@ class Experiment(models.Model):
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
     permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)
+
+    def get_absolute_url(self):
+        # don't forget the f*!#$@#% namespace prefix
+        return reverse('tp:experiments-list', kwargs={'pk': self.pk})
 
     def __str__(self):
         return self.experiment_name

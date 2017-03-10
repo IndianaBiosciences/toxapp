@@ -1,17 +1,24 @@
 <!DOCTYPE html>
-
-<html lang="en-us" >
+{# Load the tag library #}
+{% load bootstrap3 %}
+<html lang="en-us">
 <head>
+    <meta charset="utf-8"><!-- encoding characters -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"><!-- some Microsoft Edge/IE stuff -->
+    <meta name="viewport" content="width=device-width, initial-scale=1"><!-- viewport -> the user's visible area of a webpage, -> this sets it to normal zoom (scale 1) and width of device -->
     <title>IBRI Toxicogenomic Platform</title>
-    <link rel="stylesheet" type="text/css" href="/static/admin/css/base.css" />
-    <link rel="stylesheet" type="text/css" href="/static/admin/css/dashboard.css" />
-    <meta name="robots" content="NONE,NOARCHIVE" />
-    <link rel="stylesheet" type="text/css" href="/static/css/base.css">
+    {# Load CSS and JavaScript #}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
 </head>
 
+<!DOCTYPE html>
 
 <body class=" dashboard"
   data-admin-utc-offset="-18000">
+
+{# Display django.contrib.messages as Bootstrap alerts #}
+{% bootstrap_messages %}
 
 <!-- Container -->
 <div id="container">
@@ -75,7 +82,7 @@
 
 </div>
 
-<div id="footer" style="position:fixed; bottom: 0; width: 100%">
+<div id="footer" class="fillWidth">
     <table class="baseFooter">
         <tr>
             <td><a HREF="http://indianabiosciences.org"><i>Indiana Biosciences Research Institute</i></a></td>

@@ -4,58 +4,22 @@ from django.shortcuts import render
 
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
+from django.views.generic import ListView, DetailView
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy, reverse
 
 from .models import Experiment
-from .forms import experimentForm, uploadDataForm, analyzeForm
+from .forms import ExperimentForm, uploadDataForm, analyzeForm
 
 import logging
 import pprint
 
 logger = logging.getLogger(__name__)
 
-
 def index(request):
     """ the home page for tp """
     return render(request, 'index.html')
 
-
-def experiments(request):
-    """ view all experiments in database """
-    experiments = Experiment.objects.order_by('id')
-    context = {'experiments': experiments}
-    return render(request, 'experiments.html', context)
-
-def experiment(request, experiment_id=None):
-    """ edit/view the definition of an experiment"""
-
-    logger.error("Received experiment_id %s", experiment_id)
-
-    # if this is a POST request we need to process the form data
-    if request.method == 'POST':
-        if experiment_id is not None:
-            exp = Experiment.objects.get(id=experiment_id)
-            form = experimentForm(request.POST, instance=exp)
-        else:
-            form = experimentForm(request.POST)
-
-        # check whether it's valid:
-        if form.is_valid():
-            new_exp = form.save()
-            logger.info("Created/edited experiment id %s", new_exp.id)
-            return HttpResponseRedirect('/experiments/')
-
-    # present blank or completed form when editing existing experiment
-    else:
-        # retrieve form with existing data for given experiment id (validate first)
-        if experiment_id is not None:
-            exp = Experiment.objects.get(id=experiment_id)
-            form = experimentForm(instance=exp)
-        # return a blank form for experiment creation
-        else:
-            form = experimentForm()
-
-    context = {'form': form}
-    return render(request, 'experiment.html', context)
 
 def upload_data(request):
     """ upload the data for the experiment after experiment meta data is captured"""
@@ -77,9 +41,9 @@ def upload_data(request):
 
     return render(request, 'upload_data.html', {'form': form})
 
+
 def analyze(request):
     """ upload the data for the experiment after experiment meta data is captured"""
-
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
@@ -96,3 +60,64 @@ def analyze(request):
         form = analyzeForm()
 
     return render(request, 'analyze.html', {'form': form})
+
+
+class ExperimentView(ListView):
+    model = Experiment
+    template_name = 'experiments_list.html'
+    context_object_name = 'experiments'
+
+
+class ExperimentDetailView(DetailView):
+    model = Experiment
+    template_name = 'experiment_detail.html'
+
+
+class ExperimentCreate(CreateView):
+    model = Experiment
+    template_name = 'experiment_form.html'
+    form_class = ExperimentForm
+
+    # TODO - can combine this with ExperimentCreate via a mixin (I think)
+    def get_success_url(self):
+
+        if self.request.POST.get('_addanother') is not None:
+            return reverse('tp:experiment-add')
+        elif self.request.POST.get('_continue') is not None:
+            return reverse('tp:experiment-update', kwargs={'pk':self.object.pk})
+        elif self.request.POST.get('_save') is not None:
+            return reverse('tp:experiments') # TODO - update this to the add samples URL
+        else:
+            # the default behavior for Experiment object
+            return reverse('tp:experiments-list',  kwargs={'pk':self.object.pk})
+
+
+class ExperimentUpdate(UpdateView):
+    model = Experiment
+    template_name = 'experiment_form.html'
+    form_class = ExperimentForm
+
+    # TODO - can combine this with ExperimentCreate via a mixin (I think)
+    def get_success_url(self):
+
+        if self.request.POST.get('_addanother') is not None:
+            return reverse('tp:experiment-add')
+        elif self.request.POST.get('_continue') is not None:
+            return reverse('tp:experiment-update', kwargs={'pk':self.object.pk})
+        elif self.request.POST.get('_save') is not None:
+            return reverse('tp:experiments') # TODO - update this to the add samples URL
+        else:
+            # the default behavior for Experiment object
+            return reverse('tp:experiments-list',  kwargs={'pk':self.object.pk})
+
+
+class ExperimentDelete(DeleteView):
+    model = Experiment
+    template_name = "experiment_confirm_delete.html"
+    success_url = reverse_lazy('tp:experiments')
+
+    def get_context_data(self, **kwargs):
+        context = super(ExperimentDelete, self).get_context_data(**kwargs)
+        logger.error("Have %s", pprint.pformat(context))
+        logger.error("Have %s, %s", context['experiment'].id, context['experiment'].experiment_name)
+        return context

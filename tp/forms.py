@@ -6,14 +6,16 @@ import pprint
 
 logger = logging.getLogger(__name__)
 
-class experimentForm(ModelForm):
+
+class ExperimentForm(ModelForm):
     class Meta:
         model = Experiment
         #fields = [f.name for f in model._meta.get_fields()]
-        #logger.error(pprint.pformat(fields))
-        #fields = '__all__'
         # TODO - neither of __all__ or exclude recommended due to security risks per doc; list explicitly once model is stable
-        exclude = ['date_created', 'owner']
+        exclude = ['owner']
+        widgets = {
+            'date_created': forms.TextInput(attrs={'class': 'datepicker'}),
+        }
 
 
 class uploadDataForm(forms.Form):

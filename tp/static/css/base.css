@@ -18,3 +18,10 @@ table.experiments th {
 table.experiments td {
     white-space: nowrap;
 }
+
+.fillWidth {
+  width: 100%;
+}
+a.button_large {
+  padding: 10px 15px;
+}
