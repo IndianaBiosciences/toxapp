@@ -1,35 +1,32 @@
 {% extends "base.html" %}
 
-    {% block content %}
+<!-- needs django-widget-tweaks to allow inject of css class for bootstrap3 -->
+{% load widget_tweaks %}
 
-    {%  if user.is_authenticated  %}
+{% block content %}
 
-        <h1>Update User Information | {{ user }}</h1>
+
+{%  if user.is_authenticated  %}
+
+    <div class="container">
+        <div class="card card-container">
+            <!-- <img class="profile-img-card" src="//lh3.googleusercontent.com/-6V8xOA6M7BA/AAAAAAAAAAI/AAAAAAAAAAA/rzlHcD0KYwo/photo.jpg?sz=120" alt="" /> -->
+            <!--<img id="profile-img" class="profile-img-card" src="//ssl.gstatic.com/accounts/ui/avatar_2x.png" /> -->
+            <p id="profile-name" class="profile-name-card">Update User Profile<br></p>
             <form method="post" action="{% url 'profile' %}">
-        {% csrf_token %}
-        <table>
-        <tr>
-            <td colspan="2" align="center"><a href="{% url 'password_change' %}">Change password</a></td>
-        </tr>
-        <tr>
-            <th style="text-align:right; vertical-align:middle">First name:</th>
-            <td><input type="text" id="first_name" value="{{ request.user.first_name }}" size="30"></td>
-        </tr>
-        <tr>
-            <th style="text-align:right; vertical-align:middle">Last name:</th>
-            <td><input type="text" id="first_name" value="{{ request.user.last_name }}" size="30"></td>
-        </tr>
-        <tr>
-            <th style="text-align:right; vertical-align:middle">email:</th>
-            <td><input type="text" id="email" value="{{ request.user.email }}" size="30"></td>
-        </tr>
-        <tr><td colspan="2" align="center">
-            <input type="submit" value="Update User Profile" />
-            <input type="hidden" name="next" value="{{ next }}" />
-        </td></tr>
-        </table>
-
-        </form>
+            {% csrf_token %}
+            <label class="label-profile">First name:</label>
+                <input type="text" id="first_name" value="{{ request.user.first_name }}" class="form-control">
+            <label class="label-profile">Last name:</label>
+                <input type="text" id="last_name"  value="{{ request.user.last_name }}" class="form-control">
+            <label class="label-profile">Email:</label>
+                <input type="text" id="email"      value="{{ request.user.email }}" class="form-control">
+            <p></p>
+            <button class="btn btn-lg btn-success btn-block btn-signin" type="submit">Update Profile</button>
+            </form>
+<!--            <a href="/change_password" class="forgot-password">Change Password</a> DHR: Enable later-->
+       </div>
+    </div>
 
     {%  else  %}
 

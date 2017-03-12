@@ -20,3 +20,13 @@ def profile(request):
     }
     template = loader.get_template('registration/profile.html')
     return HttpResponse(template.render(context, request))
+
+def about(request):
+    """
+    Expose the user profile and tools to the user
+    """
+    context = {
+
+    }
+    template = loader.get_template('about.html')
+    return HttpResponse(template.render(context, request))

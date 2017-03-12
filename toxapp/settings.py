@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'bootstrap3',
+    'widget_tweaks',
     'tp',
 ]
 
@@ -130,6 +131,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'tp/static')
 
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/experiments'
+LOGOUT_REDIRECT_URL = '/'
 
 BOOTSTRAP3 = {'include_jquery': True}

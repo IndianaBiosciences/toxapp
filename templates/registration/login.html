@@ -1,12 +1,18 @@
 {% extends "base.html" %}
 
+<!-- needs django-widget-tweaks to allow inject of css class for bootstrap3 -->
+{% load widget_tweaks %}
+
 {% block content %}
 
 {% if form.errors %}
-<p>Your username and password didn't match. Please try again.</p>
+<strong>Your username and password didn't match. Please try again.</strong>
 {% endif %}
 
 {% if next %}
+    {% if user.is_superuser %}
+        Need to get you to admin page
+    {% endif %}
     {% if user.is_authenticated %}
     <p>Your account doesn't have access to this page. To proceed,
     please login with an account that has access.</p>
@@ -15,27 +21,35 @@
     {% endif %}
 {% endif %}
 
-<form method="post" action="{% url 'login' %}">
-{% csrf_token %}
-<table>
-<tr>
-    <td>{{ form.username.label_tag }}</td>
-    <td>{{ form.username }}</td>
-</tr>
-<tr>
-    <td>{{ form.password.label_tag }}</td>
-    <td>{{ form.password }}</td>
-</tr>
-<tr><td colspan="2" align="center">
-    <input type="submit" value="login" />
-    <input type="hidden" name="next" value="{{ next }}" />
-</td></tr>
-    <tr><td colspan="2" align="center">
-        <a href="{% url 'password_reset' %}">Lost password?</a>
-    </td></tr>
-</table>
+<!-- Login window -->
+    <h3>Welcome</h3>
+    <p>Currently this system is under development and accounts are by invitation only.
+    If you would like to be considered as an early adopter of this system,
+        please email <a href="mailto:drobertson@indianabiosciences.org">drobertson@indianabiosciences.org</a>.</p>
 
-</form>
+    <div class="container">
+        <div class="card card-container">
+            <!-- <img class="profile-img-card" src="//lh3.googleusercontent.com/-6V8xOA6M7BA/AAAAAAAAAAI/AAAAAAAAAAA/rzlHcD0KYwo/photo.jpg?sz=120" alt="" /> -->
+            <img id="profile-img" class="profile-img-card" src="//ssl.gstatic.com/accounts/ui/avatar_2x.png" />
+            <!-- <p id="profile-name" class="profile-name-card"></p> -->
+            <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+                {{  form.username|add_class:'form-control' }}
+                {{  form.password|add_class:'form-control' }}
+<!--                <input type="username" id="username" class="form-control" placeholder="Username" required autofocus>
+                <input type="password" id="password" class="form-control" placeholder="Password" required> -->
+                <div id="remember" class="checkbox">
+                    <label>
+                        <input type="checkbox" value="remember-me"> Remember me
+                    </label>
+                </div>
+                <input type="hidden", name="next" value="{{ next }}" />
+                <button class="btn btn-lg btn-success btn-block btn-signin" type="submit">Login</button>
+            </form>
+            <a href="{% url 'password_reset' %}" class="forgot-password">Lost password?</a>
+       </div>
+    </div>
 
+    <!-- /container -->
 
 {% endblock %}

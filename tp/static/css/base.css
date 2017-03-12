@@ -1,22 +1,23 @@
-table.baseFooter {
-    width: 95%;
+body {
+    margin-left: 10px;
+    padding-top: 60px;
+    padding-left: 10px;
+    padding-bottom: 30px;
+    background-color: #f9f9f9
 }
 
-table.baseFooter td {
-    border-top: 1px solid #eee;
-    border-bottom: none;
-    padding-left: 4px;
-    padding-right: 4px;
+.container {
+    margin-left: 10px;
 }
 
-table.experiments th {
-    white-space: nowrap;
-    border-top: 1px solid black;
-    border-bottom: 1px solid black;
-}
-
-table.experiments td {
-    white-space: nowrap;
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30px;
+    line-height: 30px;
+    background-color: #f5f5f5;
 }
 
 .fillWidth {
@@ -25,3 +26,119 @@ table.experiments td {
 a.button_large {
   padding: 10px 15px;
 }
+
+/* css for login page */
+
+.card-container.card {
+    width: 350px;
+    padding: 40px 40px;
+}
+
+.btn {
+    font-weight: 700;
+    height: 36px;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+
+/*
+ * Card component
+ */
+.card {
+    background-color: #F0F0F0;
+    /* just in case there no content*/
+    padding: 20px 25px 30px;
+    margin: 0 auto 25px;
+    margin-top: 50px;
+    /* shadows and rounded borders */
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    border-radius: 2px;
+    -moz-box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.3);
+    -webkit-box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.3);
+}
+
+.profile-img-card {
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 10px;
+    display: block;
+    -moz-border-radius: 50%;
+    -webkit-border-radius: 50%;
+    border-radius: 50%;
+}
+
+.profile-name-card {
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    margin: 10px 0 0;
+    min-height: 1em;
+}
+
+.form-signin .form-control:focus {
+    border-color: rgb(104, 145, 162);
+    outline: 0;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgb(104, 145, 162);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgb(104, 145, 162);
+}
+
+.btn.btn-signin {
+    /*background-color: #4d90fe; */
+    background-color: rgb(104, 145, 162);
+    /* background-color: linear-gradient(rgb(104, 145, 162), rgb(12, 97, 33));*/
+    padding: 0px;
+    font-weight: 700;
+    font-size: 14px;
+    height: 36px;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    border: none;
+    -o-transition: all 0.218s;
+    -moz-transition: all 0.218s;
+    -webkit-transition: all 0.218s;
+    transition: all 0.218s;
+}
+
+.btn.btn-signin:focus,
+.btn.btn-signin:hover {
+    border-color: black;
+}
+
+.label-profile {
+    padding-top: 10px;
+}
+
+.forgot-password {
+    color: rgb(104, 145, 162);
+}
+
+.forgot-password:hover,
+.forgot-password:active,
+.forgot-password:focus{
+    color: rgb(12, 97, 33);
+}
+
+/* experiments list table */
+
+.custab {
+    border: 1px solid #ccc;
+    background-color: #ffffff;
+    padding: 5px;
+    margin: auto;
+    box-shadow: 3px 3px 2px #ccc;
+    transition: 0.5s;
+    }
+
+.custab td{
+    white-space: nowrap;
+}
+
+.custab:hover{
+    box-shadow: 3px 3px 0px transparent;
+    transition: 0.5s;
+    }

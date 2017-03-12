@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {# Load the tag library #}
+
 {% load bootstrap3 %}
+
 <html lang="en-us">
 <head>
     <meta charset="utf-8"><!-- encoding characters -->
@@ -10,71 +12,46 @@
     {# Load CSS and JavaScript #}
     {% bootstrap_css %}
     {% bootstrap_javascript %}
+    <link rel="stylesheet" type="text/css" href="/static/css/base.css">
 </head>
-
-<!DOCTYPE html>
-
-<body class=" dashboard"
-  data-admin-utc-offset="-18000">
 
 {# Display django.contrib.messages as Bootstrap alerts #}
 {% bootstrap_messages %}
 
-<!-- Container -->
-<div id="container">
+<body>
 
-    <!-- Header -->
-    <div id="header">
-        <div id="branding">
+<!------Navbar ---------->
 
-        <h1 id="site-name">IBRI Toxicogenomics Platform</h1>
+<header class = "navbar navbar-inverse navbar-fixed-top" role = "banner">
+<div class = "container">
+    <div class ="navbar-header">
+        <button type = "button" class= "navbar-toggle" data-toggle = "collapse" data-target = "#dropdown">
+            <span class = "sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
 
-        </div>
+        <a href="/" class ="navbar-brand">IBRI Toxicogenomics Platform</a>
+    </div><!-- End Navbar Header-->
 
-
-        <div id="user-tools">
-
+    <div class = "collapse navbar-collapse" id = "dropdown">
+        <ul class = "nav navbar-nav navbar-right" role = "navigation">
                 {% if user.is_anonymous %}
-
-                    <a href="/">Home</a> |
-
-                    <a href="{% url 'login' %}">login</a>
-
+                    <li><a href="/">Home</a></li>
+                    <li><a href="{% url 'about' %}">About</a></li>
+                    <li><a href="{% url 'login' %}">Login</a></li>
                 {% else %}
+                    <li><a href="{% url "profile" %}">User: {{ user }}</a></li>
+                    <li><a href="{% url "tp:experiments" %}">Experiments</a></li>
+                    <li><a href="{% url "logout" %}">Log Out</a></li>
+                {%  endif %}
+        </ul>
 
-                    Welcome, <strong>{{ user }}</strong>.
+    </div><!-- End Nav Contents -->
+</div><!-- End Container -->
+</header>
 
-
-
-                   {% if user.is_superuser %}
-
-                        <a href="/">View Site</a> /
-
-                        <a href="/admin">Admin</a> /
-
-                        <a href="{% url "logout" %}">Log out</a>
-
-                   {%  else  %}
-
-                        <a href="/">Home</a> |
-
-                        <a href="/experiments">Experiments</a> |
-
-                        <a href="/profile">My Profile</a> |
-
-                        <a href="{%  url "logout" %}">Log out</a>
-
-                    {%  endif %}
-
-                {% endif %}
-
-        </div>
-
-
-
-    </div>
-    <!-- END Header -->
-</div>
 
 <div id="content">
 
@@ -82,14 +59,18 @@
 
 </div>
 
-<div id="footer" class="fillWidth">
-    <table class="baseFooter">
+<!-- Sticky Footer -->
+<footer class="footer">
+    <div class="container">
+        <table width="100%">
         <tr>
             <td><a HREF="http://indianabiosciences.org"><i>Indiana Biosciences Research Institute</i></a></td>
             <td align="right">Copyright &copy; 2017</td>
         </tr>
-    </table>
-</div>
+        </table>
+    </div>
+</footer>
+
 
 </body>
 

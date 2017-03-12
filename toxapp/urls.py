@@ -25,9 +25,11 @@ urlpatterns = [
 
     url(r'^profile/$', views.profile, name='profile'),
 
-    url(r'^', include('django.contrib.auth.urls')),
+    url(r'^about/$', views.about, name='about'),
 
     url(r'^admin/', admin.site.urls),
+
+    url(r'^', include('django.contrib.auth.urls')),
 
     url(r'', include('tp.urls', namespace='tp')),
 ]
