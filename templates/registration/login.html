@@ -34,8 +34,8 @@
             <!-- <p id="profile-name" class="profile-name-card"></p> -->
             <form method="post" action="{% url 'login' %}">
             {% csrf_token %}
-                {{  form.username|add_class:'form-control'|default_if_none:'Username' }}
-                {{  form.password|add_class:'form-control'|default_if_none:'Password' }} -->
+                {{  form.username|add_class:'form-control' }}
+                {{  form.password|add_class:'form-control' }}
                 <!--<input type="text" id="id_username" class="form-control" placeholder="Username" maxlength="245" required autofocus="">
                 <input type="password" id="id_password" class="form-control" placeholder="Password" required> -->
                 <div id="remember" class="checkbox">
