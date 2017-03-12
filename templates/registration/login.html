@@ -35,9 +35,9 @@
             <form method="post" action="{% url 'login' %}">
             {% csrf_token %}
                 {{  form.username|add_class:'form-control'|default_if_none:'Username' }}
-                {{  form.password|add_class:'form-control'|default_if_none:'Password' }}
-<!--                <input type="username" id="username" class="form-control" placeholder="Username" required autofocus>
-                <input type="password" id="password" class="form-control" placeholder="Password" required> -->
+                {{  form.password|add_class:'form-control'|default_if_none:'Password' }} -->
+                <!--<input type="text" id="id_username" class="form-control" placeholder="Username" maxlength="245" required autofocus="">
+                <input type="password" id="id_password" class="form-control" placeholder="Password" required> -->
                 <div id="remember" class="checkbox">
                     <label>
                         <input type="checkbox" value="remember-me"> Remember me
