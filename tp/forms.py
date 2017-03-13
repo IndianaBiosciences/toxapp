@@ -18,6 +18,10 @@ class ExperimentForm(ModelForm):
             'date_created': forms.TextInput(attrs={'class': 'datepicker'}),
         }
 
+class FilesForm(forms.Form):
+    single_file = forms.FileField(required=False, label="single file containing all samples")
+    multiple_files = forms.FileField(required=False, label="multiple files, one per sample", widget=forms.ClearableFileInput(attrs={'multiple': True}))
+
 
 class UploadDataForm(forms.Form):
     """ UploadDataForm -- form class to handle upload of sample data """

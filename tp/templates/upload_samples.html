@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+
+{% block content %}
+
+  <div>
+    Upload sample data for added experiments:
+    <ul>
+    {% for exp in added_exp_names %}
+      <li>{{ exp }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+
+  <div>
+    <strong>Choose one of the two upload options below</strong>
+  </div>
+
+  <div>
+    <form role="form" method="post" enctype="multipart/form-data" class="form-vertical">
+      {% csrf_token %}
+
+      Upload a single delimited (comma or tab) containing gene or probe identifiers in first column
+      and samples in additional columns; <strong>the column header will be the sample name</strong>
+
+      {% bootstrap_field form.single_file layout='vertical' %}
+
+      Upload multiple files, one per sample, which are either CEL files or a text file containing gene
+      or probe identifiers in column 1 and intensities in column 2. <strong>The sample name will be the file name after removing file extension</strong><br><br>
+
+      {% bootstrap_field form.multiple_files layout='vertical' %}
+      {% buttons submit='OK' reset="Cancel" %}{% endbuttons %}
+    </form>
+  </div>
+
+{% endblock content %}
