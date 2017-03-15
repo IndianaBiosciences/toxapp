@@ -8,11 +8,10 @@ from django.views.generic import ListView, DetailView, FormView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
 from django.core.files.storage import FileSystemStorage
-
 from tempfile import gettempdir
 
-from .models import Experiment
-from .forms import ExperimentForm, UploadDataForm, AnalyzeForm, FilesForm
+from .models import Experiment, Sample
+from .forms import ExperimentForm, SampleForm, SampleFormSet, UploadDataForm, AnalyzeForm, FilesForm
 
 import os
 import logging
@@ -68,6 +67,29 @@ def analyze(request):
     return render(request, 'analyze.html', {'form': form})
 
 
+def create_samples(request):
+    """ allow bulk creation/edit of samples from uploaded file """
+
+    if request.method == 'POST':
+        formset = SampleFormSet(request.POST)
+        if formset.is_valid():
+            formset.save()
+            return HttpResponseRedirect('/experiments/')
+
+    else:
+        initial = []
+        if request.session.get('added_samples', None) is None:
+            # TODO - want to put some sort of warning message into the HTML if this happens
+            logger.error('Did not retrieve samples from uploaded file; form will be blank')
+        else:
+            for sample in request.session['added_samples']:
+                initial.append({'sample_name':sample})
+
+        # get an empty form (in terms of existing samples) but pre-populate from loaded sample names
+        formset = SampleFormSet(queryset=Sample.objects.none(), initial=initial)
+        return render(request, 'samples_add_form.html', {'formset': formset})
+
+
 class ExperimentView(ListView):
     model = Experiment
     template_name = 'experiments_list.html'
@@ -120,7 +142,6 @@ class ExperimentCreate(SuccessURLMixin, CreateView):
 
 class ExperimentUpdate(SuccessURLMixin, UpdateView):
     """ ExperimentUpdate -- view class to handle updating values of a user experiment """
-
     model = Experiment
     template_name = 'experiment_form.html'
     form_class = ExperimentForm
@@ -141,16 +162,40 @@ class ExperimentUpdate(SuccessURLMixin, UpdateView):
 
 
 class ExperimentDelete(DeleteView):
+    """ ExperimentDelete -- view class to handle deletion of experiment """
     model = Experiment
     template_name = 'experiment_confirm_delete.html'
     success_url = reverse_lazy('tp:experiments')
 
 
+class SampleCreate(CreateView):
+    """ SampleCreate -- view class to handle creation of a user experiment """
+    model = Sample
+    template_name = 'sample_form.html'
+    form_class = SampleForm
+    success_url = reverse_lazy('tp:sample-add')
+
+
+class SampleUpdate(UpdateView):
+    """ SampleUpdate -- view class to handle updating values of a user sample """
+    model = Sample
+    template_name = 'sample_form.html'
+    form_class = SampleForm
+    success_url = reverse_lazy('tp:sample-add')
+
+
+class SampleDelete(DeleteView):
+    """ SampleDelete -- view class to handle deletion of sample """
+    model = Sample
+    template_name = 'sample_confirm_delete.html'
+    success_url = reverse_lazy('tp:experiments')
+
+
 class UploadSamplesView(FormView):
-    template_name = 'upload_samples.html'
+    template_name = 'samples_upload.html'
     form_class = FilesForm
     # TODO - change this to next step in flow
-    success_url = '/experiments'
+    success_url = reverse_lazy('tp:samples-add')
 
     def getTempDir(self):
 
@@ -208,6 +253,8 @@ class UploadSamplesView(FormView):
             else:
                 return self.form_invalid(form)
 
+            # store the newly added samples in session for next handler
+            self.request.session['added_samples'] = samples_added
 
             return self.form_valid(form)
 

@@ -89,3 +89,35 @@ class Experiment(models.Model):
 
     def __str__(self):
         return self.experiment_name
+
+
+class Sample(models.Model):
+
+    PERMISSION_TYPE = (
+        ('S', 'Private'),
+        ('G', 'Group'),
+        ('P', 'Public'),
+    )
+
+    sample_name = models.CharField(max_length=50)
+    date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
+    permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)
+
+    def __str__(self):
+        return self.sample_name
+
+
+class ExperimentSample(models.Model):
+
+    GROUP_TYPE = (
+        ('I', 'intervention'),
+        ('C', 'control'),
+    )
+
+    sample = models.ForeignKey(Sample)
+    experiment = models.ForeignKey(Experiment)
+    group_type = models.CharField(max_length=1, choices=GROUP_TYPE, default=GROUP_TYPE[0][0])
+
+    def __str__(self):
+        return self.group_type
