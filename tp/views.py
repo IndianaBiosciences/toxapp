@@ -126,9 +126,9 @@ class ExperimentCreate(SuccessURLMixin, CreateView):
     template_name = 'experiment_form.html'
     form_class = ExperimentForm
 
-    # TODO - form_valid doesn't yet have the object when create handler is used ... pick
-    # a different method to override
     def form_valid(self, form):
+
+        url = super(ExperimentCreate, self).form_valid(form)
 
         # add the ID of newly added exp to session
         session_exp = self.request.session.get('added_exps', None)
@@ -140,7 +140,7 @@ class ExperimentCreate(SuccessURLMixin, CreateView):
         self.request.session['added_exps'] = session_exp
         logger.info('Experiments in session %s', self.request.session['added_exps'])
 
-        return super(ExperimentCreate, self).form_valid(form)
+        return url
 
 
 class ExperimentUpdate(SuccessURLMixin, UpdateView):
@@ -152,8 +152,11 @@ class ExperimentUpdate(SuccessURLMixin, UpdateView):
     # TODO - delete this ... just for testing purposes, easier to edit exps than add from scratch
     def form_valid(self, form):
 
+        url = super(ExperimentUpdate, self).form_valid(form)
+
         # add the ID of newly added exp to session
         session_exp = self.request.session.get('added_exps', None)
+
         if session_exp and self.object.pk not in session_exp:
             session_exp.append(self.object.pk)
         else:
@@ -161,7 +164,7 @@ class ExperimentUpdate(SuccessURLMixin, UpdateView):
         self.request.session['added_exps'] = session_exp
         logger.info('Experiments in session %s', self.request.session['added_exps'])
 
-        return super(ExperimentUpdate, self).form_valid(form)
+        return url
 
 
 class ExperimentDelete(DeleteView):
