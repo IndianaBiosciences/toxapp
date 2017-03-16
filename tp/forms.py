@@ -50,4 +50,4 @@ class AnalyzeForm(forms.Form):
 # put customizations to the sample form in the SampleForm class
 # since this is being used with sample names supplied as initial values, don't present the delete option
 # i.e. they are not objects that need to be deleted; will use javascript to remove rows as needed
-SampleFormSet = modelformset_factory(Sample, form=SampleForm, extra=5, can_delete=False)
+SampleFormSet = modelformset_factory(Sample, form=SampleForm, extra=3, can_delete=False)

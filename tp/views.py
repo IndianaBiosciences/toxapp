@@ -15,7 +15,7 @@ from .forms import ExperimentForm, SampleForm, SampleFormSet, UploadDataForm, An
 
 import os
 import logging
-import pprint
+import pprint, json
 
 logger = logging.getLogger(__name__)
 
@@ -78,15 +78,18 @@ def create_samples(request):
 
     else:
         initial = []
+        extra = 0
         if request.session.get('added_samples', None) is None:
             # TODO - want to put some sort of warning message into the HTML if this happens
             logger.error('Did not retrieve samples from uploaded file; form will be blank')
         else:
             for sample in request.session['added_samples']:
                 initial.append({'sample_name':sample})
+                extra += 1
 
         # get an empty form (in terms of existing samples) but pre-populate from loaded sample names
         formset = SampleFormSet(queryset=Sample.objects.none(), initial=initial)
+        setattr(formset, 'extra', extra)
         return render(request, 'samples_add_form.html', {'formset': formset})
 
 

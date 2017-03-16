@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'bootstrap3',
     'widget_tweaks',
+    'django_bootstrap_dynamic_formsets',
     'tp',
 ]
 
