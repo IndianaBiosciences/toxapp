@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+
+{% block content %}
+
+<h3>Samples</h3>
+<ul>
+  {% for sample in samples %}
+    <li><a href="{% url 'tp:sample-update' pk=sample.pk %}"> {{ sample.sample_name }} </a></li>
+  {% empty %}
+      <li>No Samples yet.</li>
+  {% endfor %}
+</ul>
+
+{% endblock content %}

@@ -174,6 +174,12 @@ class ExperimentDelete(DeleteView):
     success_url = reverse_lazy('tp:experiments')
 
 
+class SampleView(ListView):
+    model = Sample
+    template_name = 'samples_list.html'
+    context_object_name = 'samples'
+
+
 class SampleCreate(CreateView):
     """ SampleCreate -- view class to handle creation of a user experiment """
     model = Sample
@@ -187,14 +193,14 @@ class SampleUpdate(UpdateView):
     model = Sample
     template_name = 'sample_form.html'
     form_class = SampleForm
-    success_url = reverse_lazy('tp:sample-add')
+    success_url = reverse_lazy('tp:samples')
 
 
 class SampleDelete(DeleteView):
     """ SampleDelete -- view class to handle deletion of sample """
     model = Sample
     template_name = 'sample_confirm_delete.html'
-    success_url = reverse_lazy('tp:experiments')
+    success_url = reverse_lazy('tp:samples')
 
 
 class UploadSamplesView(FormView):
@@ -266,3 +272,5 @@ class UploadSamplesView(FormView):
 
         else:
             return self.form_invalid(form)
+
+

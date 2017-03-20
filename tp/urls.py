@@ -15,6 +15,9 @@ urlpatterns = [
     url(r'^experiment/(?P<pk>[0-9]+)/$', views.ExperimentUpdate.as_view(), name='experiment-update'),
     url(r'^experiment/(?P<pk>[0-9]+)/delete/$', views.ExperimentDelete.as_view(), name='experiment-delete'),
 
+    # view all samples
+    url(r'^samples/$', views.SampleView.as_view(), name='samples'),
+
     # edit single sample;
     url(r'^sample/add/$', views.SampleCreate.as_view(), name='sample-add'),
     url(r'^sample/(?P<pk>[0-9]+)/$', views.SampleUpdate.as_view(), name='sample-update'),
