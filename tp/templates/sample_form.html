@@ -13,7 +13,7 @@
   {% endfor %}
   {% buttons layout='horizontal' %}
     {% bootstrap_button "Save" button_type="submit" name="_save" button_class="btn-primary" %}
-    <a class="btn btn-default" href="{% url 'tp:sample-delete'  pk=sample.pk %}">Delete</a>
+    {% bootstrap_button "Delete" button_type="submit" name="_delete" button_class="btn-default" %}
     <a class="btn btn-default" href="{% url 'tp:samples' %}">Cancel</a>
   {% endbuttons %}
 </form>

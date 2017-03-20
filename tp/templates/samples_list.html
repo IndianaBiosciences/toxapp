@@ -4,13 +4,13 @@
 
 {% block content %}
 
-<h3>Samples</h3>
-<ul>
-  {% for sample in samples %}
-    <li><a href="{% url 'tp:sample-update' pk=sample.pk %}"> {{ sample.sample_name }} </a></li>
-  {% empty %}
-      <li>No Samples yet.</li>
-  {% endfor %}
-</ul>
-
+  <h3>Samples</h3>
+  <ul>
+    {% for sample in samples %}
+      <li><a href="{% url 'tp:sample-update' pk=sample.pk %}"> {{ sample.sample_name }} </a></li>
+    {% empty %}
+        <li>No Samples yet.</li>
+    {% endfor %}
+  </ul>
+  <a href="{% url 'tp:sample-add' %}" class="btn btn-default addlink"><span class="glyphicon glyphicon-plus"></span> New Sample</a>
 {% endblock content %}

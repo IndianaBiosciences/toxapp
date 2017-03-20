@@ -99,7 +99,7 @@ class ExperimentView(ListView):
     context_object_name = 'experiments'
 
 
-class SuccessURLMixin(object):
+class ExperimentSuccessURLMixin(object):
 
     def get_success_url(self):
 
@@ -108,7 +108,9 @@ class SuccessURLMixin(object):
         elif self.request.POST.get('_continue') is not None:
             return reverse('tp:experiment-update', kwargs={'pk': self.object.pk})
         elif self.request.POST.get('_save') is not None:
-            return reverse('tp:samples-upload')  # TODO - update this to the add samples URL
+            return reverse('tp:samples-upload')
+        elif self.request.POST.get('_delete') is not None:
+            return reverse('tp:experiment-delete', kwargs={'pk': self.object.pk})
         else:
             # the default behavior for Experiment object
             return reverse('tp:samples-add')
@@ -119,7 +121,7 @@ class ExperimentDetailView(DetailView):
     template_name = 'experiment_detail.html'
 
 
-class ExperimentCreate(SuccessURLMixin, CreateView):
+class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
     """ ExperimentCreate -- view class to handle creation of a user experiment """
 
     model = Experiment
@@ -143,7 +145,7 @@ class ExperimentCreate(SuccessURLMixin, CreateView):
         return url
 
 
-class ExperimentUpdate(SuccessURLMixin, UpdateView):
+class ExperimentUpdate(ExperimentSuccessURLMixin, UpdateView):
     """ ExperimentUpdate -- view class to handle updating values of a user experiment """
     model = Experiment
     template_name = 'experiment_form.html'
@@ -174,13 +176,26 @@ class ExperimentDelete(DeleteView):
     success_url = reverse_lazy('tp:experiments')
 
 
+class SampleSuccessURLMixin(object):
+
+    def get_success_url(self):
+
+        if self.request.POST.get('_save') is not None:
+            return reverse('tp:sample-add')
+        elif self.request.POST.get('_delete') is not None:
+            return reverse('tp:sample-delete', kwargs={'pk': self.object.pk})
+        else:
+            # the default behavior for Sample object
+            return reverse('tp:samples')
+
+
 class SampleView(ListView):
     model = Sample
     template_name = 'samples_list.html'
     context_object_name = 'samples'
 
 
-class SampleCreate(CreateView):
+class SampleCreate(SampleSuccessURLMixin, CreateView):
     """ SampleCreate -- view class to handle creation of a user experiment """
     model = Sample
     template_name = 'sample_form.html'
@@ -188,7 +203,7 @@ class SampleCreate(CreateView):
     success_url = reverse_lazy('tp:sample-add')
 
 
-class SampleUpdate(UpdateView):
+class SampleUpdate(SampleSuccessURLMixin, UpdateView):
     """ SampleUpdate -- view class to handle updating values of a user sample """
     model = Sample
     template_name = 'sample_form.html'
@@ -225,7 +240,6 @@ class UploadSamplesView(FormView):
         context = super(UploadSamplesView, self).get_context_data(**kwargs)
 
         # display newly-added experiments at top of the form as an aid
-        # TODO - actually query the model and get the names, IDs are useless
         added_exps = self.request.session['added_exps']
         if not added_exps:
             logger.error('No added experiments cached in session')
