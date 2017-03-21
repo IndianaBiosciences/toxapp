@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import ModelForm, modelformset_factory
-from .models import Experiment, Sample
+from .models import Experiment, Sample, ExperimentSample
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,14 @@ class ExperimentForm(ModelForm):
         }
 
 
+class ExperimentFormNameOnly(ModelForm):
+    """ExperimentFormNameOnly -- form class to show list of experiments"""
+
+    class Meta:
+        model = Experiment
+        fields = ['experiment_name']
+
+
 class SampleForm(ModelForm):
     """SampleForm -- form class to handle experiment meta data"""
 
@@ -37,9 +45,11 @@ class FilesForm(forms.Form):
     multiple_files = forms.FileField(required=False, label="multiple files, one per sample", widget=forms.ClearableFileInput(attrs={'multiple': True}))
 
 
-class UploadDataForm(forms.Form):
-    """ UploadDataForm -- form class to handle upload of sample data """
-    experiment_name = forms.CharField(label='Experiment name', max_length=100)
+class ExperimentSampleForm(forms.Form):
+    """ ExperimentSampleForm -- form class to associate experiments and samples """
+    exp_id = forms.IntegerField(required=True, widget=forms.HiddenInput())
+    trt_samples = forms.ModelMultipleChoiceField(required=True, queryset=Sample.objects.all(), label="intervention (treatment) samples")
+    ctl_samples = forms.ModelMultipleChoiceField(required=True, queryset=Sample.objects.all(), label="control samples")
 
 
 class AnalyzeForm(forms.Form):
@@ -51,3 +61,4 @@ class AnalyzeForm(forms.Form):
 # since this is being used with sample names supplied as initial values, don't present the delete option
 # i.e. they are not objects that need to be deleted; will use javascript to remove rows as needed
 SampleFormSet = modelformset_factory(Sample, form=SampleForm, extra=3, can_delete=False)
+ExperimentFormSet = modelformset_factory(Experiment, form=ExperimentFormNameOnly, extra=0, can_delete=False)

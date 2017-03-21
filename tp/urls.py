@@ -15,6 +15,9 @@ urlpatterns = [
     url(r'^experiment/(?P<pk>[0-9]+)/$', views.ExperimentUpdate.as_view(), name='experiment-update'),
     url(r'^experiment/(?P<pk>[0-9]+)/delete/$', views.ExperimentDelete.as_view(), name='experiment-delete'),
 
+    # confirm / edit experiments for which data will be uploaded
+    url(r'^experiments_confirm/$', views.experiments_confirm, name='experiments-confirm'),
+
     # view all samples
     url(r'^samples/$', views.SampleView.as_view(), name='samples'),
 
@@ -29,8 +32,14 @@ urlpatterns = [
     # bulk-add and review samples from uploaded file
     url(r'^samples_add/$', views.create_samples, name='samples-add'),
 
-    # upload expression dialog
-    url(r'^upload_data/$', views.upload_data, name='upload_data'),
+    # associate newly added experiments with newly added samples
+    url(r'^experiment_sample_add/$', views.create_experiment_sample_pair, name='experient-sample-add'),
+
+    # display the configured experiment vs. sample pairs for group fold change calculation
+    url(r'^experiment_sample_confirm/$', views.confirm_experiment_sample_pair, name='experient-sample-confirm'),
+
+    # run the python/R process to calculate gene-level fold change values
+    url(r'^compute_fold_change/$', views.compute_fold_change, name='compute-fold-change'),
 
     # setup analysis
     url(r'^analyze/$', views.analyze, name='analyze'),

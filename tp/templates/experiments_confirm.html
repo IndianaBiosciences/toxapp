@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+{% load bootstrap_dynamic_formsets %}
+
+{% block content %}
+
+<div>
+  <strong>Review added experiments for which samples will be uploaded</strong>
+  <br><br>
+</div>
+
+<form method="post" action="">
+  {% csrf_token %}
+  {% bootstrap_dynamic_formset formset can_order=False can_delete=True layout="horizontal" %}
+  {% bootstrap_button "Save and continue" button_type="submit" button_class="btn-primary" %}
+  <a class="btn btn-default" href="{% url 'tp:experiments' %}">Cancel</a>
+</form>
+
+{% endblock content %}

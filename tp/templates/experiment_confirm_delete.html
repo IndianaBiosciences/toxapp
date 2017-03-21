@@ -2,10 +2,11 @@
 
 {% block content %}
 
-  <form action="" method="post">
-    {% csrf_token %}
-    Are you sure you want to delete experiment {{ experiment.experiment_name }}?<br>
-    <input class="btn btn-default" type="submit" value="Delete" />
-    <a class="btn btn-primary" href="{% url 'tp:experiment-update' pk=experiment.pk %}"> Cancel </a>
-  </form>
+<form action="" method="post">
+  {% csrf_token %}
+  Are you sure you want to delete experiment {{ experiment.experiment_name }}?<br>
+  <input class="btn btn-default" type="submit" value="Delete" />
+  <a class="btn btn-primary" href="{% url 'tp:experiment-update' pk=experiment.pk %}"> Cancel </a>
+</form>
+
 {% endblock content %}

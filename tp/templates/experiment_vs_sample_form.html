@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+
+{% block content %}
+
+<div>
+  Specify samples that define the intervention (i.e. treatment) and control for experiment:<br>
+  {# TODO better to show more than the name, i.e. mini-table with other attributes too #}
+  <strong>{{ selected_experiment.experiment_name }}</strong>
+  <br><br>
+</div>
+
+<form role="form" action="" class="form-horizontal" method="post">
+  {% csrf_token %}
+  {% bootstrap_form_errors form type='non_fields' %}
+  {# TODO - either use javascript or select2 and size the multiple selects based on content #}
+  {% for field in form %}
+    {% bootstrap_field field field_class='col-md-9 tallfield' layout='horizontal' %}
+  {% endfor %}
+  {% buttons layout='horizontal' %}
+    {% bootstrap_button "Save and continue" button_type="submit" name="_save" button_class="btn-primary" %}
+    <a class="btn btn-default" href="{% url 'tp:experiments' %}">Cancel</a>
+  {% endbuttons %}
+</form>
+
+{% endblock content %}

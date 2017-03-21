@@ -118,6 +118,8 @@ class ExperimentSample(models.Model):
     sample = models.ForeignKey(Sample)
     experiment = models.ForeignKey(Experiment)
     group_type = models.CharField(max_length=1, choices=GROUP_TYPE, default=GROUP_TYPE[0][0])
+    date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
 
     def __str__(self):
         return self.group_type

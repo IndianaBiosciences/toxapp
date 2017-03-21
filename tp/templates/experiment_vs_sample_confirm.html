@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+
+{% block content %}
+
+<div class="container">
+
+  <h4>Confirm experiment vs. sample association for analysis</h4>
+  <form action="" method="post">
+    {% csrf_token %}
+    <table class="table table-striped custab">
+      <tr>
+        <th>Experiment name</th>
+        <th>Sample name</th>
+        <th>Group type</th>
+      </tr>
+      {% for row in table %}
+      <tr>
+        <td>{{ row.experiment }}</td>
+        <td>{{ row.sample }}</td>
+        <td>{{ row.group_type }}</td>
+      </tr>
+      {% empty %}
+        <tr><td colspan="12">No experiment vs. sample pairs have been added yet.</td></tr>
+      {% endfor %}
+    </table>
+
+    {% buttons layout='horizontal' %}
+    {% bootstrap_button "Confirm" button_type="submit" button_class="btn-primary" %}
+    <a class="btn btn-default" href="{% url 'tp:experiments' %}"> Cancel </a>
+    {% endbuttons %}
+  </form>
+</div>
+
+{% endblock content %}

@@ -141,4 +141,8 @@ a.button_large {
 .custab:hover{
     box-shadow: 3px 3px 0px transparent;
     transition: 0.5s;
-    }
+}
+/* taller multiple select box on sample selection */
+.tallfield select[multiple]{
+    height: 200px;
+}
