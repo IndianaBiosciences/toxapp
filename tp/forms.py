@@ -52,6 +52,13 @@ class ExperimentSampleForm(forms.Form):
     ctl_samples = forms.ModelMultipleChoiceField(required=True, queryset=Sample.objects.all(), label="control samples")
 
 
+class ExperimentConfirmForm(forms.Form):
+    """ checkbox form to identify which of recently loaded experiments will have data loaded """
+    experiments = forms.ModelMultipleChoiceField(required=True,
+                                                 queryset=Experiment.objects.all(),
+                                                 widget=forms.CheckboxSelectMultiple(attrs={"checked":""}),
+                                                 label="experiments for data upload")
+
 class AnalyzeForm(forms.Form):
     """ AnalyzeForm -- form class to combine selected experiments and run the analysis """
     hello = "Hello"
@@ -61,4 +68,3 @@ class AnalyzeForm(forms.Form):
 # since this is being used with sample names supplied as initial values, don't present the delete option
 # i.e. they are not objects that need to be deleted; will use javascript to remove rows as needed
 SampleFormSet = modelformset_factory(Sample, form=SampleForm, extra=3, can_delete=False)
-ExperimentFormSet = modelformset_factory(Experiment, form=ExperimentFormNameOnly, extra=0, can_delete=False)

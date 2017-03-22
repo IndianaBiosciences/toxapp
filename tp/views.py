@@ -10,7 +10,7 @@ from django.urls import reverse_lazy, reverse
 from django.core.files.storage import FileSystemStorage
 from tempfile import gettempdir
 from .models import Experiment, Sample, ExperimentSample
-from .forms import ExperimentForm, SampleForm, ExperimentFormSet, SampleFormSet, AnalyzeForm, FilesForm, ExperimentSampleForm
+from .forms import ExperimentForm, SampleForm, SampleFormSet, AnalyzeForm, FilesForm, ExperimentSampleForm, ExperimentConfirmForm
 
 import os
 import logging
@@ -49,12 +49,14 @@ def experiments_confirm(request):
     """ allow editing of experiments for which data will be uploaded """
 
     if request.method == 'POST':
-        formset = ExperimentFormSet(request.POST)
-        logger.error('Have %s', pprint.pformat(formset))
-        if formset.is_valid():
-            added = formset.save(commit=False)
-            # add the saved sample IDs to session for experiment vs. sample association
-            request.session['added_exps'] = [o.pk for o in added]
+        form = ExperimentConfirmForm(request.POST)
+        if form.is_valid():
+
+            retained_ids = []
+            for exp in form.cleaned_data['experiments']:
+                retained_ids.append(exp.pk)
+
+            request.session['added_exps'] = retained_ids
             return HttpResponseRedirect(reverse('tp:samples-upload'))
 
     else:
@@ -65,8 +67,11 @@ def experiments_confirm(request):
 
         # get an empty form (in terms of existing samples) but pre-populate from loaded sample names
         exp_ids = request.session['added_exps']
-        formset = ExperimentFormSet(queryset=Experiment.objects.filter(pk__in=exp_ids))
-        return render(request, 'experiments_confirm.html', {'formset': formset})
+        form = ExperimentConfirmForm()
+        # override the default queryset which is all samples
+        form.fields['experiments'].queryset = Experiment.objects.filter(pk__in=exp_ids)
+        context = {'form': form}
+        return render(request, 'experiments_confirm.html', context)
 
 
 def create_samples(request):
@@ -75,11 +80,15 @@ def create_samples(request):
     if request.method == 'POST':
         formset = SampleFormSet(request.POST)
         if formset.is_valid():
+            # TODO - there's a bug whereby if one of the samples is deleted on the form
+            # the last one itself is not kept.  Not a simple matter of hitting null in list
+            # since you can delete the first one and 2, 3, ... come through just not the last one
+            # can also get this if you delete all orig ones and hand-enter new sample names
             added = formset.save()
+            logger.error('Content of added formset %s', pprint.pformat(added))
             # add the saved sample IDs to session for experiment vs. sample association
             request.session['added_samples'] = [o.pk for o in added]
             logger.error('Added the following session vars %s', request.session['added_samples'])
-            # TODO - adjust the redirect
             return HttpResponseRedirect(reverse('tp:experient-sample-add'))
 
     else:
