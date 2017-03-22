@@ -3,44 +3,52 @@
 {% block content %}
 
 <div class="container">
-         <h3>Available Experiments</h3>
-        <form action="/analyze/" method="post">{% csrf_token %}
-            <table class="table table-striped custab">
-                <tr>
-                    <th>Analyze</th>
-                    <th></th>
-                    <th>Experiment Name</th>
-                    <th>Compound Name</th>
-                    <th>Dose</th>
-                    <th>Time (days)</th>
-                    <th>Chip Name</th>
-                    <th>Organism</th>
-                    <th>Repeat Type</th>
-                    <th>Route</th>
-                    <th>Date Created</th>
-                </tr>
-            {% for exp in experiments %}
-                <tr>
-                    <td align="center"><input type="checkbox" id="selected_experiments" value="{{ exp.id }}"></td>
-                    <td><a href="/experiment/{{ exp.id }}" class="btn btn-default" title="Edit experiment {{ exp.id }}"><span class="glyphicon glyphicon-edit"></span></a></td>
-                    <td>{{ exp.experiment_name }}</td>
-                    <td>{{ exp.compound_name }}</td>
-                    <td>{{ exp.dose }} {{ exp.dose_unit }}</td>
-                    <td>{{ exp.time }}</td>
-                    <td>{{ exp.tech_detail }}</td>
-                    <td>{{ exp.organism }}</td>
-                    <td>{{ exp.single_repeat_type }}</td>
-                    <td>{{ exp.route }}</td>
-                    <td>{{ exp.date_created }}</td>
-                 </tr>
-            {% empty %}
-                <tr><td colspan="12">No experiments have been added yet.</td></tr>
-            {% endfor %}
-                <tr><th colspan="12"><input class="btn btn-primary" type="submit" value="Analyze Selected Experiments" />
-                    <a href="/experiment/add" class="btn btn-default" class="addlink"><span class="glyphicon glyphicon-plus"></span> New Experiment</a>
-                    </th></tr>
-                    </table>
-        </form>
+  <h3>Available Experiments</h3>
+  <form action="/analyze/" method="post">{% csrf_token %}
+    <table class="table table-striped custab">
+      <tr>
+        <th>Analyze</th>
+        <th></th>
+        <th>Experiment Name</th>
+        <th>Compound Name</th>
+        <th>Dose</th>
+        <th>Time (days)</th>
+        <th>Technology</th>
+        <th>Tissue</th>
+        <th>Organism</th>
+        <th>Repeat Type</th>
+        <th>Route</th>
+        <th>Date Created</th>
+      </tr>
+      {% for exp in experiments %}
+        <tr>
+          <td align="center"><input type="checkbox" id="selected_experiments" value="{{ exp.id }}"></td>
+          <td><a href="/experiment/{{ exp.id }}" class="btn btn-default" title="Edit experiment {{ exp.id }}"><span
+                  class="glyphicon glyphicon-edit"></span></a></td>
+          <td>{{ exp.experiment_name }}</td>
+          <td>{{ exp.compound_name }}</td>
+          <td>{{ exp.dose }} {{ exp.dose_unit }}</td>
+          <td>{{ exp.time }}</td>
+          <td>{{ exp.tech_detail }}</td>
+          <td>{{ exp.tissue }}</td>
+          <td>{{ exp.organism }}</td>
+          <td>{{ exp.single_repeat_type }}</td>
+          <td>{{ exp.route }}</td>
+          <td>{{ exp.date_created }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="12">No experiments have been added yet.</td>
+        </tr>
+      {% endfor %}
+      <tr>
+        <th colspan="12"><input class="btn btn-primary" type="submit" value="Analyze Selected Experiments"/>
+          <a href="/experiment/add" class="btn btn-default" class="addlink"><span
+                  class="glyphicon glyphicon-plus"></span> New Experiment</a>
+        </th>
+      </tr>
+    </table>
+  </form>
 </div>
 
 {% endblock content %}

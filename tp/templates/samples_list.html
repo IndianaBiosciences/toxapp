@@ -5,32 +5,36 @@
 {% block content %}
 
 <div class="container">
-    <h3>Available Samples</h3>
+  <h3>Available Samples</h3>
 
-    <table class="table table-striped custab">
+  <table class="table table-striped custab">
     <tr>
-        <th></th>
-        <th>Sample Name</th>
-        <th>Type</th>
-        <th>Attached to Experiment</th>
-        <th>Created</th>
+      <th></th>
+      <th>Sample Name</th>
+      <th>Type</th>
+      <th>Attached to Experiment</th>
+      <th>Created</th>
     </tr>
     {% for sample in samples %}
-    <tr>
-        <td><a href="/sample/{{ sample.id }}" class="btn btn-default" title="Edit sample {{ sample.sample_name }}"><span class="glyphicon glyphicon-edit"></span></a></td>
+      <tr>
+        <td><a href="/sample/{{ sample.id }}" class="btn btn-default"
+               title="Edit sample {{ sample.sample_name }}"><span class="glyphicon glyphicon-edit"></span></a></td>
         <td>{{ sample.sample_name }}</td>
         <td>{{ sample.group_type }}</td>
         <td>{{ sample.experiment.name }}</td>
         <td>{{ sample.date_created }}</td>
 
-    </tr>
+      </tr>
     {% empty %}
-    <tr>
-      <td colspan="4">No Samples yet.</td>
-    </tr>
+      <tr>
+        <td colspan="4">No Samples yet.</td>
+      </tr>
     {% endfor %}
-    </table>
-    <a href="{% url 'tp:sample-add' %}" class="btn btn-primary btn-default addlink"><span class="glyphicon glyphicon-plus"></span> New Sample Data</a>
-    <a href="{% url 'tp:samples-upload' %}" class="btn btn-default addlink"><span class="glyphicon glyphicon-file"></span>Upload Sample Files</a>
+  </table>
+  <a href="{% url 'tp:sample-add' %}" class="btn btn-primary btn-default addlink"><span
+          class="glyphicon glyphicon-plus"></span> New Sample Data</a>
+  <a href="{% url 'tp:samples-upload' %}" class="btn btn-default addlink"><span
+          class="glyphicon glyphicon-file"></span>Upload Sample Files</a>
+</div>
 
 {% endblock content %}
