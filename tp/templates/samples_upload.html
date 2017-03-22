@@ -4,34 +4,50 @@
 
 {% block content %}
 
-<div>
-  Upload sample data for added experiments:
-  <ul>
-  {% for exp in added_exp_names %}
-    <li>{{ exp }}</li>
-  {% endfor %}
-  </ul>
-</div>
-
-<div>
-  <strong>Choose one of the two upload options below</strong>
-</div>
-
-<div>
-  <form role="form" method="post" enctype="multipart/form-data" class="form-vertical">
-    {% csrf_token %}
-
-    Upload a single delimited (comma or tab) containing gene or probe identifiers in first column
-    and samples in additional columns; <strong>the column header will be the sample name</strong>
-
-    {% bootstrap_field form.single_file layout='vertical' %}
-
-    Upload multiple files, one per sample, which are either CEL files or a text file containing gene
-    or probe identifiers in column 1 and intensities in column 2. <strong>The sample name will be the file name after removing file extension</strong><br><br>
-
-    {% bootstrap_field form.multiple_files layout='vertical' %}
-    {% buttons submit='OK' reset="Cancel" %}{% endbuttons %}
-  </form>
+<div class="container">
+	<div class="row">
+		<div>
+              Recently added experiments (if any):
+              <ul>
+              {% for exp in added_exp_names %}
+                <li>{{ exp }}</li>
+              {% endfor %}
+              </ul>
+            <p>Upload samples by selecting either a single file that points to the location
+            of the samples -or- by uploading multiple files</p>
+            <form role="form" method="post" enctype="multipart/form-data" class="form-vertical">
+            {% csrf_token %}
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Upload Sample Files</h3>
+                    <span class="pull-right">
+                        <!-- Tabs -->
+                        <ul class="nav panel-tabs">
+                            <li class="active"><a href="#tab1" data-toggle="tab">Single</a></li>
+                            <li><a href="#tab2" data-toggle="tab">Multiple</a></li>
+                        </ul>
+                    </span>
+                </div>
+                <div class="panel-body">
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="tab1">
+                            Upload a single delimited (comma or tab) containing gene or probe identifiers in first column and samples in additional columns;<br>
+                            <strong>the column header will be the sample name</strong><br><br>
+                            {% bootstrap_field form.single_file layout='vertical' %}
+                        </div>
+                        <div class="tab-pane" id="tab2">
+                            Upload multiple files, one per sample, which are either CEL files or a text file containing gene or probe identifiers in column 1 and intensities in column 2.<br>
+                            <strong>The sample name will be the file name after removing file extension</strong><br><br>
+                            {% bootstrap_field form.multiple_files layout='vertical' %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <input class="btn btn-default" type="submit" value="Upload Files" />
+            <a class="btn btn-primary" href="{% url 'tp:experiments' %}"> Cancel </a>
+            </form>
+        </div>
+	</div>
 </div>
 
 {% endblock content %}

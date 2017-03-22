@@ -47,6 +47,7 @@
                 {% else %}
                     <li><a href="{% url "profile" %}">User: {{ user }}</a></li>
                     <li><a href="{% url "tp:experiments" %}">Experiments</a></li>
+                    <li><a href="{% url "tp:samples" %}">Samples</a></li>
                     <li><a href="{% url "logout" %}">Log Out</a></li>
                 {%  endif %}
         </ul>

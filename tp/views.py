@@ -19,7 +19,6 @@ import pprint, json
 
 logger = logging.getLogger(__name__)
 
-
 def index(request):
     """ the home page for tp """
     return render(request, 'index.html')
@@ -311,6 +310,7 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
         if session_exp and self.object.pk not in session_exp:
             session_exp.append(self.object.pk)
         else:
+            # initiate new session
             session_exp = [self.object.pk]
         self.request.session['added_exps'] = session_exp
 
