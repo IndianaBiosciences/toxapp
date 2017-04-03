@@ -90,6 +90,7 @@ DATABASES = {
         'USER': 'django_user',
         'PASSWORD': 'toxapp',
         'HOST': '127.0.0.1',
+        #'HOST': 'jeff-M4HM85P-00',
         'PORT': '5432',
     }
 }
@@ -138,3 +139,11 @@ LOGIN_REDIRECT_URL = '/experiments'
 LOGOUT_REDIRECT_URL = '/'
 
 BOOTSTRAP3 = {'include_jquery': True}
+
+# Celery settings
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+#: Only add pickle to this list if your broker is secured
+#: from unwanted access (see userguide/security.html)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_BACKEND = 'file:///tmp/celery/results'
+CELERY_TASK_SERIALIZER = 'json'

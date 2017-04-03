@@ -5,6 +5,7 @@ from celery import Celery
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'toxapp.settings')
 
+# run the worker as celery -A toxapp worker --loglevel=info
 app = Celery('toxapp')
 
 # Using a string here means the worker don't have to serialize
