@@ -14,7 +14,6 @@ from .forms import ExperimentForm, SampleForm, SampleFormSet, AnalyzeForm, Files
 
 import os
 import logging
-
 import pprint, json
 
 logger = logging.getLogger(__name__)
@@ -295,7 +294,7 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
             for f in fields:
                 initial[f] = getattr(last_exp, f)
 
-            logger.error('What we have for prepulated object %s', pprint.pformat(initial))
+            logger.info('What we have for prepopulated object %s', pprint.pformat(initial))
 
         return initial
 

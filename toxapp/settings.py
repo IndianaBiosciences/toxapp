@@ -27,7 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     '54.90.204.220',
-    '127.0.0.1'
+    '127.0.0.1',
+    '192.168.0.102',
 ]
 
 # Application definition
@@ -89,8 +90,8 @@ DATABASES = {
         'NAME': 'ibri',  # name of the database
         'USER': 'django_user',
         'PASSWORD': 'toxapp',
-        'HOST': '127.0.0.1',
-        #'HOST': 'jeff-M4HM85P-00',
+        #'HOST': '127.0.0.1',
+        'HOST': 'jeff-M4HM85P-00',
         'PORT': '5432',
     }
 }
@@ -147,3 +148,27 @@ CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_RESULT_BACKEND = 'file:///tmp/celery/results'
 CELERY_TASK_SERIALIZER = 'json'
+
+# logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        # controls logging level outside of django classes
+        '': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARN',
+            'propagate': True,
+        },
+    },
+}

@@ -82,6 +82,7 @@ class Experiment(models.Model):
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
     permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)
+    results_ready = models.BooleanField(default=False)
 
     def get_absolute_url(self):
         # don't forget the f*!#$@#% namespace prefix
@@ -123,3 +124,18 @@ class ExperimentSample(models.Model):
 
     def __str__(self):
         return self.group_type
+
+class FoldChangeResult(models.Model):
+
+    experiment = models.ForeignKey(Experiment)
+    gene_identifier = models.CharField(max_length=20)
+    log2_fc = models.DecimalField(max_digits=5, decimal_places=2)
+    n_trt = models.IntegerField()
+    n_ctl = models.IntegerField()
+    expression_ctl = models.DecimalField(max_digits=7, decimal_places=2)
+    log10_p = models.DecimalField(max_digits = 5, decimal_places=2)
+    log10_p_bh = models.DecimalField(max_digits = 5, decimal_places=2)
+
+    def __str__(self):
+        txt = "experiment {} vs gene {}".format(self.experiment, self.gene_identifier)
+        return txt
