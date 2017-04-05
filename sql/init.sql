@@ -1,4 +1,4 @@
--- log in via: psql -U postgres
+-- log in via: psql -U postgres on windows; sudo -i -u postgres on ubuntu
 create role dbadmin with superuser login password 'dbadmin';
 -- log in via psql -U dbadmin -d postgres
 create database ibri;

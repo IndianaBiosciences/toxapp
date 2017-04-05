@@ -14,7 +14,7 @@ class ExperimentForm(ModelForm):
         # fields = [f.name for f in model._meta.get_fields()]
         # TODO - neither of __all__ or exclude recommended due to security risks per doc
         # list explicitly once model is stable
-        exclude = ['owner']
+        exclude = ['owner', 'results_ready']
         widgets = {
             'date_created': forms.TextInput(attrs={'class': 'datepicker'}),
         }

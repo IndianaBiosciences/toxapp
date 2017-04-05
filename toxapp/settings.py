@@ -90,8 +90,8 @@ DATABASES = {
         'NAME': 'ibri',  # name of the database
         'USER': 'django_user',
         'PASSWORD': 'toxapp',
-        #'HOST': '127.0.0.1',
-        'HOST': 'jeff-M4HM85P-00',
+        'HOST': '127.0.0.1',
+        #'HOST': 'jeff-M4HM85P-00',
         'PORT': '5432',
     }
 }
@@ -172,3 +172,6 @@ LOGGING = {
         },
     },
 }
+
+# email backend for development purposes
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
