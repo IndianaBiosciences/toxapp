@@ -21,7 +21,9 @@ def process_user_files(tmpdir, config, email):
 
     # step1 - calculate group fold change and load data to the database
 
-    groupfc_file = Computation.calc_fold_change(tmpdir, config)
+    compute = Computation()
+    groupfc_file = compute.calc_fold_change(tmpdir, config)
+
     #TODO remove once meeta script running
     src = settings.BASE_DIR + '/data/sample_fc_data_DM_gemfibrozil_1d_7d_100mg_700_mg.txt'
     shutil.copyfile(src, groupfc_file)
@@ -32,13 +34,14 @@ def process_user_files(tmpdir, config, email):
         send_mail('IBRI tox portal results ready', message, 'do_not_reply@indianabiosciences.org', [email])
         return
 
-    status = load_group_fold_change(tmpdir, config)
+    status = load_group_fold_change(groupfc_file)
 
     if status is None:
         message = 'Failed to process and load gene-level fold change data; no further computations performed'
         logger.error(message)
         send_mail('IBRI tox portal results ready', message, 'do_not_reply@indianabiosciences.org', [email])
         return
+
 
 
 def load_group_fold_change(groupfc_file):
@@ -58,6 +61,8 @@ def load_group_fold_change(groupfc_file):
         for row in reader:
 
             exp_id = int(row[0])
+            #TODO - temp adjustment to match what's in DB
+            exp_id += 4
 
             # if we don't yet have the map from id to obj and the exp_id has changed, look it up
             if tried_expid.get(exp_id, None) is None and (last_exp_id is None or last_exp_id != exp_id):

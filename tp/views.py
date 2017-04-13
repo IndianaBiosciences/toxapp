@@ -13,6 +13,7 @@ from .models import Experiment, Sample, ExperimentSample
 from .forms import ExperimentForm, SampleForm, SampleFormSet, AnalyzeForm, FilesForm, ExperimentSampleForm, ExperimentConfirmForm
 
 import os
+import time
 import logging
 import pprint, json
 
@@ -54,6 +55,7 @@ def experiments_confirm(request):
             for exp in form.cleaned_data['experiments']:
                 retained_ids.append(exp.pk)
 
+            logger.debug('Experiments being saved in session: %s', retained_ids)
             request.session['added_exps'] = retained_ids
             return HttpResponseRedirect(reverse('tp:samples-upload'))
 
@@ -86,7 +88,7 @@ def create_samples(request):
             logger.error('Content of added formset %s', pprint.pformat(added))
             # add the saved sample IDs to session for experiment vs. sample association
             request.session['added_samples'] = [o.pk for o in added]
-            logger.error('Added the following session vars %s', request.session['added_samples'])
+            logger.debug('Added the following session vars %s', request.session['added_samples'])
             return HttpResponseRedirect(reverse('tp:experient-sample-add'))
 
     else:
@@ -308,9 +310,14 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
 
         if session_exp and self.object.pk not in session_exp:
             session_exp.append(self.object.pk)
+        # have a list of exps in session and this one already on this list
+        elif session_exp:
+            pass
+        # initiate new session
         else:
-            # initiate new session
             session_exp = [self.object.pk]
+
+        logger.debug('Experiments being saved in session: %s', session_exp)
         self.request.session['added_exps'] = session_exp
 
         return url
@@ -332,10 +339,15 @@ class ExperimentUpdate(ExperimentSuccessURLMixin, UpdateView):
 
         if session_exp and self.object.pk not in session_exp:
             session_exp.append(self.object.pk)
+        # have a list of exps in session and this one already on this list
+        elif session_exp:
+            pass
+        # initiate new session
         else:
             session_exp = [self.object.pk]
+
+        logger.debug('Experiments being saved in session: %s', session_exp)
         self.request.session['added_exps'] = session_exp
-        logger.info('Experiments in session %s', self.request.session['added_exps'])
 
         return url
 
@@ -410,9 +422,8 @@ class UploadSamplesView(FormView):
 
     def get_temp_dir(self):
 
-        # TODO - don't like the style ... get large negative numbers and directories like -123411321332
         if self.request.session.get('tmp_dir', None) is None:
-            tmp = os.path.join(gettempdir(), '.{}'.format(hash(os.times())))
+            tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
             os.makedirs(tmp)
             logger.error('Creating temporary working directory %s', tmp)
             self.request.session['tmp_dir'] = tmp

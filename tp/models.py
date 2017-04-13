@@ -5,17 +5,26 @@ from django.urls import reverse
 
 # Create your models here.
 
+class MeasurementTech(models.Model):
+
+    TECH_CHOICES = (
+        ('microarray', 'microarray'),
+        ('RNAseq', 'RNAseq'),
+    )
+
+    tech = models.CharField(max_length=20, choices=TECH_CHOICES, default=TECH_CHOICES[0][0])
+    #TODO - needs to be a choice defined upon upload of identifier to gene mapping
+    tech_detail = models.CharField(max_length=50) # type of microarray or sequencer
+
+    def __str__(self):
+        return self.tech_detail
+
 class Experiment(models.Model):
 
     PERMISSION_TYPE = (
         ('S', 'Private'),
         ('G', 'Group'),
         ('P', 'Public'),
-    )
-
-    TECH_CHOICES = (
-        ('microarray', 'microarray'),
-        ('RNAseq', 'RNAseq'),
     )
 
     TISSUE_CHOICES = (
@@ -59,26 +68,19 @@ class Experiment(models.Model):
     )
 
     experiment_name = models.CharField(max_length=200)
-
-    tech = models.CharField(max_length=20, choices=TECH_CHOICES, default=TECH_CHOICES[0][0])
-    tech_detail = models.CharField(max_length=50) # type of microarray or sequencer
-
+    tech = models.ForeignKey(MeasurementTech)
     study_id = models.CharField(blank=True, max_length=50) # source of sthe study, GEO accession etc
-
     compound_name = models.CharField(max_length=50)
     dose = models.DecimalField(max_digits=5, decimal_places=2)
     dose_unit = models.CharField(max_length=20)
     time = models.DecimalField(max_digits=3, decimal_places=2)
-
     tissue = models.CharField(max_length=20, choices=TISSUE_CHOICES, default=TISSUE_CHOICES[0][0])
     organism = models.CharField(max_length=20, choices=ORGANISM_CHOICES, default=ORGANISM_CHOICES[0][0])
     strain = models.CharField(max_length=50)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default=GENDER_CHOICES[0][0])
-
     single_repeat_type = models.CharField(max_length=10, choices=REPEAT_TYPE_CHOICES, default=REPEAT_TYPE_CHOICES[0][0])
     route = models.CharField(max_length=10, choices=ROUTE_CHOICES, default=ROUTE_CHOICES[0][0])
     source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_CHOICES[0][0])
-
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
     permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)
@@ -139,3 +141,6 @@ class FoldChangeResult(models.Model):
     def __str__(self):
         txt = "experiment {} vs gene {}".format(self.experiment, self.gene_identifier)
         return txt
+
+#class GeneIdentifierMap(models.Model):
+
