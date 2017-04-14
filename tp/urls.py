@@ -41,6 +41,9 @@ urlpatterns = [
     # run the python/R process to calculate gene-level fold change values
     url(r'^compute_fold_change/$', views.compute_fold_change, name='compute-fold-change'),
 
+    # upload a delimited file defining identifier vs. entrez gene for the measurement technology
+    url(r'^tech_map_upload/$', views.UploadTechMapView.as_view(), name='techmap-upload'),
+
     # setup analysis
     url(r'^analyze/$', views.analyze, name='analyze'),
     url(r'^analyze/(?P<pk>\d+)/$', views.analyze, name='analyze'),

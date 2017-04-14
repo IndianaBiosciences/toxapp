@@ -10,8 +10,8 @@ from django.urls import reverse_lazy, reverse
 from django.core.files.storage import FileSystemStorage
 from tempfile import gettempdir
 from .models import Experiment, Sample, ExperimentSample
-from .forms import ExperimentForm, SampleForm, SampleFormSet, AnalyzeForm, FilesForm, ExperimentSampleForm, ExperimentConfirmForm
-
+from .forms import ExperimentForm, SampleForm, SampleFormSet, AnalyzeForm, FilesForm, ExperimentSampleForm, ExperimentConfirmForm, MapFileForm
+from .tasks import load_measurement_tech_gene_map
 import os
 import time
 import logging
@@ -192,8 +192,7 @@ def confirm_experiment_sample_pair(request):
 
         tmpdir = request.session.get('tmp_dir')
         comput_rec = request.session.get('computation_recs')
-        localfile = tmpdir + '/computation_data.json'
-        file = os.path.abspath(localfile)
+        file = os.path.join(tmpdir, 'computation_data.json')
         logger.error('Have following as json job config file:  %s', file)
         with open(file, 'w') as outfile:
             json.dump(comput_rec, outfile)
@@ -482,3 +481,31 @@ class UploadSamplesView(FormView):
         else:
             return self.form_invalid(form)
 
+
+class UploadTechMapView(FormView):
+
+    template_name = 'techmap_upload.html'
+    form_class = MapFileForm
+    success_url = reverse_lazy('tp:experiment-add')
+
+    def post(self, request, *args, **kwargs):
+
+        form_class = self.get_form_class()
+        form = self.get_form(form_class)
+
+        #TODO - same thing as above, don't load into memory then dump out again
+        if form.is_valid() and request.FILES.get('map_file', None) is not None:
+            f = request.FILES.get('map_file')
+            tmpdir = request.session.get('tmp_dir')
+            fs = FileSystemStorage(location=tmpdir)
+            local_file = fs.save(f.name, f)
+            full_path_file = os.path.join(tmpdir, local_file)
+
+            status = load_measurement_tech_gene_map(full_path_file)
+            if status:
+                #TODO - should create a new success URL that loads a message showing name of array platform and number of recs loaded
+                return self.form_valid(form)
+            else:
+                return self.form_invalid(form)
+        else:
+            return self.form_invalid(form)

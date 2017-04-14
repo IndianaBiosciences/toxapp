@@ -9,7 +9,12 @@
   {% bootstrap_form_errors form type='non_fields' %}
 
   {% for field in form %}
-    {% bootstrap_field field layout='horizontal' %}
+    {% if field.name == 'tech' %}
+      {# TODO may need to be refactored to use widget in the form def in order to be able to use reverse url lookup  #}
+      {% bootstrap_field field layout='horizontal' addon_before='<a href="/tech_map_upload">Add</a>' %}
+    {% else %}
+      {% bootstrap_field field layout='horizontal' %}
+    {% endif %}
   {% endfor %}
   {% buttons layout='horizontal' %}
     {% bootstrap_button "Save and continue" button_type="submit" name="_save" button_class="btn-primary" %}

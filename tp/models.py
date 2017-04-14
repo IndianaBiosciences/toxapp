@@ -17,7 +17,8 @@ class MeasurementTech(models.Model):
     tech_detail = models.CharField(max_length=50) # type of microarray or sequencer
 
     def __str__(self):
-        return self.tech_detail
+        txt = "{}-{}".format(self.tech, self.tech_detail)
+        return txt
 
 class Experiment(models.Model):
 
@@ -127,6 +128,7 @@ class ExperimentSample(models.Model):
     def __str__(self):
         return self.group_type
 
+
 class FoldChangeResult(models.Model):
 
     experiment = models.ForeignKey(Experiment)
@@ -142,5 +144,13 @@ class FoldChangeResult(models.Model):
         txt = "experiment {} vs gene {}".format(self.experiment, self.gene_identifier)
         return txt
 
-#class GeneIdentifierMap(models.Model):
 
+class IdentifierVsGeneMap(models.Model):
+
+    tech = models.ForeignKey(MeasurementTech)
+    gene_identifier = models.CharField(max_length=20)
+    rat_entrez_gene = models.IntegerField()
+
+    def __str__(self):
+        txt = "{}-{}-{}".format(self.tech, self.gene_identifier, self.rat_entrez_gene)
+        return txt

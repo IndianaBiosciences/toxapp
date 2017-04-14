@@ -1,6 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
-from .models import Experiment, FoldChangeResult
+from .models import Experiment, FoldChangeResult, MeasurementTech, IdentifierVsGeneMap
 from django.conf import settings
 from django.core.mail import send_mail
 from src.Computation import Computation
@@ -102,3 +102,61 @@ def load_group_fold_change(groupfc_file):
     logging.info('Inserted %s records from file %s', insert_count, groupfc_file)
     return 1
 
+def load_measurement_tech_gene_map(file):
+
+    logger.info('Loading mapping of identifiers to genes for file %s', file)
+    required_cols = ['TECH', 'TECH_DETAIL', 'IDENTIFIER', 'RAT_ENTREZ_GENE']
+
+    #TODO - need a warning that existing data is overwritten
+    rownum = 0
+    insert_count = 0
+    tech_vs_obj = dict()
+    with open(file) as f:
+        dialect = csv.Sniffer().sniff(f.read(1024))
+        logger.info("Have delim %s", dialect.delimiter)
+        f.seek(0)
+        reader = csv.DictReader(f, dialect=dialect)
+        for row in reader:
+            rownum = rownum+1
+            tech = row['TECH']
+            tech_detail = row['TECH_DETAIL']
+            for col in required_cols:
+                if row[col]:
+                    pass
+                else:
+                    logger.error("Missing value of %s on row %s of file %s", col, rownum, file)
+                    return None
+
+            thistech = tech + "-" + tech_detail
+
+            tech_obj = tech_vs_obj.get(thistech, None)
+            # first time this measurement tech encountered in file - either create or retrieve apprpriate obj
+            if tech_obj is None:
+                tech_obj = query_or_create_measurement_tech(tech, tech_detail)
+                tech_vs_obj[thistech] = tech_obj
+
+            IdentifierVsGeneMap.objects.create(
+                tech = tech_obj,
+                gene_identifier = row['IDENTIFIER'],
+                rat_entrez_gene = row['RAT_ENTREZ_GENE']
+            )
+            insert_count += 1
+
+    logging.info('Inserted %s records from file %s', insert_count, file)
+    return insert_count
+
+def query_or_create_measurement_tech(tech, tech_detail):
+
+    logger.debug('Querying measurement tech on %s and %s', tech, tech_detail)
+
+    tech_obj = MeasurementTech.objects.filter(tech=tech, tech_detail=tech_detail).first()
+
+    if tech_obj is None:
+
+        logger.info('Measurement tech entry for %s-%s does not exist; creating', tech, tech_detail)
+        tech_obj = MeasurementTech.objects.create(
+                tech = tech,
+                tech_detail = tech_detail
+        )
+
+    return tech_obj

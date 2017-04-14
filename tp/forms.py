@@ -64,6 +64,11 @@ class AnalyzeForm(forms.Form):
     hello = "Hello"
 
 
+class MapFileForm(forms.Form):
+    """MapFileForm -- form class to upload a single file """
+    map_file = forms.FileField(required=True, label="upload a file mapping array / RNAseq identifiers to rat entrez gene IDs")
+
+
 # put customizations to the sample form in the SampleForm class
 # since this is being used with sample names supplied as initial values, don't present the delete option
 # i.e. they are not objects that need to be deleted; will use javascript to remove rows as needed
