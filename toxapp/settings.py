@@ -153,16 +153,25 @@ CELERY_TASK_SERIALIZER = 'json'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-
+    'formatters': {
+        'simple': {
+            'format': '%(levelname)s %(module)s %(message)s'
+        },
+        'detail': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(message)s'
+        },
+    },
     'handlers': {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logfile/toxapp.log'),
+            'formatter': 'detail'
         },
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
+            'formatter': 'simple'
         },
     },
     'loggers': {

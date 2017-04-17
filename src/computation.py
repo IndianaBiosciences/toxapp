@@ -61,10 +61,10 @@ class Computation:
                     return None
 
                 system = ":".join([row['tissue'], row['organism']])
-                md[system][row['module']]['genes'][row['rat_entrez_gene_id']] = row['loading']
-                md[system][row['module']]['stdev'] = row['pc1_stdev']
+                md[system][row['module']]['genes'][int(row['rat_entrez_gene_id'])] = float(row['loading'])
+                md[system][row['module']]['stdev'] = float(row['pc1_stdev'])
 
-        logger.debug('Read following module defs from file %s: %s', module_file, pprint.pformat(md, indent=4))
+        #logger.debug('Read following module defs from file %s: %s', module_file, pprint.pformat(md, indent=4))
 
         setattr(self, 'module_defs', md)
         setattr(self, 'module_file', module_file)
@@ -80,9 +80,9 @@ class Computation:
                     return None
 
                 system = ":".join([row['tissue'], row['organism'], row['tech'], row['tech_detail']])
-                gs[system][row['identifier']] = {'mean_fc':row['mean_fc'], 'stdev_fc':row['stdev_fc'], 'source':row['source']}
+                gs[system][row['identifier']] = {'mean_fc':float(row['mean_fc']), 'stdev_fc':float(row['stdev_fc']), 'source':row['source']}
 
-        logger.debug('Read following gene identifier stats from file %s: %s', genestats_file, pprint.pformat(gs, indent=4))
+        #logger.debug('Read following gene identifier stats from file %s: %s', genestats_file, pprint.pformat(gs, indent=4))
 
         setattr(self, 'gene_identifier_stats', gs)
         setattr(self, 'gene_identifier_stats_file', genestats_file)
@@ -106,8 +106,6 @@ class Computation:
         for r in identifiers:
             keep_rat_genes[r.rat_entrez_gene] = 1
 
-
-        logger.debug('Have following rat entrez genes to keep: %s', keep_rat_genes)
         gsa_info = collections.defaultdict(dict)
         gsa_genes = collections.defaultdict(dict)
 
@@ -140,15 +138,16 @@ class Computation:
                     logger.error('File %s contains undefined values for one or more required attributes %s', msigdb_file, ",".join(req_attr_msigdb))
                     return None
 
-                if keep_rat_genes.get(row['rat_entrez_gene'], None) is None:
+                rat_entrez_gene = int(row['rat_entrez_gene'])
+                if keep_rat_genes.get(rat_entrez_gene, None) is None:
                     continue
 
-                gsa_genes[row['sig_name']][row['rat_entrez_gene']] = 1
+                gsa_genes[row['sig_name']][rat_entrez_gene] = 1
                 if not row['sig_name'] in gsa_info:
                     gsa_info[row['sig_name']] = {'name': row['sig_name'], 'type': row['sub_category'], 'desc': row['description']}
 
         # eliminate gene sets too small / too large
-        sigs_to_drop = []
+        sigs_to_drop = list()
         for sig in gsa_info.keys():
             n_genes = len(gsa_genes[sig])
             if n_genes < 3 or n_genes > 5000:
@@ -158,7 +157,7 @@ class Computation:
         for s in sigs_to_drop:
             gsa_info.pop(s)
 
-        logger.debug('Read following gene set info from files %s and %s: %s', go_file, msigdb_file, pprint.pformat(gsa_info, indent=4))
+        #logger.debug('Read following gene set info from files %s and %s: %s', go_file, msigdb_file, pprint.pformat(gsa_info, indent=4))
         setattr(self, 'gsa_info', gsa_info)
 
         # prepare file suitable for R GSA calc
@@ -166,7 +165,7 @@ class Computation:
         #gmt = NamedTemporaryFile(delete=False, suffix='.gmt') # works on windows
         logger.debug('Have temporary GSA file %s', gmt.name)
         for sig in gsa_info.keys():
-            elements = [sig, 'no_link'] + list(gsa_genes[sig].keys())
+            elements = [sig, 'no_link'] + [str(g) for g in gsa_genes[sig].keys()]
             row = '\t'.join(elements) + '\n'
             row_as_bytes = str.encode(row)
             gmt.write(row_as_bytes)
