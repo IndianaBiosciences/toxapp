@@ -501,9 +501,10 @@ class UploadTechMapView(FormView):
             local_file = fs.save(f.name, f)
             full_path_file = os.path.join(tmpdir, local_file)
 
+            #TODO - either use it with the .delay option in celery or add a spinning bar to show upload in progress - takes ~1 minute for 15k recs
             status = load_measurement_tech_gene_map(full_path_file)
             if status:
-                #TODO - should create a new success URL that loads a message showing name of array platform and number of recs loaded
+                #TODO - could create a new success URL that loads a message showing name of array platforms and number of recs loaded
                 return self.form_valid(form)
             else:
                 return self.form_invalid(form)

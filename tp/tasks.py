@@ -3,7 +3,7 @@ from celery import shared_task
 from .models import Experiment, FoldChangeResult, MeasurementTech, IdentifierVsGeneMap
 from django.conf import settings
 from django.core.mail import send_mail
-from src.Computation import Computation
+from src.computation import Computation
 
 import shutil
 import logging
@@ -21,8 +21,8 @@ def process_user_files(tmpdir, config, email):
 
     # step1 - calculate group fold change and load data to the database
 
-    compute = Computation()
-    groupfc_file = compute.calc_fold_change(tmpdir, config)
+    compute = Computation(tmpdir)
+    groupfc_file = compute.calc_fold_change(config)
 
     #TODO remove once meeta script running
     src = settings.BASE_DIR + '/data/sample_fc_data_DM_gemfibrozil_1d_7d_100mg_700_mg.txt'
@@ -84,14 +84,14 @@ def load_group_fold_change(groupfc_file):
                 continue
 
             FoldChangeResult.objects.create(
-                experiment = current_exp,
-                gene_identifier = row[1],
-                log2_fc = row[2],
-                n_trt = row[3],
-                n_ctl = row[4],
-                expression_ctl = row[5],
-                log10_p = row[6],
-                log10_p_bh = row[7]
+                experiment=current_exp,
+                gene_identifier=row[1],
+                log2_fc=row[2],
+                n_trt=row[3],
+                n_ctl=row[4],
+                expression_ctl=row[5],
+                log10_p=row[6],
+                log10_p_bh=row[7]
             )
             insert_count += 1
 
@@ -113,7 +113,6 @@ def load_measurement_tech_gene_map(file):
     tech_vs_obj = dict()
     with open(file) as f:
         dialect = csv.Sniffer().sniff(f.read(1024))
-        logger.info("Have delim %s", dialect.delimiter)
         f.seek(0)
         reader = csv.DictReader(f, dialect=dialect)
         for row in reader:
@@ -136,9 +135,9 @@ def load_measurement_tech_gene_map(file):
                 tech_vs_obj[thistech] = tech_obj
 
             IdentifierVsGeneMap.objects.create(
-                tech = tech_obj,
-                gene_identifier = row['IDENTIFIER'],
-                rat_entrez_gene = row['RAT_ENTREZ_GENE']
+                tech=tech_obj,
+                gene_identifier=row['IDENTIFIER'],
+                rat_entrez_gene=row['RAT_ENTREZ_GENE']
             )
             insert_count += 1
 
@@ -155,8 +154,8 @@ def query_or_create_measurement_tech(tech, tech_detail):
 
         logger.info('Measurement tech entry for %s-%s does not exist; creating', tech, tech_detail)
         tech_obj = MeasurementTech.objects.create(
-                tech = tech,
-                tech_detail = tech_detail
+                tech=tech,
+                tech_detail=tech_detail
         )
 
     return tech_obj

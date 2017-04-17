@@ -153,7 +153,13 @@ CELERY_TASK_SERIALIZER = 'json'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+
     'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logfile/toxapp.log'),
+        },
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -162,7 +168,7 @@ LOGGING = {
     'loggers': {
         # controls logging level outside of django classes
         '': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
         },
         'django': {
