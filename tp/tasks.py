@@ -24,10 +24,6 @@ def process_user_files(tmpdir, config, email):
     compute = Computation(tmpdir)
     groupfc_file = compute.calc_fold_change(config)
 
-    #TODO remove once meeta script running
-    src = settings.BASE_DIR + '/data/sample_fc_data_DM_gemfibrozil_1d_7d_100mg_700_mg.txt'
-    shutil.copyfile(src, groupfc_file)
-
     if groupfc_file is None or not os.path.isfile(groupfc_file):
         message = 'Computation script failed to calculate fold change data'
         logger.error(message)
