@@ -1,7 +1,6 @@
 from tp.models import MeasurementTech, IdentifierVsGeneMap
 from django.conf import settings
 from tempfile import NamedTemporaryFile
-from pandas import DataFrame, read_csv
 
 import pprint
 import shutil
@@ -9,7 +8,6 @@ import logging
 import os
 import csv
 import collections
-import pandas as pd
 
 
 logger = logging.getLogger(__name__)
@@ -41,6 +39,11 @@ class Computation:
         #TODO - this is where Dan/Meeta plug in group fold change calc
         logger.info('Starting fold change calculation in directory %s using config %s', self.tmpdir, config)
         file = self.tmpdir + '/groupFC.txt'
+
+        # TODO remove once meeta script running
+        src = settings.BASE_DIR + '/data/sample_fc_data_DM_gemfibrozil_1d_7d_100mg_700_mg.txt'
+        shutil.copyfile(src, file)
+
         logger.info('Done fold change calculation; results in %s', file)
         return file
 
@@ -162,7 +165,6 @@ class Computation:
 
         # prepare file suitable for R GSA calc
         gmt = NamedTemporaryFile(delete=False, suffix='.gmt', dir=self.tmpdir)
-        #gmt = NamedTemporaryFile(delete=False, suffix='.gmt') # works on windows
         logger.debug('Have temporary GSA file %s', gmt.name)
         for sig in gsa_info.keys():
             elements = [sig, 'no_link'] + [str(g) for g in gsa_genes[sig].keys()]
@@ -173,3 +175,54 @@ class Computation:
 
         setattr(self, 'gsa_file', gmt.name)
         return 1
+
+    def map_fold_change_data(self, tech, tech_detail, fc_file):
+
+        """ read the fold change data and map to rat entrez gene IDs"""
+
+        tech_obj = MeasurementTech.objects.filter(tech=tech, tech_detail=tech_detail).first()
+        if tech_obj is None:
+            logger.error('Did not retrieve existing measurement tech for %s and %s', tech, tech_detail)
+            return None
+
+        identifiers = IdentifierVsGeneMap.objects.filter(tech=tech_obj).all()
+        if identifiers is None or len(identifiers) < 1000:
+            logger.error('Failed to retrieve at least 1000 identifiers for measurement platform %s-%s', tech, tech_detail)
+            return None
+
+        # map for converting measurement platform identifiers to rat entrez gene IDs
+        identifier_map = dict()
+        for r in identifiers:
+            identifier_map[r.gene_identifier] = r.rat_entrez_gene
+
+        # track identifiers that failed to convert to rat entrez
+        failed_map = dict()
+
+        # dictionary of log2 fc results keyed on experiment / gene identifier
+        fc_data = collections.defaultdict(dict)
+
+        # read the fold change data
+        req_attr = ['experiment', 'gene_identifier', 'log2_fc']
+        with open(fc_file) as f:
+            reader = csv.DictReader(f, delimiter='\t')
+            for row in reader:
+
+                if any(row[i] == '' for i in req_attr ):
+                    logger.error('File %s contains undefined values for one or more required attributes %s', fc_file, ",".join(req_attr))
+                    return None
+
+                rat_entrez = identifier_map.get(row['gene_identifier'], None)
+                exp = int(row['experiment'])
+
+                if rat_entrez is None:
+                    failed_map[row['gene_identifier']] = 1
+                    continue
+
+                if rat_entrez in fc_data.get(exp, {}):
+                    logger.error('Data already defined for experiment %s and rat entrez gene %s; multiple gene identifers for same gene?', exp, rat_entrez)
+                    continue
+
+                fc_data[exp][rat_entrez] = {'log2_fc': float(row['log2_fc'])}
+
+        #logger.debug('Have fold change data for file %s: %s', fc_file, pprint.pformat(fc_data))
+        return fc_data

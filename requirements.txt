@@ -3,4 +3,4 @@ django-bootstrap3
 django-widget-tweaks
 django-bootstrap-dynamic-formsets
 celery
-pandas
+
