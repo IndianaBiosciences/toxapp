@@ -24,6 +24,17 @@ def index(request):
     return render(request, 'index.html')
 
 
+def get_temp_dir(object):
+
+    if object.request.session.get('tmp_dir', None) is None:
+        tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
+        os.makedirs(tmp)
+        logger.error('Creating temporary working directory %s', tmp)
+        object.request.session['tmp_dir'] = tmp
+
+    return object.request.session['tmp_dir']
+
+
 def analyze(request):
     """ upload the data for the experiment after experiment meta data is captured"""
 
@@ -419,16 +430,6 @@ class UploadSamplesView(FormView):
     form_class = FilesForm
     success_url = reverse_lazy('tp:samples-add')
 
-    def get_temp_dir(self):
-
-        if self.request.session.get('tmp_dir', None) is None:
-            tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
-            os.makedirs(tmp)
-            logger.error('Creating temporary working directory %s', tmp)
-            self.request.session['tmp_dir'] = tmp
-
-        return self.request.session['tmp_dir']
-
     def get_context_data(self, **kwargs):
 
         context = super(UploadSamplesView, self).get_context_data(**kwargs)
@@ -456,7 +457,7 @@ class UploadSamplesView(FormView):
 
             samples_added = []
             if request.FILES.get('single_file', None) is not None:
-                tmpdir = self.get_temp_dir()
+                tmpdir = get_temp_dir(self)
                 f = request.FILES.get('single_file')
                 fs = FileSystemStorage(location=tmpdir)
                 fs.save(f.name, f)
@@ -464,7 +465,7 @@ class UploadSamplesView(FormView):
                 #samples_added = some_future_call()
             elif request.FILES.getlist('multiple_files'):
                 mult_files = request.FILES.getlist('multiple_files')
-                tmpdir = self.get_temp_dir()
+                tmpdir = get_temp_dir(self)
                 for f in mult_files:
                     sample_name = os.path.splitext(f.name)[0]
                     samples_added.append(sample_name)
@@ -496,7 +497,7 @@ class UploadTechMapView(FormView):
         #TODO - same thing as above, don't load into memory then dump out again
         if form.is_valid() and request.FILES.get('map_file', None) is not None:
             f = request.FILES.get('map_file')
-            tmpdir = request.session.get('tmp_dir')
+            tmpdir = get_temp_dir(self)
             fs = FileSystemStorage(location=tmpdir)
             local_file = fs.save(f.name, f)
             full_path_file = os.path.join(tmpdir, local_file)
