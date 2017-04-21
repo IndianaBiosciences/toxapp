@@ -1,4 +1,4 @@
-from tp.models import MeasurementTech, IdentifierVsGeneMap
+from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment
 from django.conf import settings
 from tempfile import NamedTemporaryFile
 
@@ -222,7 +222,80 @@ class Computation:
                     logger.error('Data already defined for experiment %s and rat entrez gene %s; multiple gene identifers for same gene?', exp, rat_entrez)
                     continue
 
-                fc_data[exp][rat_entrez] = {'log2_fc': float(row['log2_fc'])}
+                fc_data[exp][rat_entrez] = {'log2_fc': float(row['log2_fc']), 'identifier': row['gene_identifier']}
 
         #logger.debug('Have fold change data for file %s: %s', fc_file, pprint.pformat(fc_data))
         return fc_data
+
+    def score_modules(self, fc_data):
+
+        """ use data mapped to entrez gene for calculating module scores"""
+        if self.module_defs is None or self.gene_identifier_stats is None:
+            success = self.init_modules()
+            if not success:
+                logger.error('Failed to initiatize module calculation')
+                return None
+
+        md = self.module_defs
+        gs = self.gene_identifier_stats
+        warned_scaling = dict()
+
+        module_scores = list()
+        for exp_id in fc_data.keys():
+
+            try:
+                exp_obj = Experiment.objects.get(pk=exp_id)
+            except:
+                logger.error('Failed to retrieve meta data for exp id %s; must be loaded first', exp_id)
+                pass
+
+            system = ":".join([exp_obj.tissue, exp_obj.organism])
+            if md.get(system, None) is None:
+                default_system = 'liver:rat'
+                logger.warning('No module definitions for system %s; assuming %s', system, default_system)
+                system = default_system
+
+            systech = ":".join([exp_obj.tissue, exp_obj.organism, exp_obj.tech.tech, exp_obj.tech.tech_detail])
+            if gs.get(systech, None) is None:
+                default_systech = 'liver:rat:microarray:RG230-2'
+                logger.warning('No gene identifier scaling information for system %s, assuming %s but important to '
+                               'load for your system', systech, default_systech)
+                systech = default_systech
+
+            # scale log2fc using gene identifiers's log2fc variability
+            scaled_fc = dict()
+            for gene in fc_data[exp_id].keys():
+                identifier = fc_data[exp_id][gene]['identifier']
+                if gs[systech].get(identifier, None) is None:
+                    if warned_scaling[identifier] is None:
+                        logger.warning('No scaling data for gene identifier %s for system %s; skipping', identifier, systech)
+                        warned_scaling[identifier] = 1
+                    continue
+
+                stdev_fc = gs[systech][identifier]['stdev_fc']
+                fc_scaled = fc_data[exp_id][gene]['log2_fc']/stdev_fc
+                scaled_fc[gene] = fc_scaled
+
+            for m in md[system].keys():
+                modsum = 0
+                warned_gene = dict()
+                n_genes = 0
+
+                for gene in md[system][m]['genes'].keys():
+                    n_genes += 1
+                    if scaled_fc.get(gene, None) is None:
+                        warned_gene[gene] = 1
+                        continue
+                    modsum += scaled_fc[gene]*md[system][m]['genes'][gene]
+
+                modsum /= md[system][m]['stdev']
+                module_scores.append({'exp_id':exp_id, 'exp_obj':exp_obj, 'module':m, 'score':modsum})
+
+                n_missing = len(warned_gene)
+                ratio_missed = n_missing/n_genes
+                if ratio_missed > 0.30:
+                    logger.warning('Missing more than 30percent of genes (%s) for module %s of size %s; lower concern for small modules', n_missing, m, n_genes)
+
+        logger.debug('Have results from module scoring: %s', pprint.pformat(module_scores, indent=4))
+        return module_scores
+
