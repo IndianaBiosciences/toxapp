@@ -1,0 +1,584 @@
+WARNING 2017-04-20 01:15:56,560 base Not Found: /favicon.ico
+WARNING 2017-04-20 01:15:56,561 basehttp "GET /favicon.ico HTTP/1.1" 404 7359
+WARNING 2017-04-21 16:28:06,509 base Not Found: /favicon.ico
+WARNING 2017-04-21 16:28:06,510 basehttp "GET /favicon.ico HTTP/1.1" 404 7359
+ERROR 2017-04-21 16:28:59,304 exception Internal Server Error: /tech_map_upload/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 502, in post
+    full_path_file = os.path.join(tmpdir, local_file)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/posixpath.py", line 78, in join
+    a = os.fspath(a)
+TypeError: expected str, bytes or os.PathLike object, not NoneType
+ERROR 2017-04-21 16:28:59,355 basehttp "POST /tech_map_upload/ HTTP/1.1" 500 79757
+ERROR 2017-04-21 16:36:31,491 exception Internal Server Error: /tech_map_upload/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 502, in post
+    full_path_file = os.path.join(tmpdir, local_file)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/posixpath.py", line 78, in join
+    a = os.fspath(a)
+TypeError: expected str, bytes or os.PathLike object, not NoneType
+ERROR 2017-04-21 16:36:31,577 basehttp "POST /tech_map_upload/ HTTP/1.1" 500 79773
+WARNING 2017-04-22 11:45:12,738 base Not Found: /favicon.ico
+WARNING 2017-04-22 11:45:12,741 basehttp "GET /favicon.ico HTTP/1.1" 404 7359
+ERROR 2017-04-22 11:58:14,372 views Creating temporary working directory /var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/859588296483489110
+INFO 2017-04-22 11:58:14,374 tasks Loading mapping of identifiers to genes for file /var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/859588296483489110/example_identifer_map.txt
+DEBUG 2017-04-22 11:58:14,380 tasks Querying measurement tech on microarray and RG230-2
+INFO 2017-04-22 11:58:14,388 tasks Measurement tech entry for microarray-RG230-2 does not exist; creating
+INFO 2017-04-22 11:58:26,178 tasks Inserted 13582 records from file /var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/859588296483489110/example_identifer_map.txt
+DEBUG 2017-04-22 11:59:52,386 views Experiments being saved in session: [1]
+ERROR 2017-04-22 11:59:52,409 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 11:59:52,414 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 11:59:52,477 basehttp "GET /experiment/add/ HTTP/1.1" 500 98464
+INFO 2017-04-22 12:00:32,741 tasks Loading mapping of identifiers to genes for file /var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/859588296483489110/example_identifer_map_mW47Ztc.txt
+DEBUG 2017-04-22 12:00:32,747 tasks Querying measurement tech on microarray and RG230-2
+INFO 2017-04-22 12:00:44,700 tasks Inserted 13582 records from file /var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/859588296483489110/example_identifer_map_mW47Ztc.txt
+ERROR 2017-04-22 12:00:44,712 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 12:00:44,715 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 12:00:44,778 basehttp "GET /experiment/add/ HTTP/1.1" 500 98465
+ERROR 2017-04-22 12:01:21,931 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 12:01:21,935 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 12:01:22,005 basehttp "GET /experiment/add/ HTTP/1.1" 500 98326
+ERROR 2017-04-22 12:09:56,264 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 12:09:56,267 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 12:09:56,386 basehttp "GET /experiment/add/ HTTP/1.1" 500 98461
+ERROR 2017-04-22 12:10:01,194 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 12:10:01,197 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 12:10:01,328 basehttp "GET /experiment/add/ HTTP/1.1" 500 98461
+WARNING 2017-04-22 12:10:06,029 base Not Found: /experiment
+WARNING 2017-04-22 12:10:06,030 basehttp "GET /experiment HTTP/1.1" 404 7356
+ERROR 2017-04-22 12:10:53,965 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 12:10:53,972 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 12:10:54,165 basehttp "GET /experiment/add/ HTTP/1.1" 500 98326
+ERROR 2017-04-22 12:12:23,834 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 12:12:23,838 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 12:12:23,908 basehttp "GET /experiment/add/ HTTP/1.1" 500 98326
+ERROR 2017-04-22 12:12:28,208 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 12:12:28,212 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 12:12:28,276 basehttp "GET /experiment/add/ HTTP/1.1" 500 98326
+DEBUG 2017-04-22 12:14:07,646 views Experiments being saved in session: [1]
+ERROR 2017-04-22 12:14:07,664 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 12:14:07,667 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 12:14:07,727 basehttp "GET /experiment/add/ HTTP/1.1" 500 98462
+ERROR 2017-04-22 12:14:23,857 views Retrieved prior experiment ID 1
+ERROR 2017-04-22 12:14:23,861 exception Internal Server Error: /experiment/add/
+Traceback (most recent call last):
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = get_response(request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 187, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/core/handlers/base.py", line 185, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 68, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/base.py", line 88, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 213, in get
+    return super(BaseCreateView, self).get(request, *args, **kwargs)
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 174, in get
+    return self.render_to_response(self.get_context_data())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 93, in get_context_data
+    kwargs['form'] = self.get_form()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 45, in get_form
+    return form_class(**self.get_form_kwargs())
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 138, in get_form_kwargs
+    kwargs = super(ModelFormMixin, self).get_form_kwargs()
+  File "/Users/danielrobertson/anaconda3/lib/python3.6/site-packages/django/views/generic/edit.py", line 52, in get_form_kwargs
+    'initial': self.get_initial(),
+  File "/Users/danielrobertson/Projects/toxapp/tp/views.py", line 307, in get_initial
+    initial[f] = getattr(last_exp, f)
+AttributeError: 'Experiment' object has no attribute 'tech_detail'
+ERROR 2017-04-22 12:14:23,928 basehttp "GET /experiment/add/ HTTP/1.1" 500 98327
+ERROR 2017-04-22 12:16:40,024 views Retrieved prior experiment ID 1
+INFO 2017-04-22 12:16:40,028 views What we have for prepopulated object {'compound_name': 'Na Cholate',
+ 'dose': Decimal('500.00'),
+ 'dose_unit': 'mg/kg',
+ 'experiment_name': 'GGF Test Exp 2',
+ 'gender': 'mixed',
+ 'organism': 'rat',
+ 'route': 'diet',
+ 'single_repeat_type': 'single',
+ 'source': 'TG',
+ 'strain': 'N/A',
+ 'study_id': '142',
+ 'tech': <MeasurementTech: microarray-RG230-2>,
+ 'time': Decimal('8.00'),
+ 'tissue': 'liver'}
+ERROR 2017-04-22 12:16:46,568 views Retrieved prior experiment ID 1
+INFO 2017-04-22 12:16:46,571 views What we have for prepopulated object {'compound_name': 'Na Cholate',
+ 'dose': Decimal('500.00'),
+ 'dose_unit': 'mg/kg',
+ 'experiment_name': 'GGF Test Exp 2',
+ 'gender': 'mixed',
+ 'organism': 'rat',
+ 'route': 'diet',
+ 'single_repeat_type': 'single',
+ 'source': 'TG',
+ 'strain': 'N/A',
+ 'study_id': '142',
+ 'tech': <MeasurementTech: microarray-RG230-2>,
+ 'time': Decimal('8.00'),
+ 'tissue': 'liver'}
+DEBUG 2017-04-22 12:16:46,587 views Experiments being saved in session: [1, 2]
+ERROR 2017-04-22 12:16:46,599 views Retrieved prior experiment ID 2
+INFO 2017-04-22 12:16:46,603 views What we have for prepopulated object {'compound_name': 'Na Cholate',
+ 'dose': Decimal('500.00'),
+ 'dose_unit': 'mg/kg',
+ 'experiment_name': 'GGF Test Exp 2',
+ 'gender': 'mixed',
+ 'organism': 'rat',
+ 'route': 'diet',
+ 'single_repeat_type': 'single',
+ 'source': 'TG',
+ 'strain': 'N/A',
+ 'study_id': '142',
+ 'tech': <MeasurementTech: microarray-RG230-2>,
+ 'time': Decimal('8.00'),
+ 'tissue': 'liver'}
+ERROR 2017-04-22 12:17:10,227 views Retrieved prior experiment ID 2
+INFO 2017-04-22 12:17:10,231 views What we have for prepopulated object {'compound_name': 'Na Cholate',
+ 'dose': Decimal('500.00'),
+ 'dose_unit': 'mg/kg',
+ 'experiment_name': 'GGF Test Exp 2',
+ 'gender': 'mixed',
+ 'organism': 'rat',
+ 'route': 'diet',
+ 'single_repeat_type': 'single',
+ 'source': 'TG',
+ 'strain': 'N/A',
+ 'study_id': '142',
+ 'tech': <MeasurementTech: microarray-RG230-2>,
+ 'time': Decimal('8.00'),
+ 'tissue': 'liver'}
+ERROR 2017-04-22 12:17:35,788 views Retrieved prior experiment ID 2
+INFO 2017-04-22 12:17:35,793 views What we have for prepopulated object {'compound_name': 'Na Cholate',
+ 'dose': Decimal('500.00'),
+ 'dose_unit': 'mg/kg',
+ 'experiment_name': 'GGF Test Exp 2',
+ 'gender': 'mixed',
+ 'organism': 'rat',
+ 'route': 'diet',
+ 'single_repeat_type': 'single',
+ 'source': 'TG',
+ 'strain': 'N/A',
+ 'study_id': '142',
+ 'tech': <MeasurementTech: microarray-RG230-2>,
+ 'time': Decimal('8.00'),
+ 'tissue': 'liver'}
+DEBUG 2017-04-22 12:17:35,802 views Experiments being saved in session: [1, 2, 3]
+ERROR 2017-04-22 12:17:35,818 views Retrieved prior experiment ID 3
+INFO 2017-04-22 12:17:35,824 views What we have for prepopulated object {'compound_name': 'Na Cholate',
+ 'dose': Decimal('500.00'),
+ 'dose_unit': 'mg/kg',
+ 'experiment_name': 'GGF Test Exp 2',
+ 'gender': 'mixed',
+ 'organism': 'rat',
+ 'route': 'diet',
+ 'single_repeat_type': 'single',
+ 'source': 'TG',
+ 'strain': 'N/A',
+ 'study_id': '142',
+ 'tech': <MeasurementTech: microarray-RG230-2>,
+ 'time': Decimal('1.50'),
+ 'tissue': 'liver'}
+ERROR 2017-04-22 12:17:45,247 views Retrieved prior experiment ID 3
+INFO 2017-04-22 12:17:45,253 views What we have for prepopulated object {'compound_name': 'Na Cholate',
+ 'dose': Decimal('500.00'),
+ 'dose_unit': 'mg/kg',
+ 'experiment_name': 'GGF Test Exp 2',
+ 'gender': 'mixed',
+ 'organism': 'rat',
+ 'route': 'diet',
+ 'single_repeat_type': 'single',
+ 'source': 'TG',
+ 'strain': 'N/A',
+ 'study_id': '142',
+ 'tech': <MeasurementTech: microarray-RG230-2>,
+ 'time': Decimal('1.50'),
+ 'tissue': 'liver'}
+DEBUG 2017-04-22 12:17:45,267 views Experiments being saved in session: [1, 2, 3, 4]
+ERROR 2017-04-22 12:17:45,285 views Retrieved prior experiment ID 4
+INFO 2017-04-22 12:17:45,288 views What we have for prepopulated object {'compound_name': 'Na Cholate',
+ 'dose': Decimal('500.00'),
+ 'dose_unit': 'mg/kg',
+ 'experiment_name': 'GGF Test Exp 2',
+ 'gender': 'mixed',
+ 'organism': 'rat',
+ 'route': 'diet',
+ 'single_repeat_type': 'single',
+ 'source': 'TG',
+ 'strain': 'N/A',
+ 'study_id': '142',
+ 'tech': <MeasurementTech: microarray-RG230-2>,
+ 'time': Decimal('2.90'),
+ 'tissue': 'liver'}
+ERROR 2017-04-22 12:22:49,172 views Content of added formset [<Sample: 003017906016>,
+ <Sample: 003017906002>,
+ <Sample: 003017906009>,
+ <Sample: 003017911029>,
+ <Sample: 003017906018>,
+ <Sample: 003017906020>,
+ <Sample: 003017905029>,
+ <Sample: 003017906014>,
+ <Sample: 003017906007>,
+ <Sample: 003017906015>,
+ <Sample: 003017905030>,
+ <Sample: 003017906010>,
+ <Sample: 003017906021>,
+ <Sample: 003017906003>,
+ <Sample: 003017906011>,
+ <Sample: 003017906001>,
+ <Sample: 003017906005>,
+ <Sample: 003017906006>,
+ <Sample: 003017905028>,
+ <Sample: 003017906012>,
+ <Sample: 003017906013>,
+ <Sample: 003017906019>,
+ <Sample: 003017906004>,
+ <Sample: 003017906008>]
+DEBUG 2017-04-22 12:22:49,175 views Added the following session vars [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+DEBUG 2017-04-22 12:23:22,387 views Experiments being saved in session: [1, 2, 3, 4]
+DEBUG 2017-04-22 12:23:59,383 views Experiments being saved in session: [1, 2, 3, 4]
+DEBUG 2017-04-22 12:24:13,406 views Experiments being saved in session: [1, 2, 3, 4]
+DEBUG 2017-04-22 12:24:35,996 views Experiments being saved in session: [1, 2, 3, 4]
+DEBUG 2017-04-22 12:25:07,258 views Experiments being saved in session: [1, 2, 3, 4]
+DEBUG 2017-04-22 12:25:30,609 views Experiments being saved in session: [1, 2, 3, 4]
+DEBUG 2017-04-22 12:39:02,361 views Experiments being saved in session: [1, 2, 3, 4]
+DEBUG 2017-04-22 12:39:06,371 views Experiments being saved in session: [1, 2, 3, 4]
+DEBUG 2017-04-22 13:14:08,833 views Experiments being saved in session: [1, 2, 3, 4]
+DEBUG 2017-04-22 13:16:02,852 views Experiments being saved in session: [1, 2, 3, 4]
+ERROR 2017-04-22 13:18:30,198 views Content of added formset [<Sample: 4day_c1>,
+ <Sample: 4day_c2>,
+ <Sample: 4day_c3>,
+ <Sample: 4day_h1>,
+ <Sample: 4day_h2>,
+ <Sample: 4day_h3>,
+ <Sample: 8day_c1>,
+ <Sample: 8day_c2>,
+ <Sample: 8day_c3>,
+ <Sample: 8day_h1>,
+ <Sample: 8day_h2>,
+ <Sample: 8day_h3>,
+ <Sample: 15day_c1>,
+ <Sample: 15day_c2>,
+ <Sample: 15day_c3>,
+ <Sample: 15day_h1>,
+ <Sample: 15day_h2>,
+ <Sample: 15day_h3>,
+ <Sample: 29day_c1>,
+ <Sample: 29day_c2>,
+ <Sample: 29day_c3>,
+ <Sample: 29day_h1>,
+ <Sample: 29day_h2>,
+ <Sample: 29day_h3>]
+DEBUG 2017-04-22 13:18:30,201 views Added the following session vars [25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]
+ERROR 2017-04-22 13:20:41,177 views what we have in session [{'experiment': {'exp_id': 1, 'exp_name': 'GGF Test Exp 4d'},
+  'experiment_vs_sample': [1, 2, 3, 4, 5, 6],
+  'sample': [{'sample_id': 28, 'sample_name': '4day_h1'},
+             {'sample_id': 29, 'sample_name': '4day_h2'},
+             {'sample_id': 30, 'sample_name': '4day_h3'},
+             {'sample_id': 25, 'sample_name': '4day_c1'},
+             {'sample_id': 26, 'sample_name': '4day_c2'},
+             {'sample_id': 27, 'sample_name': '4day_c3'}]},
+ {'experiment': {'exp_id': 2, 'exp_name': 'GGF Test 8d Exp'},
+  'experiment_vs_sample': [7, 8, 9, 10, 11, 12],
+  'sample': [{'sample_id': 34, 'sample_name': '8day_h1'},
+             {'sample_id': 35, 'sample_name': '8day_h2'},
+             {'sample_id': 36, 'sample_name': '8day_h3'},
+             {'sample_id': 31, 'sample_name': '8day_c1'},
+             {'sample_id': 32, 'sample_name': '8day_c2'},
+             {'sample_id': 33, 'sample_name': '8day_c3'}]},
+ {'experiment': {'exp_id': 3, 'exp_name': 'GGF Test 15d Exp'},
+  'experiment_vs_sample': [13, 14, 15, 16, 17, 18],
+  'sample': [{'sample_id': 40, 'sample_name': '15day_h1'},
+             {'sample_id': 41, 'sample_name': '15day_h2'},
+             {'sample_id': 42, 'sample_name': '15day_h3'},
+             {'sample_id': 37, 'sample_name': '15day_c1'},
+             {'sample_id': 38, 'sample_name': '15day_c2'},
+             {'sample_id': 39, 'sample_name': '15day_c3'}]},
+ {'experiment': {'exp_id': 4, 'exp_name': 'GGF Test 29d Exp'},
+  'experiment_vs_sample': [19, 20, 21, 22, 23, 24],
+  'sample': [{'sample_id': 46, 'sample_name': '29day_h1'},
+             {'sample_id': 47, 'sample_name': '29day_h2'},
+             {'sample_id': 48, 'sample_name': '29day_h3'},
+             {'sample_id': 43, 'sample_name': '29day_c1'},
+             {'sample_id': 44, 'sample_name': '29day_c2'},
+             {'sample_id': 45, 'sample_name': '29day_c3'}]}]
+ERROR 2017-04-22 13:20:41,184 views Content of row I, 4day_h1, GGF Test Exp 4d
+ERROR 2017-04-22 13:20:41,187 views Content of row I, 4day_h2, GGF Test Exp 4d
+ERROR 2017-04-22 13:20:41,189 views Content of row I, 4day_h3, GGF Test Exp 4d
+ERROR 2017-04-22 13:20:41,191 views Content of row C, 4day_c1, GGF Test Exp 4d
+ERROR 2017-04-22 13:20:41,193 views Content of row C, 4day_c2, GGF Test Exp 4d
+ERROR 2017-04-22 13:20:41,197 views Content of row C, 4day_c3, GGF Test Exp 4d
+ERROR 2017-04-22 13:20:41,199 views Content of row I, 8day_h1, GGF Test 8d Exp
+ERROR 2017-04-22 13:20:41,201 views Content of row I, 8day_h2, GGF Test 8d Exp
+ERROR 2017-04-22 13:20:41,203 views Content of row I, 8day_h3, GGF Test 8d Exp
+ERROR 2017-04-22 13:20:41,205 views Content of row C, 8day_c1, GGF Test 8d Exp
+ERROR 2017-04-22 13:20:41,207 views Content of row C, 8day_c2, GGF Test 8d Exp
+ERROR 2017-04-22 13:20:41,209 views Content of row C, 8day_c3, GGF Test 8d Exp
+ERROR 2017-04-22 13:20:41,212 views Content of row I, 15day_h1, GGF Test 15d Exp
+ERROR 2017-04-22 13:20:41,214 views Content of row I, 15day_h2, GGF Test 15d Exp
+ERROR 2017-04-22 13:20:41,218 views Content of row I, 15day_h3, GGF Test 15d Exp
+ERROR 2017-04-22 13:20:41,220 views Content of row C, 15day_c1, GGF Test 15d Exp
+ERROR 2017-04-22 13:20:41,222 views Content of row C, 15day_c2, GGF Test 15d Exp
+ERROR 2017-04-22 13:20:41,223 views Content of row C, 15day_c3, GGF Test 15d Exp
+ERROR 2017-04-22 13:20:41,225 views Content of row I, 29day_h1, GGF Test 29d Exp
+ERROR 2017-04-22 13:20:41,228 views Content of row I, 29day_h2, GGF Test 29d Exp
+ERROR 2017-04-22 13:20:41,230 views Content of row I, 29day_h3, GGF Test 29d Exp
+ERROR 2017-04-22 13:20:41,232 views Content of row C, 29day_c1, GGF Test 29d Exp
+ERROR 2017-04-22 13:20:41,235 views Content of row C, 29day_c2, GGF Test 29d Exp
+ERROR 2017-04-22 13:20:41,237 views Content of row C, 29day_c3, GGF Test 29d Exp
+ERROR 2017-04-22 13:22:02,749 views Have following as json job config file:  /var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/859588296483489110/computation_data.json
