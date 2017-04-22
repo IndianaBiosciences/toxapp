@@ -301,7 +301,7 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
             logger.error('Retrieved prior experiment ID %s', last_exp_id)
             last_exp = Experiment.objects.get(pk=last_exp_id)
             # TODO - remove experiment name assuming that this will be prepopulated by other meta data
-            fields = ['experiment_name', 'tech', 'tech_detail', 'study_id', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue',
+            fields = ['experiment_name', 'tech', 'study_id', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue',
                       'organism', 'strain', 'gender', 'single_repeat_type', 'route', 'source']
             for f in fields:
                 initial[f] = getattr(last_exp, f)
