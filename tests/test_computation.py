@@ -14,10 +14,12 @@ fc_file = compute.calc_fold_change('dummy_config.json')
 #status_module = compute.init_modules()
 #status_gsa = compute.init_gsa('microarray', 'RG230-2')
 fc_data = compute.map_fold_change_data('microarray', 'RG230-2', fc_file)
-module_scores = compute.score_modules(fc_data)
 
-with open('test.txt', 'w') as f:
-    for r in module_scores:
-        txt = "\t".join([str(r['exp_id']), r['module'], str(r['score'])])
-        txt += "\n"
-        f.write(txt)
+# module_scores = compute.score_modules(fc_data)
+# with open('test.txt', 'w') as f:
+#     for r in module_scores:
+#         txt = "\t".join([str(r['exp_id']), r['module'], str(r['score'])])
+#         txt += "\n"
+#         f.write(txt)
+
+gsa_data = compute.score_gsa(fc_data)
