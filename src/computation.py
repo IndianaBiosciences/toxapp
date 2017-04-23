@@ -8,7 +8,8 @@ import logging
 import os
 import csv
 import collections
-
+import rpy2.robjects as robjects
+from rpy2.robjects.packages import importr
 
 logger = logging.getLogger(__name__)
 
@@ -166,11 +167,19 @@ class Computation:
         # prepare file suitable for R GSA calc
         gmt = NamedTemporaryFile(delete=False, suffix='.gmt', dir=self.tmpdir)
         logger.debug('Have temporary GSA file %s', gmt.name)
+        sig_count = 0
         for sig in gsa_info.keys():
+            sig_count += 1
             elements = [sig, 'no_link'] + [str(g) for g in gsa_genes[sig].keys()]
             row = '\t'.join(elements) + '\n'
             row_as_bytes = str.encode(row)
             gmt.write(row_as_bytes)
+
+
+            if sig_count > 100 and logger.isEnabledFor(logging.DEBUG):
+                logger.warning('Limited to 100 gene sets in DEBUG mode')
+                break
+
         gmt.close()
 
         setattr(self, 'gsa_file', gmt.name)
@@ -296,6 +305,55 @@ class Computation:
                 if ratio_missed > 0.30:
                     logger.warning('Missing more than 30percent of genes (%s) for module %s of size %s; lower concern for small modules', n_missing, m, n_genes)
 
-        logger.debug('Have results from module scoring: %s', pprint.pformat(module_scores, indent=4))
+        #logger.debug('Have results from module scoring: %s', pprint.pformat(module_scores, indent=4))
         return module_scores
 
+    def score_gsa(self, fc_data):
+
+        """ use data mapped to entrez gene for calculating module scores"""
+
+        # need to re-initiliaze gsa if measuremnet tech were to change during one set of experiment upload
+        last_tech = None
+
+
+
+        for exp_id in fc_data.keys():
+
+            try:
+                exp_obj = Experiment.objects.get(pk=exp_id)
+            except:
+                logger.error('Failed to retrieve meta data for exp id %s; must be loaded first', exp_id)
+                pass
+
+            this_tech = exp_obj.tech.tech + ":" + exp_obj.tech.tech_detail
+
+            if self.gsa_info is None or self.gsa_file is None or last_tech is not None and last_tech != this_tech:
+
+                logger.debug('Initializing GSA for measurement tech %s', this_tech)
+                success = self.init_gsa(exp_obj.tech.tech, exp_obj.tech.tech_detail)
+                if not success:
+                    logger.error('Failed to initiatize module calculation')
+                    return None
+
+                # load packages and the gmt file
+                piano = importr('piano')
+                #TODO - temporary because windows backslashes screwed up
+                self.gsa_file = 'C:/Users/Jeff Sutherland/AppData/Local/Temp/tmp6e88kxt2.gmt'
+                print(self.gsa_file)
+                gsc = robjects.r('loadGSC("{}")'.format(self.gsa_file))
+
+                print(gsc)
+
+            egs = list()
+            fc = list()
+            for eg in fc_data[exp_id].keys():
+                egs.append(eg)
+                fc.append(fc_data[exp_id][eg]['log2_fc'])
+
+            R_fc = robjects.FloatVector(fc)
+            R_fc.names = robjects.IntVector(egs)
+            gsa = robjects.r('runGSA({}, gsc={}, geneSetStat="page",gsSizeLim=c(3,5000),signifMethod="nullDist", adjMethod="BH")'.format(R_fc.r_repr(), gsc.r_repr()))
+            print(gsa)
+
+            last_tech = this_tech
+            return 1
