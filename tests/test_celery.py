@@ -1,19 +1,22 @@
-from celery import Celery
-import time
+import os
+from django.core.wsgi import get_wsgi_application
 
-# run the worker as celery -A test_celery worker --loglevel=info
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "toxapp.settings")
+application = get_wsgi_application()
+
+# currently using file system as messaging backend ... as note indicates in tasks change this later to DB
 # as root run
 # sudo mkdir -p /tmp/celery/results
 # sudo chmod 777 /tmp/celery/results
-app = Celery('test_celery', backend='file:///tmp/celery/results', broker='amqp://guest:guest@localhost:5672//')
 
-@app.task
-def add(x, y):
-    return x + y
+# change to toxapp base directory
+# run the worker as:
+# celery -A toxapp worker --loglevel=info
 
-if True:
+from tp.tasks import add
+import time
 
-    res = add.delay(5,2)
-    time.sleep(5)
-    print(res.ready())
-    print(res.get(timeout=1))
+res = add.delay(5,2)
+time.sleep(5)
+print(res.ready())
+print(res.get(timeout=1))
