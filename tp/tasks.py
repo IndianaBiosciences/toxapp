@@ -79,6 +79,15 @@ def process_user_files(tmpdir, config, email):
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
 
+    # step 5 - calculate near neighbors based on vector of module scores or GSA scores
+    #TODO
+
+    # set status on experimens as ready for analysis
+    for exp_id in fc_data.keys():
+        obj = compute.get_exp_obj()
+        obj.results_ready = True
+        obj.save()
+
     message = 'Uploaded expression data is ready for analysis'
     logger.info(message)
     send_mail('IBRI tox portal computation complete', message, 'do_not_reply@indianabiosciences.org', [email])

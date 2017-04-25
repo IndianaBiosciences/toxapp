@@ -145,7 +145,7 @@ class FoldChangeResult(models.Model):
 class IdentifierVsGeneMap(models.Model):
 
     tech = models.ForeignKey(MeasurementTech)
-    gene_identifier = models.CharField(max_length=20)
+    gene_identifier = models.CharField(max_length=30)
     rat_entrez_gene = models.IntegerField()
 
     def __str__(self):

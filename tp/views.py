@@ -21,9 +21,11 @@ import pprint, json
 
 logger = logging.getLogger(__name__)
 
+
 def index(request):
     """ the home page for tp """
     return render(request, 'index.html')
+
 
 def get_temp_dir(object):
 
@@ -55,6 +57,7 @@ def analyze(request):
         form = AnalyzeForm()
 
     return render(request, 'analyze.html', {'form': form})
+
 
 def experiments_confirm(request):
     """ allow editing of experiments for which data will be uploaded """
