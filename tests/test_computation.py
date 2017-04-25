@@ -11,15 +11,21 @@ tmpdir = 'C:/Users/Jeff Sutherland/AppData/Local/Temp'
 
 compute = Computation(tmpdir)
 fc_file = compute.calc_fold_change('dummy_config.json')
-#status_module = compute.init_modules()
-#status_gsa = compute.init_gsa('microarray', 'RG230-2')
+status_module = compute.init_modules()
+status_gsa = compute.init_gsa('microarray', 'RG230-2')
+
 fc_data = compute.map_fold_change_data('microarray', 'RG230-2', fc_file)
 
-# module_scores = compute.score_modules(fc_data)
-# with open('test.txt', 'w') as f:
+module_scores = compute.score_modules(fc_data)
+# with open('test_module.txt', 'w') as f:
 #     for r in module_scores:
 #         txt = "\t".join([str(r['exp_id']), r['module'], str(r['score'])])
 #         txt += "\n"
 #         f.write(txt)
 
-gsa_data = compute.score_gsa(fc_data)
+gsa_scores = compute.score_gsa(fc_data)
+# with open('test_gsa.txt', 'w') as f:
+#     for r in gsa_scores:
+#          txt = "\t".join([str(r['exp_id']), r['set_id'], str(r['score'])])
+#          txt += "\n"
+#          f.write(txt)

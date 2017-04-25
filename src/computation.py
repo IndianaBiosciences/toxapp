@@ -4,10 +4,12 @@ from tempfile import NamedTemporaryFile
 
 import pprint
 import shutil
+import json
 import logging
 import os
 import csv
 import collections
+import math
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 
@@ -33,6 +35,7 @@ class Computation:
         self.gene_identifier_stats_file = None
         self.gsa_info = None
         self.gsa_file = None
+        self.gsa_gsc_obj = None
 
     def calc_fold_change(self, config):
         """ calculate group fold change from files in tmpdir and meta data received from webapp in config json file """
@@ -113,6 +116,20 @@ class Computation:
         gsa_info = collections.defaultdict(dict)
         gsa_genes = collections.defaultdict(dict)
 
+        # read in a list of core gene sets to be reported to database no matter the score
+        core_gene_sets = dict()
+        core_list = os.path.join(settings.BASE_DIR, 'data/core_gene_sets.txt')
+        req_attr_core = ['id', 'name']
+        with open(core_list) as f:
+            reader = csv.DictReader(f, delimiter='\t')
+            for row in reader:
+
+                if any(row[i] == '' for i in req_attr_core ):
+                    logger.error('File %s contains undefined values for one or more required attributes %s', core_list, ",".join(req_attr_core))
+                    return None
+
+                core_gene_sets[row['id']] = 1
+
         # read GO vs. gene pairs from flat file
         go_file = os.path.join(settings.BASE_DIR, 'data/rgd_vs_GO_expansion.txt')
         req_attr_go = ['entrez_gene_id', 'GO_id', 'GO_name', 'GO_type']
@@ -128,8 +145,10 @@ class Computation:
                     continue
 
                 gsa_genes[row['GO_id']][row['entrez_gene_id']] = 1
+
                 if not row['GO_id'] in gsa_info:
-                    gsa_info[row['GO_id']] = {'name': row['GO_name'], 'type': row['GO_type']}
+                    core_set = True if core_gene_sets.get(row['GO_id'], None) is not None else False
+                    gsa_info[row['GO_id']] = {'name': row['GO_name'], 'type': row['GO_type'], 'core_set': core_set}
 
         # read MSigDB signature vs. gene pairs from flat file
         msigdb_file = os.path.join(settings.BASE_DIR, 'data/MSigDB_and_TF_annotation.txt')
@@ -148,7 +167,9 @@ class Computation:
 
                 gsa_genes[row['sig_name']][rat_entrez_gene] = 1
                 if not row['sig_name'] in gsa_info:
-                    gsa_info[row['sig_name']] = {'name': row['sig_name'], 'type': row['sub_category'], 'desc': row['description']}
+                    core_set = True if core_gene_sets.get(row['sig_name'], None) is not None else False
+                    gsa_info[row['sig_name']] = {'name': row['sig_name'], 'type': row['sub_category'],
+                                             'desc': row['description'], 'core_set': core_set}
 
         # eliminate gene sets too small / too large
         sigs_to_drop = list()
@@ -175,14 +196,21 @@ class Computation:
             row_as_bytes = str.encode(row)
             gmt.write(row_as_bytes)
 
-
             if sig_count > 100 and logger.isEnabledFor(logging.DEBUG):
                 logger.warning('Limited to 100 gene sets in DEBUG mode')
                 break
 
         gmt.close()
 
-        setattr(self, 'gsa_file', gmt.name)
+        # on windows the \Users ends up being recognized as escape \U ... R on Win reads unix paths
+        altname = gmt.name.replace('\\', '/')
+        setattr(self, 'gsa_file', altname)
+
+        # load packages and the gmt file
+        importr('piano')
+        gsc = robjects.r('loadGSC("{}")'.format(self.gsa_file))
+        setattr(self, 'gsa_gsc_obj', gsc)
+
         return 1
 
     def map_fold_change_data(self, tech, tech_detail, fc_file):
@@ -314,8 +342,7 @@ class Computation:
 
         # need to re-initiliaze gsa if measuremnet tech were to change during one set of experiment upload
         last_tech = None
-
-
+        gsa_scores = list()
 
         for exp_id in fc_data.keys():
 
@@ -323,26 +350,17 @@ class Computation:
                 exp_obj = Experiment.objects.get(pk=exp_id)
             except:
                 logger.error('Failed to retrieve meta data for exp id %s; must be loaded first', exp_id)
-                pass
+                continue
 
             this_tech = exp_obj.tech.tech + ":" + exp_obj.tech.tech_detail
 
-            if self.gsa_info is None or self.gsa_file is None or last_tech is not None and last_tech != this_tech:
+            if self.gsa_info is None or self.gsa_gsc_obj is None or last_tech is not None and last_tech != this_tech:
 
                 logger.debug('Initializing GSA for measurement tech %s', this_tech)
                 success = self.init_gsa(exp_obj.tech.tech, exp_obj.tech.tech_detail)
                 if not success:
                     logger.error('Failed to initiatize module calculation')
                     return None
-
-                # load packages and the gmt file
-                piano = importr('piano')
-                #TODO - temporary because windows backslashes screwed up
-                self.gsa_file = 'C:/Users/Jeff Sutherland/AppData/Local/Temp/tmp6e88kxt2.gmt'
-                print(self.gsa_file)
-                gsc = robjects.r('loadGSC("{}")'.format(self.gsa_file))
-
-                print(gsc)
 
             egs = list()
             fc = list()
@@ -352,8 +370,45 @@ class Computation:
 
             R_fc = robjects.FloatVector(fc)
             R_fc.names = robjects.IntVector(egs)
-            gsa = robjects.r('runGSA({}, gsc={}, geneSetStat="page",gsSizeLim=c(3,5000),signifMethod="nullDist", adjMethod="BH")'.format(R_fc.r_repr(), gsc.r_repr()))
-            print(gsa)
+            gsa = robjects.r('runGSA({}, gsc={}, geneSetStat="page",gsSizeLim=c(3,5000),signifMethod="nullDist", adjMethod="BH")'.format(R_fc.r_repr(), self.gsa_gsc_obj.r_repr()))
+            # in general, do R_object.names to see what was captured from R
+
+            # all these values are coming out as matrices - grab the first column only with [0]
+            p_adj_down = list(gsa.rx('pAdjDistinctDirDn')[0])
+            p_adj_up = list(gsa.rx('pAdjDistinctDirUp')[0])
+            scores =  list(gsa.rx('statDistinctDir')[0])
+            names = list(robjects.r('names( {}$gsc )'.format(gsa.r_repr())))
+
+            n_path = len(names)
+            if n_path != len(p_adj_down) or n_path != len(p_adj_up) or n_path != len(scores):
+                logger.error('Received different number of elements from GSA run in R .. something wrong')
+                return None
+
+            for i in range(0, n_path):
+
+                sig = names[i]
+                if self.gsa_info.get(sig, None) is None:
+                    logger.error('No info on gene set %s; did R mangle name?', sig)
+                    continue
+
+                score = scores[i]
+                # the p-value to use is the one corresponding to direction of change (induction/repression) conveyed by z-score
+                p = p_adj_up[i] if score>=0 else p_adj_down[i]
+
+                # only store non-significant results for the core liver-relevant set
+                if p > 0.1 and not self.gsa_info[sig]['core_set']:
+                    continue
+
+                gsa_scores.append({'exp_id': exp_id,
+                                   'exp_obj': exp_obj,
+                                   'set_id': sig,
+                                   'type': self.gsa_info[sig]['type'],
+                                   'name': self.gsa_info[sig]['name'],
+                                   'score': score,
+                                   'log10_p_BH': math.log(p,10)
+                                  })
 
             last_tech = this_tech
-            return 1
+
+        #logger.debug('Have results from GSA scoring: %s', pprint.pformat(gsa_scores, indent=4))
+        return gsa_scores
