@@ -1,6 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
-from .models import Experiment, FoldChangeResult, MeasurementTech, IdentifierVsGeneMap
+from .models import Experiment, FoldChangeResult, MeasurementTech, IdentifierVsGeneMap, ModuleScores, GeneSets, GSAScores
 from django.conf import settings
 from django.core.mail import send_mail
 from src.computation import Computation
@@ -16,31 +16,75 @@ logger = logging.getLogger(__name__)
 def add(x, y):
     return x + y
 
+
 @shared_task
 def process_user_files(tmpdir, config, email):
 
-    # step1 - calculate group fold change and load data to the database
+    #TODO - uploads of group fold change data is slow, ~1 minute for 15K records
+    # could use http://pgfoundry.org/projects/pgloader/ assuming performance comparison
+    # to oracle sql loader is appropriate
 
+    # step1 - calculate group fold change and load data to the database
     compute = Computation(tmpdir)
     groupfc_file = compute.calc_fold_change(config)
 
     if groupfc_file is None or not os.path.isfile(groupfc_file):
         message = 'Computation script failed to calculate fold change data'
         logger.error(message)
-        send_mail('IBRI tox portal results ready', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
 
-    status = load_group_fold_change(groupfc_file)
-
+    status = load_group_fold_change(compute, groupfc_file)
     if status is None:
         message = 'Failed to process and load gene-level fold change data; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal results ready', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
 
+    # step 2 - map data for this measurement technology to rat entrez gene IDs
+    fc_data = compute.map_fold_change_data(groupfc_file)
+    if fc_data is None:
+        message = 'Failed to map fold change data to rat entrez gene IDs; no further computations performed'
+        logger.error(message)
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        return
+
+    # step 3 - score experiment data using WGCNA modules and load to database
+    module_scores = compute.score_modules(fc_data)
+    if module_scores is None:
+        message = 'Failed to score experiment results using WGCNA modules; no further computations performed'
+        logger.error(message)
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        return
+
+    status = load_module_scores(module_scores)
+    if status is None:
+        message = 'Failed to process and load WGCNA module data; no further computations performed'
+        logger.error(message)
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        return
+
+    # step 4 - score experiment data using GSA
+    gsa_scores = compute.score_gsa(fc_data)
+    if gsa_scores is None:
+        message = 'Failed to score experiment results using gene set analysis; no further computations performed'
+        logger.error(message)
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        return
+
+    status = load_gsa_scores(compute, gsa_scores)
+    if status is None:
+        message = 'Failed to process and load gene set analysis data; no further computations performed'
+        logger.error(message)
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        return
+
+    message = 'Uploaded expression data is ready for analysis'
+    logger.info(message)
+    send_mail('IBRI tox portal computation complete', message, 'do_not_reply@indianabiosciences.org', [email])
 
 
-def load_group_fold_change(groupfc_file):
+def load_group_fold_change(compute, groupfc_file):
 
     logger.info('Reading fold change data from %s', groupfc_file)
 
@@ -49,36 +93,26 @@ def load_group_fold_change(groupfc_file):
         reader = csv.reader(f, delimiter='\t')
         next(reader, None)  # skip the header
 
-        # build up a dictionary mapping experiment id vs. the corresponding db object
-        last_exp_id = None
-        expid_vs_obj = dict()
-        tried_expid = dict()
-
+        checked_exist = dict()
         for row in reader:
 
             exp_id = int(row[0])
-
-            # if we don't yet have the map from id to obj and the exp_id has changed, look it up
-            if tried_expid.get(exp_id, None) is None and (last_exp_id is None or last_exp_id != exp_id):
-
-                # track that we tried retrieving an experiment object to avoid multiple lookups
-                tried_expid[exp_id] = 1
-
-                try:
-                    exp_obj = Experiment.objects.get(pk=exp_id)
-                    # store the object in dictionary in case the file is not sorted with rows ordered by exp_id
-                    expid_vs_obj[exp_id] = exp_obj
-                except:
-                    logger.error('Experiment id %s does not exist yet; define experiment before loading data', exp_id)
-
-            last_exp_id = exp_id
-
-            current_exp = expid_vs_obj.get(exp_id, None)
-            if current_exp is None:
+            # use the method in compute object to avoid repeatedly checking same ID
+            exp_obj = compute.get_exp_obj(exp_id)
+            if exp_obj is None:
                 continue
 
+            # query once for existence of results for this experiment and delete all if found
+            if checked_exist.get(exp_id, None) is None:
+
+                checked_exist[exp_id] = 1
+                prev_results = FoldChangeResult.objects.filter(experiment=exp_obj).all()
+                if prev_results is not None and len(prev_results) > 0:
+                    logger.warning('Experiment %s already had fold change results loaded; deleting old results', exp_id)
+                    prev_results.delete()
+
             FoldChangeResult.objects.create(
-                experiment=current_exp,
+                experiment=exp_obj,
                 gene_identifier=row[1],
                 log2_fc=row[2],
                 n_trt=row[3],
@@ -96,12 +130,12 @@ def load_group_fold_change(groupfc_file):
     logging.info('Inserted %s records from file %s', insert_count, groupfc_file)
     return 1
 
+
 def load_measurement_tech_gene_map(file):
 
     logger.info('Loading mapping of identifiers to genes for file %s', file)
     required_cols = ['TECH', 'TECH_DETAIL', 'IDENTIFIER', 'RAT_ENTREZ_GENE']
 
-    #TODO - need a warning that existing data is overwritten
     rownum = 0
     insert_count = 0
     tech_vs_obj = dict()
@@ -123,10 +157,16 @@ def load_measurement_tech_gene_map(file):
             thistech = tech + "-" + tech_detail
 
             tech_obj = tech_vs_obj.get(thistech, None)
+
             # first time this measurement tech encountered in file - either create or retrieve apprpriate obj
             if tech_obj is None:
                 tech_obj = query_or_create_measurement_tech(tech, tech_detail)
                 tech_vs_obj[thistech] = tech_obj
+
+                prev_map = IdentifierVsGeneMap.objects.filter(tech=tech_obj).all()
+                if prev_map is not None:
+                    logger.warning('Deleting existing identifer vs. gene map for measurement tech %s', tech_obj)
+                    prev_map.delete()
 
             IdentifierVsGeneMap.objects.create(
                 tech=tech_obj,
@@ -137,6 +177,7 @@ def load_measurement_tech_gene_map(file):
 
     logging.info('Inserted %s records from file %s', insert_count, file)
     return insert_count
+
 
 def query_or_create_measurement_tech(tech, tech_detail):
 
@@ -153,3 +194,106 @@ def query_or_create_measurement_tech(tech, tech_detail):
         )
 
     return tech_obj
+
+
+def load_module_scores(module_scores):
+
+    logger.info('Loading computed module scores into database')
+
+    insert_count_scores = 0
+
+    checked_exist = dict()
+    for r in module_scores:
+
+        # query once for existence of results for this experiment and delete all if found
+        if checked_exist.get(r['exp_id'], None) is None:
+
+            checked_exist[r['exp_id']] = 1
+            prev_results = ModuleScores.objects.filter(experiment=r['exp_obj']).all()
+            if prev_results is not None and len(prev_results) > 0:
+                logger.warning('Experiment %s already had module results loaded; deleting old results', r['exp_id'])
+                prev_results.delete()
+
+        ModuleScores.objects.create(
+            experiment=r['exp_obj'],
+            module=r['module'],
+            score=r['score']
+        )
+        insert_count_scores += 1
+
+    if insert_count_scores == 0:
+        logging.error('Failed to insert any module scores into database')
+        return None
+
+    logging.info('Inserted %s new module scores', insert_count_scores)
+    return 1
+
+
+def load_gsa_scores(compute_obj, gsa_scores):
+
+    logger.info('Loading computed GSA scores into database')
+    assert isinstance(compute_obj, Computation)
+
+    insert_count_geneset = 0
+    insert_count_scores = 0
+
+    # compile a list of all gene sets for which results will be loaded
+    load_gene_sets = dict()
+    for r in gsa_scores:
+        load_gene_sets[r['geneset']] = None
+
+    info = compute_obj.gsa_info
+    if info is None:
+        logger.error('Did not receive a compute_obj on which init_gsa was called')
+        return None
+
+    for s in load_gene_sets:
+
+        if info.get(s, None) is None:
+            logger.error('Have no meta data for gene set %s in compute obj; skipping', s)
+            continue
+
+        try:
+            geneset_obj = GeneSets.objects.get(name=s)
+        except:
+            geneset_obj = GeneSets.objects.create(
+                name=s,
+                type=info[s]['type'],
+                desc=info[s]['desc'],
+                source=info[s]['source'],
+                core_set=info[s]['core_set']
+            )
+            insert_count_geneset += 1
+
+        load_gene_sets[s] = geneset_obj
+
+    checked_exist = dict()
+    for r in gsa_scores:
+
+        if load_gene_sets.get(r['geneset'], None) is None:
+            # already warned in creating geneset
+            continue
+
+        # query once for existence of results for this experiment and delete all if found
+        if checked_exist.get(r['exp_id'], None) is None:
+
+            checked_exist[r['exp_id']] = 1
+            prev_results = GSAScores.objects.filter(experiment=r['exp_obj']).all()
+            if prev_results is not None and len(prev_results) > 0:
+                logger.warning('Experiment %s already had GSA results loaded; deleting old results', r['exp_id'])
+                prev_results.delete()
+
+        GSAScores.objects.create(
+            experiment=r['exp_obj'],
+            geneset=load_gene_sets[r['geneset']],
+            score=r['score'],
+            log10_p_BH=r['log10_p_BH']
+        )
+        insert_count_scores += 1
+
+    if insert_count_scores == 0:
+        logging.error('Failed to insert any GSA scores into database')
+        return None
+
+    logging.info('Inserted %s new gene set definitions and %s GSA scores', insert_count_geneset, insert_count_scores)
+    return 1

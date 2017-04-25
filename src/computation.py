@@ -1,4 +1,4 @@
-from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment
+from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, GeneSets
 from django.conf import settings
 from tempfile import NamedTemporaryFile
 
@@ -15,7 +15,6 @@ import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 
 logger = logging.getLogger(__name__)
-
 
 class Vividict(dict):
     def __missing__(self, key):
@@ -37,6 +36,39 @@ class Computation:
         self.gsa_info = None
         self.gsa_file = None
         self.gsa_gsc_obj = None
+        self._experiment_tech_map = dict()
+        self._expid_obj_map = dict()
+
+    def get_exp_obj(self, exp_id):
+
+        """ wrapper class to avoid repeatedly checking existence of object for exp_id """
+
+        # record a None in map so that we don't repeatedly check for non-loaded exp; therefore use False as test here
+        if self._expid_obj_map.get(exp_id, False) is False:
+
+            try:
+                logger.debug('Querying object for exp id %s', exp_id)
+                exp_obj = Experiment.objects.get(pk=exp_id)
+                self._expid_obj_map[exp_id] = exp_obj
+            except:
+                logger.error('Failed to retrieve meta data for exp id %s; must be loaded first', exp_id)
+                self._expid_obj_map[exp_id] = None
+
+        return self._expid_obj_map[exp_id]
+
+    def get_experiment_tech_map(self, exp_id):
+
+        """ wrapper class to avoid repeatedly checking measurement tech for a given object """
+
+        if self._experiment_tech_map.get(exp_id, False) is False:
+
+            exp_obj = self.get_exp_obj(exp_id)
+            if exp_obj is None:
+                self._experiment_tech_map[exp_id] = None
+            else:
+                self._experiment_tech_map[exp_id] = exp_obj.tech
+
+        return self._experiment_tech_map[exp_id]
 
     def calc_fold_change(self, config):
         """ calculate group fold change from files in tmpdir and meta data received from webapp in config json file """
@@ -102,17 +134,14 @@ class Computation:
         setattr(self, 'gene_identifier_stats_file', genestats_file)
         return 1
 
-    def init_gsa(self, tech, tech_detail):
+    def init_gsa(self, tech_obj):
         """ method that must be called before running GSA """
 
-        tech_obj = MeasurementTech.objects.filter(tech=tech, tech_detail=tech_detail).first()
-        if tech_obj is None:
-            logger.error('Did not retrieve existing measurement tech for %s and %s', tech, tech_detail)
-            return None
+        assert isinstance(tech_obj, MeasurementTech)
 
         identifiers = IdentifierVsGeneMap.objects.filter(tech=tech_obj).all()
         if identifiers is None or len(identifiers) < 1000:
-            logger.error('Failed to retrieve at least 1000 identifiers for measurement platform %s-%s', tech, tech_detail)
+            logger.error('Failed to retrieve at least 1000 identifiers for measurement platform %s', tech_obj)
             return None
 
         # discard genes from gene sets not being measured
@@ -155,7 +184,7 @@ class Computation:
 
                 if not row['GO_id'] in gsa_info:
                     core_set = True if core_gene_sets.get(row['GO_id'], None) is not None else False
-                    gsa_info[row['GO_id']] = {'name': row['GO_name'], 'type': row['GO_type'], 'core_set': core_set}
+                    gsa_info[row['GO_id']] = {'desc': row['GO_name'], 'type': row['GO_type'], 'core_set': core_set, 'source': 'GO'}
 
         # read MSigDB signature vs. gene pairs from flat file
         msigdb_file = os.path.join(settings.BASE_DIR, 'data/MSigDB_and_TF_annotation.txt')
@@ -175,8 +204,8 @@ class Computation:
                 gsa_genes[row['sig_name']][rat_entrez_gene] = 1
                 if not row['sig_name'] in gsa_info:
                     core_set = True if core_gene_sets.get(row['sig_name'], None) is not None else False
-                    gsa_info[row['sig_name']] = {'name': row['sig_name'], 'type': row['sub_category'],
-                                             'desc': row['description'], 'core_set': core_set}
+                    gsa_info[row['sig_name']] = {'desc': row['description'], 'type': row['sub_category'],
+                                                 'core_set': core_set, 'source': 'MSigDB'}
 
         # eliminate gene sets too small / too large
         sigs_to_drop = list()
@@ -184,6 +213,7 @@ class Computation:
             n_genes = len(gsa_genes[sig])
             if n_genes < 3 or n_genes > 5000:
                 sigs_to_drop.append(sig)
+                continue
 
         logger.debug('Eliminated %s gene sets based on size constraint', len(sigs_to_drop))
         for s in sigs_to_drop:
@@ -220,28 +250,14 @@ class Computation:
 
         return 1
 
-    def map_fold_change_data(self, tech, tech_detail, fc_file):
+    def map_fold_change_data(self, fc_file):
 
         """ read the fold change data and map to rat entrez gene IDs"""
 
-        tech_obj = MeasurementTech.objects.filter(tech=tech, tech_detail=tech_detail).first()
-        if tech_obj is None:
-            logger.error('Did not retrieve existing measurement tech for %s and %s', tech, tech_detail)
-            return None
-
-        identifiers = IdentifierVsGeneMap.objects.filter(tech=tech_obj).all()
-        if identifiers is None or len(identifiers) < 1000:
-            logger.error('Failed to retrieve at least 1000 identifiers for measurement platform %s-%s', tech, tech_detail)
-            return None
-
-        # map for converting measurement platform identifiers to rat entrez gene IDs
         identifier_map = dict()
-        for r in identifiers:
-            identifier_map[r.gene_identifier] = r.rat_entrez_gene
-
+        last_tech = None
         # track identifiers that failed to convert to rat entrez
         failed_map = dict()
-
         # dictionary of log2 fc results keyed on experiment / gene identifier
         fc_data = collections.defaultdict(dict)
 
@@ -255,18 +271,42 @@ class Computation:
                     logger.error('File %s contains undefined values for one or more required attributes %s', fc_file, ",".join(req_attr))
                     return None
 
+                exp_id = int(row['experiment'])
+                this_tech = self.get_experiment_tech_map(exp_id)
+                if this_tech is None:
+                    continue
+
+                if last_tech is None or this_tech != last_tech:
+
+                    # update the map of identifers to genes ... in case experiment contains multiple measurement platforms
+                    identifiers = IdentifierVsGeneMap.objects.filter(tech=this_tech).all()
+                    if identifiers is None or len(identifiers) < 1000:
+                        logger.error('Failed to retrieve at least 1000 identifiers for measurement platform %s', this_tech)
+                        return None
+
+                    identifier_map = {} # empty the dict in case collision between ids on two measurement platforms
+                    # map for converting measurement platform identifiers to rat entrez gene IDs
+                    for r in identifiers:
+                        identifier_map[r.gene_identifier] = r.rat_entrez_gene
+
                 rat_entrez = identifier_map.get(row['gene_identifier'], None)
-                exp = int(row['experiment'])
 
                 if rat_entrez is None:
                     failed_map[row['gene_identifier']] = 1
                     continue
 
-                if rat_entrez in fc_data.get(exp, {}):
-                    logger.error('Data already defined for experiment %s and rat entrez gene %s; multiple gene identifers for same gene?', exp, rat_entrez)
+                if rat_entrez in fc_data.get(exp_id, {}):
+                    logger.error('Data already defined for experiment %s and rat entrez gene %s; multiple gene identifers for same gene?', exp_id, rat_entrez)
                     continue
 
-                fc_data[exp][rat_entrez] = {'log2_fc': float(row['log2_fc']), 'identifier': row['gene_identifier']}
+                fc_data[exp_id][rat_entrez] = {'log2_fc': float(row['log2_fc']), 'identifier': row['gene_identifier']}
+                last_tech = this_tech
+
+        if failed_map:
+            n_fails = len(failed_map)
+            ids = list(failed_map.keys())[0:10]
+            id_str = ",".join(ids)
+            logger.warning('A total of %s identifiers in file %s are not mapped to entrez gene IDs and ignored; the first 10 are: %s', n_fails, fc_file, id_str)
 
         #logger.debug('Have fold change data for file %s: %s', fc_file, pprint.pformat(fc_data))
         return fc_data
@@ -287,11 +327,9 @@ class Computation:
         module_scores = list()
         for exp_id in fc_data.keys():
 
-            try:
-                exp_obj = Experiment.objects.get(pk=exp_id)
-            except:
-                logger.error('Failed to retrieve meta data for exp id %s; must be loaded first', exp_id)
-                pass
+            exp_obj = self.get_exp_obj(exp_id)
+            if exp_obj is None:
+                continue
 
             system = ":".join([exp_obj.tissue, exp_obj.organism])
             if md.get(system, None) is None:
@@ -347,24 +385,22 @@ class Computation:
 
         """ use data mapped to entrez gene for calculating module scores"""
 
-        # need to re-initiliaze gsa if measuremnet tech were to change during one set of experiment upload
+        # need to re-initiliaze gsa if measurement tech were to change during one set of experiment upload to
+        # avoid having genes in R gsc object that are not defined in fold change data
         last_tech = None
         gsa_scores = list()
 
         for exp_id in fc_data.keys():
 
-            try:
-                exp_obj = Experiment.objects.get(pk=exp_id)
-            except:
-                logger.error('Failed to retrieve meta data for exp id %s; must be loaded first', exp_id)
+            exp_obj = self.get_exp_obj(exp_id)
+            if exp_obj is None:
                 continue
 
-            this_tech = exp_obj.tech.tech + ":" + exp_obj.tech.tech_detail
-
-            if self.gsa_info is None or self.gsa_gsc_obj is None or last_tech is not None and last_tech != this_tech:
+            this_tech = exp_obj.tech
+            if last_tech is None or last_tech != this_tech:
 
                 logger.debug('Initializing GSA for measurement tech %s', this_tech)
-                success = self.init_gsa(exp_obj.tech.tech, exp_obj.tech.tech_detail)
+                success = self.init_gsa(this_tech)
                 if not success:
                     logger.error('Failed to initiatize module calculation')
                     return None
@@ -383,7 +419,7 @@ class Computation:
             # all these values are coming out as matrices - grab the first column only with [0]
             p_adj_down = list(gsa.rx('pAdjDistinctDirDn')[0])
             p_adj_up = list(gsa.rx('pAdjDistinctDirUp')[0])
-            scores =  list(gsa.rx('statDistinctDir')[0])
+            scores = list(gsa.rx('statDistinctDir')[0])
             names = list(robjects.r('names( {}$gsc )'.format(gsa.r_repr())))
 
             n_path = len(names)
@@ -408,9 +444,7 @@ class Computation:
 
                 gsa_scores.append({'exp_id': exp_id,
                                    'exp_obj': exp_obj,
-                                   'set_id': sig,
-                                   'type': self.gsa_info[sig]['type'],
-                                   'name': self.gsa_info[sig]['name'],
+                                   'geneset': sig,
                                    'score': score,
                                    'log10_p_BH': math.log(p,10)
                                   })
@@ -419,3 +453,4 @@ class Computation:
 
         #logger.debug('Have results from GSA scoring: %s', pprint.pformat(gsa_scores, indent=4))
         return gsa_scores
+

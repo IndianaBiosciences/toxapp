@@ -3,8 +3,6 @@ from django.conf import settings
 from datetime import datetime
 from django.urls import reverse
 
-# Create your models here.
-
 class MeasurementTech(models.Model):
 
     TECH_CHOICES = (
@@ -13,7 +11,6 @@ class MeasurementTech(models.Model):
     )
 
     tech = models.CharField(max_length=20, choices=TECH_CHOICES, default=TECH_CHOICES[0][0])
-    #TODO - needs to be a choice defined upon upload of identifier to gene mapping
     tech_detail = models.CharField(max_length=50) # type of microarray or sequencer
 
     def __str__(self):
@@ -141,7 +138,7 @@ class FoldChangeResult(models.Model):
     log10_p_bh = models.DecimalField(max_digits = 5, decimal_places=2)
 
     def __str__(self):
-        txt = "experiment {} vs gene {}".format(self.experiment, self.gene_identifier)
+        txt = "experiment {} vs gene {}".format(self.experiment_id, self.gene_identifier)
         return txt
 
 
@@ -154,3 +151,40 @@ class IdentifierVsGeneMap(models.Model):
     def __str__(self):
         txt = "{}-{}-{}".format(self.tech, self.gene_identifier, self.rat_entrez_gene)
         return txt
+
+
+class ModuleScores(models.Model):
+
+    experiment = models.ForeignKey(Experiment)
+    module = models.CharField(max_length=20)
+    score = models.DecimalField(max_digits = 5, decimal_places=2)
+
+    def __str__(self):
+        txt = "experiment {} vs module {}".format(self.experiment.id, self.module)
+        return txt
+
+
+class GeneSets(models.Model):
+
+    name = models.CharField(max_length=200)
+    type = models.CharField(max_length=50)
+    desc = models.CharField(max_length=500)
+    source = models.CharField(max_length=10)
+    core_set = models.BooleanField()
+
+    def __str__(self):
+        return self.name
+
+
+class GSAScores(models.Model):
+
+    experiment = models.ForeignKey(Experiment)
+    geneset = models.ForeignKey(GeneSets)
+    score = models.DecimalField(max_digits=5, decimal_places=2)
+    log10_p_BH = models.DecimalField(max_digits=5, decimal_places=2)
+
+    def __str__(self):
+        txt = "experiment {} vs geneset {}".format(self.experiment.id, self.geneset.id)
+        return txt
+
+
