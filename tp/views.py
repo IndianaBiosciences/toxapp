@@ -3,6 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 
 from django.shortcuts import render
+from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.views.generic import ListView, DetailView, FormView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
@@ -11,10 +12,11 @@ from django.core.files.storage import FileSystemStorage
 from tempfile import gettempdir
 from .models import Experiment, Sample, ExperimentSample
 from .forms import ExperimentForm, SampleForm, SampleFormSet, AnalyzeForm, FilesForm, ExperimentSampleForm, ExperimentConfirmForm, MapFileForm
-from .tasks import load_measurement_tech_gene_map
+from .tasks import load_measurement_tech_gene_map, process_user_files
 import os
 import time
 import logging
+import csv
 import pprint, json
 
 logger = logging.getLogger(__name__)
@@ -22,7 +24,6 @@ logger = logging.getLogger(__name__)
 def index(request):
     """ the home page for tp """
     return render(request, 'index.html')
-
 
 def get_temp_dir(object):
 
@@ -66,7 +67,7 @@ def experiments_confirm(request):
             for exp in form.cleaned_data['experiments']:
                 retained_ids.append(exp.pk)
 
-            logger.debug('Experiments being saved in session: %s', retained_ids)
+            logger.debug('experiments_confirm: Experiments being saved in session: %s', retained_ids)
             request.session['added_exps'] = retained_ids
             return HttpResponseRedirect(reverse('tp:samples-upload'))
 
@@ -74,7 +75,7 @@ def experiments_confirm(request):
 
         if request.session.get('added_exps', None) is None or not request.session['added_exps']:
             # TODO - want to put some sort of warning message into the HTML if this happens
-            logger.error('No experiments have been added yet')
+            logger.error('experiments_confirm: No experiments have been added yet')
 
         # get an empty form (in terms of existing samples) but pre-populate from loaded sample names
         exp_ids = request.session['added_exps']
@@ -143,13 +144,13 @@ def create_experiment_sample_pair(request):
             for s in form.cleaned_data['trt_samples']:
                 rec = ExperimentSample(sample=s, experiment=exp, group_type = 'I', owner=user)
                 rec.save()
-                process_rec['sample'].append({'sample_id': s.pk, 'sample_name': s.sample_name})
+                process_rec['sample'].append({'sample_id': s.pk, 'sample_name': s.sample_name, 'sample_type': 'I'})
                 process_rec['experiment_vs_sample'].append(rec.pk)
 
             for s in form.cleaned_data['ctl_samples']:
                 rec = ExperimentSample(sample=s, experiment=exp, group_type = 'C', owner=user)
                 rec.save()
-                process_rec['sample'].append({'sample_id': s.pk, 'sample_name': s.sample_name})
+                process_rec['sample'].append({'sample_id': s.pk, 'sample_name': s.sample_name, 'sample_type': 'C'})
                 process_rec['experiment_vs_sample'].append(rec.pk)
 
             # remove any exp IDs encoured from the the session
@@ -173,7 +174,7 @@ def create_experiment_sample_pair(request):
         # retrieve newly added experiments
         if request.session.get('added_exps', None) is None:
             # TODO - want to put some sort of warning message into the HTML if this happens
-            logger.error('Did not retrieve experiments from session')
+            logger.error('create_experiment_sample_pair: Did not retrieve experiments from session')
         elif not request.session['added_exps']:
             # all newly-added experiments have been processed and list is empty; redirect
             return HttpResponseRedirect(reverse('tp:experient-sample-confirm'))
@@ -185,7 +186,7 @@ def create_experiment_sample_pair(request):
         # retrieve newly added samples for association with experiment
         if request.session.get('added_samples', None) is None or not request.session['added_samples']:
             # TODO - want to put some sort of warning message into the HTML if this happens
-            logger.error('Did not retrieve samples from uploaded file')
+            logger.error('create_experiment_sample_pair: Did not retrieve samples from uploaded file')
 
         added_sample_ids = request.session['added_samples']
         form = ExperimentSampleForm(initial={'exp_id': selected_experiment.pk})
@@ -204,9 +205,10 @@ def confirm_experiment_sample_pair(request):
         tmpdir = request.session.get('tmp_dir')
         comput_rec = request.session.get('computation_recs')
         file = os.path.join(tmpdir, 'computation_data.json')
-        logger.error('Have following as json job config file:  %s', file)
+        logger.debug('confirm_experiment_sample_pair: json job config file:  %s', file)
         with open(file, 'w') as outfile:
             json.dump(comput_rec, outfile)
+        request.session['computation_config'] = file
 
         return HttpResponseRedirect(reverse('tp:compute-fold-change'))
 
@@ -214,21 +216,21 @@ def confirm_experiment_sample_pair(request):
 
         if request.session.get('computation_recs', None) is None:
             # TODO - put something in template
-            logger.error('Calling compute_fold_change without a computation_recs session variable')
+            logger.error('confirm_experiment_sample_pair: Calling compute_fold_change without a computation_recs session variable')
 
         if request.session.get('tmp_dir', None) is None:
             # TODO - put something in template
-            logger.error('Calling compute_fold_change without tmp_dir session variable')
+            logger.error('confirm_experiment_sample_pair: Calling compute_fold_change without tmp_dir session variable')
 
         data = request.session['computation_recs']
         table_ids = []
         for row in data:
             table_ids += row['experiment_vs_sample']
 
-        logger.error('what we have in session %s', pprint.pformat(data))
+        logger.debug('confirm_experiment_sample_pair: what we have in session %s', pprint.pformat(data))
         table_content = ExperimentSample.objects.filter(pk__in=table_ids)
         for row in table_content:
-            logger.error("Content of row %s, %s, %s", row.group_type, row.sample, row.experiment)
+            logger.debug("confirm_experiment_sample_pair: Content of row %s, %s, %s", row.group_type, row.sample, row.experiment)
 
         context = {'table': table_content}
         return render(request, 'experiment_vs_sample_confirm.html', context)
@@ -236,6 +238,10 @@ def confirm_experiment_sample_pair(request):
 
 def compute_fold_change(request):
     """ run computation script on meta data stored in session """
+
+    user = None
+    if request.user.is_authenticated():
+        user = request.user
 
     if request.method == 'POST':
         # once job is complete, clear all the session variables used in process
@@ -248,8 +254,61 @@ def compute_fold_change(request):
         return HttpResponseRedirect(reverse('tp:experiments'))
 
     else:
-        # TODO - kick off the job
-        return render(request, 'compute_fold_change.html')
+        # TODO - Should move most of this to the Computation.calc_fold_change location to keep this cleaner
+        file = request.session.get("computation_config")
+        logger.debug('compute_fold_change: json job config file:  %s', file)
+        with open(file) as infile:
+            experiments = json.load(infile)
+        tmpdir = os.path.dirname(file)
+        logger.debug('compute_fold_change: tmpdir: %s', tmpdir)
+        logger.debug('compute_fold_change: json contents %s', pprint.pformat(experiments))
+        log_settings = settings.LOGGING
+        exp_file = 'exps.csv'
+        config = {
+            'tmpdir': tmpdir,
+            'expfile': exp_file,
+            'celdir': '.',
+            'logfile': log_settings["handlers"]["file"]["filename"],
+            'email' : user.email,
+        }
+        context = {}
+        #
+        # Create the main configuration file
+        #
+        full_exp_file = os.path.join(tmpdir, exp_file)
+        logger.debug('compute_fold_change: full_exp_file %s', full_exp_file)
+        with open(full_exp_file, "w") as csvfile:
+            csv_writer = csv.writer(csvfile, delimiter=",")
+            csv_writer.writerow(['SAMPLE_TYPE', "EXPERIMENT_ID", "SAMPLE_ID"])
+            context['n_experiments'] = len(experiments)
+            n_samples = 0
+            for e in experiments:
+                exp  = e['experiment']['exp_id']
+                for s in e['sample']:
+                    n_samples += 1
+                    stype = "CTL"
+                    if s['sample_type'] == 'I':
+                        stype = "TRT"
+                    s_id = s['sample_name']
+                    sample_file = s_id + ".CEL"
+                    full_sample_file = os.path.join(tmpdir, sample_file)
+                    logger.debug("compute_fold_change: sample file: %s", sample_file)
+                    if os.path.isfile(full_sample_file):
+                        csv_writer.writerow([stype, exp, s_id])
+                        #TODO - Error check?
+                    else:
+                        logger.error("compute_fold_change: Sample file %s not found", sample_file)
+                        #TODO - Probably need to capture error and fail gracefully
+        csvfile.close()
+        context['n_samples'] = n_samples
+        res = process_user_files.delay(tmpdir, config, user.email)
+        logger.debug("compute_fold_change: config %s", pprint.pformat(config))
+
+        context['email'] = user.email
+        context['result'] = res
+        logger.debug("compute_fold_change: web context: %s", pprint.pformat(context))
+
+        return render(request, 'compute_fold_change.html', context)
 
 
 class ExperimentView(ListView):
@@ -306,7 +365,7 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
             for f in fields:
                 initial[f] = getattr(last_exp, f)
 
-            logger.info('What we have for prepopulated object %s', pprint.pformat(initial))
+            logger.info('ExperimentCreate.get_initial: prepopulated object %s', pprint.pformat(initial))
 
         return initial
 
@@ -327,7 +386,7 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
         else:
             session_exp = [self.object.pk]
 
-        logger.debug('Experiments being saved in session: %s', session_exp)
+        logger.debug('ExperimentCreate.get_initial: Experiments being saved in session: %s', session_exp)
         self.request.session['added_exps'] = session_exp
 
         return url
@@ -340,6 +399,7 @@ class ExperimentUpdate(ExperimentSuccessURLMixin, UpdateView):
     form_class = ExperimentForm
 
     # TODO - delete this ... just for testing purposes, easier to edit exps than add from scratch
+    # TODO - issue with session -- on delete exps still in list: need to fully logout
     def form_valid(self, form):
 
         url = super(ExperimentUpdate, self).form_valid(form)
@@ -356,7 +416,7 @@ class ExperimentUpdate(ExperimentSuccessURLMixin, UpdateView):
         else:
             session_exp = [self.object.pk]
 
-        logger.debug('Experiments being saved in session: %s', session_exp)
+        logger.debug('ExperimentUpdate.form_valid: Experiments saved in session: %s', session_exp)
         self.request.session['added_exps'] = session_exp
 
         return url

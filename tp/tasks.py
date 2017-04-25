@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from src.computation import Computation
 
-import shutil
+import pprint
 import logging
 import os
 import csv
@@ -57,8 +57,6 @@ def load_group_fold_change(groupfc_file):
         for row in reader:
 
             exp_id = int(row[0])
-            #TODO - temp adjustment to match what's in DB
-            exp_id += 4
 
             # if we don't yet have the map from id to obj and the exp_id has changed, look it up
             if tried_expid.get(exp_id, None) is None and (last_exp_id is None or last_exp_id != exp_id):

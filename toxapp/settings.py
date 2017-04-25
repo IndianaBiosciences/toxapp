@@ -190,3 +190,8 @@ LOGGING = {
 
 # email backend for development purposes
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Computation Configurations
+COMPUTATION = {
+    'script_dir': os.path.join(BASE_DIR, 'scripts'),
+}

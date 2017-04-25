@@ -40,7 +40,7 @@ import logging
 # Parse the input file and confirm everything is correct and availabile
 #
 
-def compute_fold_factors(infile, outfile, celdir, verbose):
+def compute_fold_factors(infile, outfile, celdir, sdir, verbose):
     """ Compute the fold factors
 
     Parameters
@@ -148,7 +148,7 @@ def compute_fold_factors(infile, outfile, celdir, verbose):
     # TODO: Will need to set this to a specific executable location on server
     if verbose:
         print("\nNormalizing the sample expression results\n")
-    r_norm_script = "NORM.R"
+    r_norm_script = os.path.join(sdir, "NORM.R")
     if 0:  # temporarily bypass to keep moving
         r_cmd = "R --vanilla <" + r_norm_script
         logger.info("Normalizing data using cmd:" + r_cmd)
@@ -264,17 +264,19 @@ def compute_fold_factors(infile, outfile, celdir, verbose):
             for n in range(0, len(rma_probes_list)):
                 probe_id = rma_probes_list[n]
                 element = {"probeID": probe_id, "mean_Control": rma_values[ctl_mean][n]}
-                data = [rma_probes_list[n]]
+                row_data = [rma_probes_list[n]]
+                element['n_ctl'] = len(ctls)
                 for i in range(0, len(ctls)):
-                    data.append(rma_values[ctls[i]][n])
-                data.append(rma_values[ctl_mean][n])
+                    row_data.append(rma_values[ctls[i]][n])
+                row_data.append(rma_values[ctl_mean][n])
+                element['n_trt'] = len(trts)
                 for i in range(0, len(trts)):
-                    data.append(rma_values[trts[i]][n])
-                data.append(rma_values[trt_mean][n])
+                    row_data.append(rma_values[trts[i]][n])
+                row_data.append(rma_values[trt_mean][n])
                 fc = float(rma_values[trt_mean][n]) - float(rma_values[ctl_mean][n])
                 element["FoldChange"] = fc
-                data.append(fc)
-                fc_writer.writerow(data)
+                row_data.append(fc)
+                fc_writer.writerow(row_data)
                 fc_data[probe_id] = element
             fold_changes[e] = fc_data
         csvfile.close()
@@ -287,7 +289,7 @@ def compute_fold_factors(infile, outfile, celdir, verbose):
     # TODO: Will need to set this to a specific executable location on server
     if verbose:
         print("\nRunning Limma to \n")
-    r_limma_script = "Limma.R"
+    r_limma_script = os.path.join(sdir, "Limma.R")
     if 0:  # temporarily bypass to keep moving
         r_cmd = "R --vanilla <" + r_limma_script
         logger.info("Running Limma model using cmd:" + r_cmd)
@@ -329,18 +331,19 @@ def compute_fold_factors(infile, outfile, celdir, verbose):
     #
 
     with open(outfile, 'w', newline='') as csvfile:
-        out_writer = csv.writer(csvfile, delimiter=',')
-        header = ["ExerimentID", "probeIDs", "mean_Control", "FoldChange",
-                  "logFC", "AveExpr", "t", "P.Value", "adj.P.Val", "B"]
+        out_writer = csv.writer(csvfile, delimiter='\t')
+        header = ["experiment", "gene_identifier", "log2_fc", "n_trt", "n_ctl",
+                  "expression_ctl0", "log10_p", "log10_p_bh"]
         out_writer.writerow(header)
         for e in sorted(experiments.keys()):
             for probe_id in sorted(limma_results[e].keys()):
-                data = [e, probe_id]
-                for p in ["mean_Control", "FoldChange"]:
-                    data.append(fold_changes[e][probe_id][p])
-                for p in ["logFC", "AveExpr", "t", "P.Value", "adj.P.Val", "B"]:
-                    data.append(limma_results[e][probe_id][p])
-                out_writer.writerow(data)
+                row_data = [e, probe_id]
+                row_data.append(limma_results[e][probe_id]['logFC'])
+                for p in ['n_trt', 'n_ctl']:
+                    row_data.append(fold_changes[e][probe_id][p])
+                for p in ["AveExpr", "P.Value", "adj.P.Val"]:
+                    row_data.append(limma_results[e][probe_id][p])
+                out_writer.writerow(row_data)
     csvfile.close()
     logger.info("Finished writing of output to specified output file :" + outfile)
 
@@ -356,6 +359,8 @@ if __name__ == "__main__":
                         required=True)
     parser.add_argument('-d', '--directory', dest="dir", type=str, default=".",
                         help='The directory for location of the CEL files. Default is current directory.')
+    parser.add_argument('-s', '--script_dir', dest="sdir", type=str, default=".",
+                        help='The directory for location of the R script files. Default is current directory.')
     parser.add_argument('-l', '--logfile', dest='logfile', type=argparse.FileType('wb', 0),
                         help='The output file of logfile.',
                         required=True)
@@ -391,12 +396,13 @@ if __name__ == "__main__":
     logger.debug("--infile %s", args.infile)
     logger.debug("--outfile: %s", args.outfile)
     logger.debug("--logfile: %s", args.logfile.name)
-    logger.debug("--dir: %s", args.dir)
+    logger.debug("--directory: %s", args.dir)
+    logger.debug("--script_dir: %s", args.sdir)
     logger.debug("--verbose: %s", args.verbose)
 
     logger.info("Current Path: %s", os.getcwd())
 
     # call main function
-    compute_fold_factors(args.infile, args.outfile, args.dir, args.verbose)
+    compute_fold_factors(args.infile, args.outfile, args.dir, args.sdir, args.verbose)
 
     logger.info("END")

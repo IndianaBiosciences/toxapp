@@ -1,1 +1,12 @@
-TODO
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Success</h2>
+<p>
+    Submitted process for group fold changes using:
+    <b>{{ n_experiments }}</b> experiments and <b>{{ n_samples }}</b> samples.
+</p>
+<p>
+    An email will be sent to <b>{{ email }}</b> when the job completes and the information is available.
+</p>
+{% endblock content %}
