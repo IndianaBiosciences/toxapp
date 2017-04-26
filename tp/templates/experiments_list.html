@@ -21,7 +21,11 @@
       </tr>
       {% for exp in experiments %}
         <tr>
-          <td align="center"><input type="checkbox" id="selected_experiments" value="{{ exp.id }}"></td>
+          {% if exp.results_ready is True %}
+            <td align="center"><input type="checkbox" id="selected_experiments" value="{{ exp.id }}"></td>
+          {% else %}
+            <td align="center"><input type="checkbox" disabled id="selected_experiments" value="{{ exp.id }}"></td>
+          {% endif %}
           <td><a href="/experiment/{{ exp.id }}" class="btn btn-default" title="Edit experiment {{ exp.id }}"><span
                   class="glyphicon glyphicon-edit"></span></a></td>
           <td>{{ exp.experiment_name }}</td>
