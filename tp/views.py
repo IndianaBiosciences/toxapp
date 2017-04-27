@@ -9,6 +9,7 @@ from django.views.generic import ListView, DetailView, FormView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
 from django.core.files.storage import FileSystemStorage
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from tempfile import gettempdir
 from .models import Experiment, Sample, ExperimentSample
 from .forms import ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm, ExperimentConfirmForm, MapFileForm
@@ -373,7 +374,31 @@ class ExperimentView(ListView):
     model = Experiment
     template_name = 'experiments_list.html'
     context_object_name = 'experiments'
+    paginate_by = 10
 
+    def get_queryset(self):
+
+        user_query = self.request.GET.get('query')
+        only_mine = self.request.GET.get('onlymyexp')
+        if user_query:
+            vector = SearchVector('experiment_name',
+                                  'compound_name',
+                                  'tissue',
+                                  'organism',
+                                  'strain',
+                                  'source')
+            exps = Experiment.objects.annotate(search=vector).filter(search=user_query)
+            logger.debug('User query returned %s', exps)
+        else:
+            exps = Experiment.objects.all()
+            logger.debug('Standard query returned %s', exps)
+
+        if only_mine and self.request.user.is_authenticated():
+            exps = exps.filter(owner=self.request.user)
+            logger.debug('Query after filtering on user returned %s', exps)
+
+
+        return exps
 
 class ExperimentSuccessURLMixin(object):
 

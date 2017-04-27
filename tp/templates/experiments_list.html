@@ -4,7 +4,18 @@
 
 <div class="container">
 
+  <form id="experimentsearchform" action="{% url 'tp:experiments' %}" method="get" accept-charset="utf-8">
+    <button class="searchbutton" type="submit">
+      <span class="glyphicon glyphicon-refresh"></span>
+    </button>
+    <input class="searchfield-inline" id="searchbox" name="query" type="text" placeholder="Search">
+    <div class="checkbox-inline">
+      <label><input type="checkbox" name="onlymyexp" value="1" unchecked>Show only my experiments</label>
+    </div>
+  </form>
+
   <h4>Available Experiments</h4>
+
   <table class="table table-striped custab">
     <tr>
       <th>Analyze</th>
@@ -41,10 +52,32 @@
       </tr>
     {% empty %}
       <tr>
-        <td colspan="12">No experiments have been added yet.</td>
+        <td colspan="12">No experiments found</td>
       </tr>
     {% endfor %}
   </table>
+
+  {% if is_paginated %}
+    <ul class="pagination">
+      {% if page_obj.has_previous %}
+        <li><a href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+      {% else %}
+        <li class="disabled"><span>&laquo;</span></li>
+      {% endif %}
+      {% for i in paginator.page_range %}
+        {% if page_obj.number == i %}
+          <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
+        {% else %}
+          <li><a href="?page={{ i }}">{{ i }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <li><a href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+      {% else %}
+        <li class="disabled"><span>&raquo;</span></li>
+      {% endif %}
+    </ul>
+  {% endif %}
 
   <div class="">
     {# TODO - place a graphic up top summarzing number of entries in request.session.analyze_list #}
