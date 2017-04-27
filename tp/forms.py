@@ -54,14 +54,9 @@ class ExperimentSampleForm(forms.Form):
 
 class ExperimentConfirmForm(forms.Form):
     """ checkbox form to identify which of recently loaded experiments will have data loaded """
-    experiments = forms.ModelMultipleChoiceField(required=True,
+    experiments = forms.ModelMultipleChoiceField(required=False,
                                                  queryset=Experiment.objects.all(),
-                                                 widget=forms.CheckboxSelectMultiple(attrs={"checked":""}),
-                                                 label="experiments for data upload")
-
-class AnalyzeForm(forms.Form):
-    """ AnalyzeForm -- form class to combine selected experiments and run the analysis """
-    hello = "Hello"
+                                                 widget=forms.CheckboxSelectMultiple(attrs={"checked":""}))
 
 
 class MapFileForm(forms.Form):

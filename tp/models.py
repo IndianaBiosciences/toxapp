@@ -71,7 +71,7 @@ class Experiment(models.Model):
     compound_name = models.CharField(max_length=50)
     dose = models.DecimalField(max_digits=5, decimal_places=2)
     dose_unit = models.CharField(max_length=20)
-    time = models.DecimalField(max_digits=3, decimal_places=2)
+    time = models.DecimalField(max_digits=5, decimal_places=2)
     tissue = models.CharField(max_length=20, choices=TISSUE_CHOICES, default=TISSUE_CHOICES[0][0])
     organism = models.CharField(max_length=20, choices=ORGANISM_CHOICES, default=ORGANISM_CHOICES[0][0])
     strain = models.CharField(max_length=50)

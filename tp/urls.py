@@ -44,7 +44,15 @@ urlpatterns = [
     # upload a delimited file defining identifier vs. entrez gene for the measurement technology
     url(r'^tech_map_upload/$', views.UploadTechMapView.as_view(), name='techmap-upload'),
 
-    # setup analysis
+    # view the experiments in analysis 'cart'
     url(r'^analyze/$', views.analyze, name='analyze'),
+    # add an experiment to the analysis 'cart'; not exposing this method on experiment list
     url(r'^analyze/(?P<pk>\d+)/$', views.analyze, name='analyze'),
+
+    #TODO temporary handlers that will need to be replaced with some javascript functionality for clicking on exp list
+    # and redirect to the experiments list; will want to avoid this to avoid refreshing page when filtering functionality
+    # is built
+    url(r'^cart_add/(?P<pk>\d+)/$', views.cart_add, name='cart-add'),
+    url(r'^cart_del/(?P<pk>\d+)/$', views.cart_del, name='cart-del'),
+
 ]

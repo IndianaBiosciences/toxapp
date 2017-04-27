@@ -3,54 +3,57 @@
 {% block content %}
 
 <div class="container">
-  <h3>Available Experiments</h3>
-  <form action="/analyze/" method="post">{% csrf_token %}
-    <table class="table table-striped custab">
+
+  <h4>Available Experiments</h4>
+  <table class="table table-striped custab">
+    <tr>
+      <th>Analyze</th>
+      <th>Edit</th>
+      <th>Experiment Name</th>
+      <th>Compound Name</th>
+      <th>Dose</th>
+      <th>Time (days)</th>
+      <th>Tissue</th>
+      <th>Organism</th>
+      <th>Repeat Type</th>
+      <th>Route</th>
+      <th>Date Created</th>
+    </tr>
+    {% for exp in experiments %}
       <tr>
-        <th>Analyze</th>
-        <th></th>
-        <th>Experiment Name</th>
-        <th>Compound Name</th>
-        <th>Dose</th>
-        <th>Time (days)</th>
-        <th>Tissue</th>
-        <th>Organism</th>
-        <th>Repeat Type</th>
-        <th>Route</th>
-        <th>Date Created</th>
+        {% if exp.result_ready is False %}
+        <td align="center"><span class="glyphicon glyphicon-ban-circle" title="Add to analysis cart"></span></td>
+        {% elif exp.results_ready and exp.id in request.session.analyze_list %}
+        <td align="center"><a href="{% url 'tp:cart-del' pk=exp.pk %}" class="glyphicon glyphicon-remove-sign" title="Add to analysis cart"></a></td>
+        {% else %}
+        <td align="center"><a href="{% url 'tp:cart-add' pk=exp.pk %}" class="glyphicon glyphicon-plus" title="Add to analysis cart"></a></td>
+        {% endif %}
+        <td align="center"><a href="{% url 'tp:experiment-update' pk=exp.pk %}" class="glyphicon glyphicon-edit" title="Edit experiment "></a></td>
+        <td>{{ exp.experiment_name }}</td>
+        <td>{{ exp.compound_name }}</td>
+        <td>{{ exp.dose }} {{ exp.dose_unit }}</td>
+        <td>{{ exp.time }}</td>
+        <td>{{ exp.tissue }}</td>
+        <td>{{ exp.organism }}</td>
+        <td>{{ exp.single_repeat_type }}</td>
+        <td>{{ exp.route }}</td>
+        <td>{{ exp.date_created }}</td>
       </tr>
-      {% for exp in experiments %}
-        <tr>
-          {% if exp.results_ready is True %}
-            <td align="center"><input type="checkbox" id="selected_experiments" value="{{ exp.id }}"></td>
-          {% else %}
-            <td align="center"><input type="checkbox" disabled id="selected_experiments" value="{{ exp.id }}"></td>
-          {% endif %}
-          <td><a href="/experiment/{{ exp.id }}" class="btn btn-default" title="Edit experiment {{ exp.id }}"><span
-                  class="glyphicon glyphicon-edit"></span></a></td>
-          <td>{{ exp.experiment_name }}</td>
-          <td>{{ exp.compound_name }}</td>
-          <td>{{ exp.dose }} {{ exp.dose_unit }}</td>
-          <td>{{ exp.time }}</td>
-          <td>{{ exp.tissue }}</td>
-          <td>{{ exp.organism }}</td>
-          <td>{{ exp.single_repeat_type }}</td>
-          <td>{{ exp.route }}</td>
-          <td>{{ exp.date_created }}</td>
-        </tr>
-      {% empty %}
-        <tr>
-          <td colspan="12">No experiments have been added yet.</td>
-        </tr>
-      {% endfor %}
+    {% empty %}
       <tr>
-        <th colspan="12"><input class="btn btn-primary" type="submit" value="Analyze Selected Experiments"/>
-          <a href="/experiment/add" class="btn btn-default" class="addlink"><span
-                  class="glyphicon glyphicon-plus"></span> New Experiment</a>
-        </th>
+        <td colspan="12">No experiments have been added yet.</td>
       </tr>
-    </table>
-  </form>
+    {% endfor %}
+  </table>
+
+  <div class="">
+    {# TODO - place a graphic up top summarzing number of entries in request.session.analyze_list #}
+    {# TODO - use a button with javascript to enable/disable based on session.analyze content #}
+    {% if request.session.analyze_list %}
+    <a class="btn btn-primary" href="{% url 'tp:analyze' %}">Analyze selected experiments</a>
+    {% endif %}
+  </div>
+
 </div>
 
 {% endblock content %}

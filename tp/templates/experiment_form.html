@@ -17,8 +17,12 @@
     {% endif %}
   {% endfor %}
   {% buttons layout='horizontal' %}
-    {% bootstrap_button "Save and continue" button_type="submit" name="_save" button_class="btn-primary" %}
-    {% bootstrap_button "Save and add another" button_type="submit" name="_addanother" %}
+    {% if request.session.adding_study %}
+      {% bootstrap_button "Save and upload samples" button_type="submit" name="_save" button_class="btn-primary" %}
+      {% bootstrap_button "Save and add another" button_type="submit" name="_addanother" %}
+    {% else %}
+      {% bootstrap_button "Save and return" button_type="submit" name="_save_ret" button_class="btn-primary" %}
+    {% endif %}
     {% bootstrap_button "Save and continue editing" button_type="submit" name="_continue" %}
     {% bootstrap_button "Delete" button_type="submit" name="_delete" %}
     {#  TODO can't get href to work with {%  url %} reverse lookup; refactored with plain link #}
