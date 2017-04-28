@@ -1,3 +1,6 @@
 static/admin
 toxapp/tp/migrations/
 logfile/toxapp.log
+.idea/
+__pycache__
+*.pyc

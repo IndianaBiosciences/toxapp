@@ -4,15 +4,25 @@
 
 {% block content %}
 
+<div class="alert alert-info">
+  <strong>Adding experiments for study:</strong><br>
+  {{ request.session.adding_study.name }}
+</div>
+
+<div class="alert alert-info">
+  <strong>Associated experiments:</strong>
+  <ul>
+    {% for exp in added_exp_names %}
+      <li>{{ exp }}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+
+
 <div class="container">
   <div class="row">
     <div>
-      Recently added experiments (if any):
-      <ul>
-        {% for exp in added_exp_names %}
-          <li>{{ exp }}</li>
-        {% endfor %}
-      </ul>
       <p>Upload samples by selecting either a single file that points to the location
         of the samples -or- by uploading multiple files</p>
       <form role="form" method="post" enctype="multipart/form-data" class="form-vertical">
@@ -45,8 +55,8 @@
             </div>
           </div>
         </div>
-        <input class="btn btn-default" type="submit" value="Upload Files"/>
-        <a class="btn btn-primary" href="{% url 'tp:experiments' %}"> Cancel </a>
+        <input class="btn btn-primary" type="submit" value="Upload Files"/>
+        <a class="btn btn-default" href="{% url 'tp:experiments' %}"> Cancel </a>
       </form>
     </div>
   </div>

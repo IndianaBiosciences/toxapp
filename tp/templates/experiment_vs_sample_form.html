@@ -4,7 +4,12 @@
 
 {% block content %}
 
-<div>
+<div class="alert alert-info">
+  Adding samples for study:<br>
+  {{ request.session.adding_study.name }}
+</div>
+
+  <div>
   Specify samples that define the intervention (i.e. treatment) and control for experiment:<br>
   {# TODO better to show more than the name, i.e. mini-table with other attributes too #}
   <strong>{{ selected_experiment.experiment_name }}</strong>

@@ -173,7 +173,7 @@ def load_measurement_tech_gene_map(file):
                 tech_vs_obj[thistech] = tech_obj
 
                 prev_map = IdentifierVsGeneMap.objects.filter(tech=tech_obj).all()
-                if prev_map is not None:
+                if prev_map is not None and len(prev_map) > 0:
                     logger.warning('Deleting existing identifer vs. gene map for measurement tech %s', tech_obj)
                     prev_map.delete()
 

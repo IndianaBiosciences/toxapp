@@ -5,26 +5,30 @@
 {% block content %}
 
 <div class="container">
-  <h4>Available Samples</h4>
+  <h4>Available Studies</h4>
 
   <table class="table table-striped custab">
     <tr>
       <th>Edit</th>
-      <th>Sample Name</th>
       <th>Study Name</th>
+      <th>Source</th>
       <th>Created</th>
+      <th>Owner</th>
+      <th>Permission</th>
     </tr>
-    {% for sample in samples %}
+    {% for study in studies %}
       <tr>
-        <td><a href="{% url 'tp:sample-update' pk=sample.pk %}" class="btn btn-default"
-               title="Edit sample {{ sample.sample_name }}"><span class="glyphicon glyphicon-edit"></span></a></td>
-        <td>{{ sample.sample_name }}</td>
-        <td>{{ sample.study.study_name }}</td>
-        <td>{{ sample.date_created }}</td>
+        <td><a href="{% url 'tp:study-update' pk=study.pk %}" class="btn btn-default"
+               title="Edit study {{ study.study_name }}"><span class="glyphicon glyphicon-edit"></span></a></td>
+        <td>{{ study.study_name }}</td>
+        <td>{{ study.source }}</td>
+        <td>{{ study.date_created }}</td>
+        <td>{{ study.owner }}</td>
+        <td>{{ study.permission }}</td>
       </tr>
     {% empty %}
       <tr>
-        <td colspan="4">No Samples yet.</td>
+        <td colspan="6">No Studies yet.</td>
       </tr>
     {% endfor %}
   </table>
@@ -51,10 +55,8 @@
     </ul>
   {% endif %}
 
-  <a href="{% url 'tp:sample-add' %}" class="btn btn-primary btn-default addlink"><span
-          class="glyphicon glyphicon-plus"></span> New Sample Data</a>
-  <a href="{% url 'tp:samples-upload' %}" class="btn btn-default addlink"><span
-          class="glyphicon glyphicon-file"></span>Upload Sample Files</a>
+  <a href="{% url 'tp:study-add' %}" class="btn btn-primary btn-default addlink"><span
+          class="glyphicon glyphicon-plus"></span> New Study Data</a>
 </div>
 
 {% endblock content %}

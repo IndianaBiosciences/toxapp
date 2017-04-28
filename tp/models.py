@@ -3,6 +3,32 @@ from django.conf import settings
 from datetime import datetime
 from django.urls import reverse
 
+
+class Study(models.Model):
+
+    PERMISSION_TYPE = (
+        ('S', 'Private'),
+        ('G', 'Group'),
+        ('P', 'Public'),
+    )
+
+    SOURCE_CHOICES =(
+        ('NA', 'Not applicable'),
+        ('DM', 'DrugMatrix'),
+        ('TG', 'TG-GATEs'),
+        ('GEO', 'GEO'),
+    )
+
+    study_name = models.CharField(max_length=100)
+    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_CHOICES[0][0])
+    date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
+    permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)
+
+    def __str__(self):
+        return self.study_name
+
+
 class MeasurementTech(models.Model):
 
     TECH_CHOICES = (
@@ -11,19 +37,13 @@ class MeasurementTech(models.Model):
     )
 
     tech = models.CharField(max_length=20, choices=TECH_CHOICES, default=TECH_CHOICES[0][0])
-    tech_detail = models.CharField(max_length=50) # type of microarray or sequencer
+    tech_detail = models.CharField(max_length=50)  # type of microarray or sequencer
 
     def __str__(self):
         txt = "{}-{}".format(self.tech, self.tech_detail)
         return txt
 
 class Experiment(models.Model):
-
-    PERMISSION_TYPE = (
-        ('S', 'Private'),
-        ('G', 'Group'),
-        ('P', 'Public'),
-    )
 
     TISSUE_CHOICES = (
         ('liver' ,'liver'),
@@ -58,16 +78,9 @@ class Experiment(models.Model):
         ('NA', 'Not applicable'),
     )
 
-    SOURCE_CHOICES =(
-        ('NA', 'Not applicable'),
-        ('DM', 'DrugMatrix'),
-        ('TG', 'TG-GATEs'),
-        ('GEO', 'GEO'),
-    )
-
     experiment_name = models.CharField(max_length=200)
     tech = models.ForeignKey(MeasurementTech)
-    study_id = models.CharField(blank=True, max_length=50) # source of sthe study, GEO accession etc
+    study = models.ForeignKey(Study)
     compound_name = models.CharField(max_length=50)
     dose = models.DecimalField(max_digits=5, decimal_places=2)
     dose_unit = models.CharField(max_length=20)
@@ -78,10 +91,7 @@ class Experiment(models.Model):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default=GENDER_CHOICES[0][0])
     single_repeat_type = models.CharField(max_length=10, choices=REPEAT_TYPE_CHOICES, default=REPEAT_TYPE_CHOICES[0][0])
     route = models.CharField(max_length=10, choices=ROUTE_CHOICES, default=ROUTE_CHOICES[0][0])
-    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_CHOICES[0][0])
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
-    permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)
     results_ready = models.BooleanField(default=False)
 
     def get_absolute_url(self):
@@ -94,16 +104,9 @@ class Experiment(models.Model):
 
 class Sample(models.Model):
 
-    PERMISSION_TYPE = (
-        ('S', 'Private'),
-        ('G', 'Group'),
-        ('P', 'Public'),
-    )
-
+    study = models.ForeignKey(Study)
     sample_name = models.CharField(max_length=50)
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
-    permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)
 
     def __str__(self):
         return self.sample_name
@@ -120,7 +123,6 @@ class ExperimentSample(models.Model):
     experiment = models.ForeignKey(Experiment)
     group_type = models.CharField(max_length=1, choices=GROUP_TYPE, default=GROUP_TYPE[0][0])
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
 
     def __str__(self):
         return self.group_type

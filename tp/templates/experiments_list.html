@@ -28,14 +28,13 @@
       <th>Organism</th>
       <th>Repeat Type</th>
       <th>Route</th>
-      <th>Date Created</th>
     </tr>
     {% for exp in experiments %}
       <tr>
-        {% if exp.result_ready is False %}
-        <td align="center"><span class="glyphicon glyphicon-ban-circle" title="Add to analysis cart"></span></td>
-        {% elif exp.results_ready and exp.id in request.session.analyze_list %}
-        <td align="center"><a href="{% url 'tp:cart-del' pk=exp.pk %}" class="glyphicon glyphicon-remove-sign" title="Add to analysis cart"></a></td>
+        {% if exp.results_ready is False %}
+        <td align="center"><span class="glyphicon glyphicon-ban-circle" title="Not ready for analysis"></span></td>
+        {% elif exp.id in request.session.analyze_list %}
+        <td align="center"><a href="{% url 'tp:cart-del' pk=exp.pk %}" class="glyphicon glyphicon-remove-sign" title="Remove from analysis cart"></a></td>
         {% else %}
         <td align="center"><a href="{% url 'tp:cart-add' pk=exp.pk %}" class="glyphicon glyphicon-plus" title="Add to analysis cart"></a></td>
         {% endif %}
@@ -48,11 +47,10 @@
         <td>{{ exp.organism }}</td>
         <td>{{ exp.single_repeat_type }}</td>
         <td>{{ exp.route }}</td>
-        <td>{{ exp.date_created }}</td>
       </tr>
     {% empty %}
       <tr>
-        <td colspan="12">No experiments found</td>
+        <td colspan="10">No experiments found</td>
       </tr>
     {% endfor %}
   </table>

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+
+{% block content %}
+
+<form role="form" action="" class="form-horizontal" method="post">
+  {% csrf_token %}
+  {% bootstrap_form_errors form type='non_fields' %}
+
+  {% for field in form %}
+    {% bootstrap_field field layout='vertical' %}
+  {% endfor %}
+  {% buttons %}
+    {% bootstrap_button "Save and return" button_type="submit" name="_save_ret" button_class="btn-primary" %}
+    {% bootstrap_button "Save and continue editing" button_type="submit" name="_continue" button_class="btn-default" %}
+    {% bootstrap_button "Save and add/edit experiments" button_type="submit" name="_save_add_exp" button_class="btn-default" %}
+    {% if study.pk %}
+      <a class="btn btn-default" href="{% url 'tp:study-delete' pk=study.pk %}">Delete</a>
+    {% endif %}
+    <a class="btn btn-default" href="{% url 'tp:studies' %}">Cancel</a>
+  {% endbuttons %}
+</form>
+
+{% endblock content %}

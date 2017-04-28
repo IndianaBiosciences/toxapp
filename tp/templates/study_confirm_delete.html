@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<form action="" method="post">
+  {% csrf_token %}
+  Are you sure you want to delete study {{ study.study_name }}? <strong>All data associated with study will be deleted</strong><br>
+  <input class="btn btn-default" type="submit" value="Delete" />
+  <a class="btn btn-primary" href="{% url 'tp:study-update' pk=study.pk %}"> Cancel </a>
+</form>
+
+{% endblock content %}

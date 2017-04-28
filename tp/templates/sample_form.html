@@ -4,6 +4,19 @@
 
 {% block content %}
 
+{% if request.session.adding_study %}
+  <div class="alert alert-info">
+    Adding samples for study:<br>
+    {{ request.session.adding_study.name }}
+  </div>
+{% endif %}
+
+{% if study_error %}
+  <div class="alert alert-danger">
+    {{ study_error }}
+  </div>
+{% endif %}
+
 <form role="form" action="" class="form-horizontal" method="post">
   {% csrf_token %}
   {% bootstrap_form_errors form type='non_fields' %}
@@ -12,9 +25,13 @@
     {% bootstrap_field field layout='vertical' %}
   {% endfor %}
   {% buttons layout='horizontal' %}
-    {% bootstrap_button "Save" button_type="submit" name="_save" button_class="btn-primary" %}
-    {% bootstrap_button "Delete" button_type="submit" name="_delete" button_class="btn-default" %}
-    <a class="btn btn-default" href="{% url 'tp:samples' %}">Cancel</a>
+  {% bootstrap_button "Save and add another" button_type="submit" name="_save" button_class="btn-primary" %}
+  {% bootstrap_button "Save and continue editing" button_type="submit" name="_continue" %}
+  {% bootstrap_button "Save and return" button_type="submit" name="_save_ret" button_class="btn-default" %}
+  {% if sample.pk %}
+    <a class="btn btn-default" href="{% url 'tp:sample-delete' pk=sample.pk %}">Delete</a>
+  {% endif %}
+  <a class="btn btn-default" href="{% url 'tp:samples' %}">Cancel</a>
   {% endbuttons %}
 </form>
 
