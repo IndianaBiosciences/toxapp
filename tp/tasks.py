@@ -1,5 +1,5 @@
 from __future__ import absolute_import, unicode_literals
-from celery import shared_task
+from celery import shared_task, current_task
 from .models import Experiment, FoldChangeResult, MeasurementTech, IdentifierVsGeneMap, ModuleScores, GeneSets, GSAScores
 from django.conf import settings
 from django.core.mail import send_mail

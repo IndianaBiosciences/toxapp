@@ -20,7 +20,9 @@ class Study(models.Model):
     )
 
     study_name = models.CharField(max_length=100)
+    study_info = models.CharField(max_length=5000, blank=True, null=True)
     source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_CHOICES[0][0])
+    date = models.DateField(blank=True, null=True)
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
     permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)

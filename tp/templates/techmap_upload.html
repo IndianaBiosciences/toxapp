@@ -13,8 +13,12 @@
     {# TODO example_identifer_map.txt not accessible form page ... issue with serving site_media? #}
     Download a sample <a href="{% static "site_media/example_identifier_map.txt" %}"> here</a><br><br>
     {% bootstrap_field form.map_file layout='vertical' %}
-    {% buttons submit='OK' reset="Cancel" %}{% endbuttons %}
+    {% buttons %}
+    {% bootstrap_button "Upload file" button_type="submit" name="_save" button_class="btn-primary" %}
+    <a class="btn btn-default" href="{% url 'tp:experiment-add' %}">Cancel</a>
+    {% endbuttons %}
   </form>
+<div id="uploadIcon"></div>
 </div>
 
-{% endblock content %}
+{% endblock %}

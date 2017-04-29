@@ -5,6 +5,23 @@
 
 {% block content %}
 
+<div class="alert alert-info">
+  Bulk addition of samples for study:<br>
+  {{ request.session.adding_study.name }}
+</div>
+
+
+{% if existing_samples %}
+<div class="alert alert-warning">
+  <strong>The following samples found in file(s) have been previously uploaded and are not shown in upload grid below</strong>
+  <ul>
+    {% for sample in existing_samples %}
+      <li>{{ sample }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 <form method="post" action="">
   {% csrf_token %}
   {% bootstrap_dynamic_formset formset can_order=True can_delete=True layout="horizontal" %}
