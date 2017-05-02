@@ -17,3 +17,4 @@ if True:
     time.sleep(5)
     print(res.ready())
     print(res.get(timeout=1))
+
