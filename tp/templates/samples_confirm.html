@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+
+{% block content %}
+
+{% if request.session.adding_study %}
+  <div class="alert alert-info">
+    Adding samples for study:<br>
+    {{ request.session.adding_study.name }}
+  </div>
+{% endif %}
+
+<div class="alert alert-warning">
+  Review existing samples associated with this study.
+  <strong>Any non-selected samples will be deleted.</strong>
+</div>
+
+<form method="post" action="">
+  {% csrf_token %}
+  {% bootstrap_form form layout="horizontal" %}
+  {% bootstrap_button "Save and done with samples" button_type="submit" name="_continue" button_class="btn-primary" %}
+  {% bootstrap_button "Save and add samples" button_type="submit" name="_add" button_class="btn-default" %}
+  <a class="btn btn-default" href="{% url 'tp:experiments-confirm' %}">Cancel</a>
+</form>
+
+{% endblock content %}

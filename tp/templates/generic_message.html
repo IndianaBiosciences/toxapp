@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+{% if error %}
+<div class="alert alert-danger">
+{% else %}
+<div class="alert alert-info">
+{% endif %}
+
+{{ message }}
+<br><br>
+{% if redirect_url %}
+  <a class="btn btn-default" href="{{redirect_url}}">Continue</a>
+{% endif %}
+</div>
+
+{% endblock content %}

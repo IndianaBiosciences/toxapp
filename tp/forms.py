@@ -1,9 +1,23 @@
 from django import forms
+from django.utils.translation import ugettext_lazy as _
 from django.forms import ModelForm, modelformset_factory
-from .models import Experiment, Sample, ExperimentSample
+from .models import Study, Experiment, Sample, ExperimentSample
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class StudyForm(ModelForm):
+    """StudyForm -- form class to handle study meta data"""
+
+    class Meta:
+        model = Study
+        # TODO - neither of __all__ or exclude recommended due to security risks per doc
+        # list explicitly once model is stable
+        exclude = ['owner', 'date_created']
+        widgets = {
+            'date': forms.TextInput(attrs={'class': 'datepicker'}),
+        }
 
 
 class ExperimentForm(ModelForm):
@@ -11,12 +25,14 @@ class ExperimentForm(ModelForm):
 
     class Meta:
         model = Experiment
-        # fields = [f.name for f in model._meta.get_fields()]
-        # TODO - neither of __all__ or exclude recommended due to security risks per doc
-        # list explicitly once model is stable
-        exclude = ['owner', 'results_ready']
-        widgets = {
-            'date_created': forms.TextInput(attrs={'class': 'datepicker'}),
+        fields = ['tech', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'strain', 'gender', 'single_repeat_type',
+                  'route', 'experiment_name']
+
+        labels = {
+            'time': _('Time in days'),
+        }
+        help_texts = {
+            'experiment_name': _('Click on "Experiment name" label to autopopulate on other entries'),
         }
 
 
@@ -33,10 +49,9 @@ class SampleForm(ModelForm):
 
     class Meta:
         model = Sample
-        # fields = [f.name for f in model._meta.get_fields()]
         # TODO - neither of __all__ or exclude recommended due to security risks per doc
         # list explicitly once model is stable
-        exclude = ['date_created', 'owner', 'permission']
+        exclude = ['study', 'date_created']
 
 
 class FilesForm(forms.Form):
@@ -53,15 +68,17 @@ class ExperimentSampleForm(forms.Form):
 
 
 class ExperimentConfirmForm(forms.Form):
-    """ checkbox form to identify which of recently loaded experiments will have data loaded """
-    experiments = forms.ModelMultipleChoiceField(required=True,
+    """ checkbox form to identify which of existing experiments will be retained """
+    experiments = forms.ModelMultipleChoiceField(required=False,
                                                  queryset=Experiment.objects.all(),
-                                                 widget=forms.CheckboxSelectMultiple(attrs={"checked":""}),
-                                                 label="experiments for data upload")
+                                                 widget=forms.CheckboxSelectMultiple(attrs={"checked":""}))
 
-class AnalyzeForm(forms.Form):
-    """ AnalyzeForm -- form class to combine selected experiments and run the analysis """
-    hello = "Hello"
+
+class SampleConfirmForm(forms.Form):
+    """ checkbox form to identify which of existing samples will be retained"""
+    samples = forms.ModelMultipleChoiceField(required=False,
+                                                 queryset=Sample.objects.all(),
+                                                 widget=forms.CheckboxSelectMultiple(attrs={"checked":""}))
 
 
 class MapFileForm(forms.Form):

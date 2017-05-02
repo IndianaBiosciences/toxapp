@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'bootstrap3',
     'widget_tweaks',
     'django_bootstrap_dynamic_formsets',
@@ -190,3 +191,8 @@ LOGGING = {
 
 # email backend for development purposes
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Computation Configurations
+COMPUTATION = {
+    'script_dir': os.path.join(BASE_DIR, 'scripts'),
+}

@@ -5,25 +5,22 @@
 {% block content %}
 
 <div class="container">
-  <h3>Available Samples</h3>
+  <h4>Available Samples</h4>
 
   <table class="table table-striped custab">
     <tr>
-      <th></th>
+      <th>Edit</th>
       <th>Sample Name</th>
-      <th>Type</th>
-      <th>Attached to Experiment</th>
+      <th>Study Name</th>
       <th>Created</th>
     </tr>
     {% for sample in samples %}
       <tr>
-        <td><a href="/sample/{{ sample.id }}" class="btn btn-default"
+        <td><a href="{% url 'tp:sample-update' pk=sample.pk %}" class="btn btn-default"
                title="Edit sample {{ sample.sample_name }}"><span class="glyphicon glyphicon-edit"></span></a></td>
         <td>{{ sample.sample_name }}</td>
-        <td>{{ sample.group_type }}</td>
-        <td>{{ sample.experiment.name }}</td>
+        <td>{{ sample.study.study_name }}</td>
         <td>{{ sample.date_created }}</td>
-
       </tr>
     {% empty %}
       <tr>
@@ -31,6 +28,29 @@
       </tr>
     {% endfor %}
   </table>
+
+  {% if is_paginated %}
+    <ul class="pagination">
+      {% if page_obj.has_previous %}
+        <li><a href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+      {% else %}
+        <li class="disabled"><span>&laquo;</span></li>
+      {% endif %}
+      {% for i in paginator.page_range %}
+        {% if page_obj.number == i %}
+          <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
+        {% else %}
+          <li><a href="?page={{ i }}">{{ i }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <li><a href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+      {% else %}
+        <li class="disabled"><span>&raquo;</span></li>
+      {% endif %}
+    </ul>
+  {% endif %}
+
   <a href="{% url 'tp:sample-add' %}" class="btn btn-primary btn-default addlink"><span
           class="glyphicon glyphicon-plus"></span> New Sample Data</a>
   <a href="{% url 'tp:samples-upload' %}" class="btn btn-default addlink"><span

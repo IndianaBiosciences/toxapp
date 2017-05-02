@@ -2,47 +2,134 @@ from django.shortcuts import render
 
 # Create your views here.
 
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.views.generic import ListView, DetailView, FormView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
 from django.core.files.storage import FileSystemStorage
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from tempfile import gettempdir
-from .models import Experiment, Sample, ExperimentSample
-from .forms import ExperimentForm, SampleForm, SampleFormSet, AnalyzeForm, FilesForm, ExperimentSampleForm, ExperimentConfirmForm, MapFileForm
-from .tasks import load_measurement_tech_gene_map
+from .models import Study, Experiment, Sample, ExperimentSample
+from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
+                   ExperimentConfirmForm, SampleConfirmForm, MapFileForm
+from .tasks import load_measurement_tech_gene_map, process_user_files
 import os
 import time
 import logging
+import csv
 import pprint, json
 
 logger = logging.getLogger(__name__)
+
 
 def index(request):
     """ the home page for tp """
     return render(request, 'index.html')
 
 
-def analyze(request):
-    """ upload the data for the experiment after experiment meta data is captured"""
+def get_study_from_session(session):
 
-    # if this is a POST request we need to process the form data
-    if request.method == 'POST':
-        # create a form instance and populate it with data from the request:
-        form = AnalyzeForm(request.POST)
-        # check whether it's valid:
-        if form.is_valid():
-            # process the data in form.cleaned_data as required
-            # ...
-            # redirect to a new URL:
-            form = AnalyzeForm()
-
-    # if a GET (or any other method) we'll create a blank form
+    studyobj = None
+    if session.get('adding_study', None) is None:
+        logger.error('get_study_from_session: no adding_study key in session')
     else:
-        form = AnalyzeForm()
+        try:
+            studyobj = Study.objects.get(pk=session['adding_study']['id'])
+        except:
+            logger.error('get_study_from_session: study ID stored in session is not valid')
 
-    return render(request, 'analyze.html', {'form': form})
+    return studyobj
+
+
+def reset_session(session):
+    """ helper function to restore various session vars used for tracking between views """
+
+    logger.debug('Resetting session info for tracking metadata across handlers')
+    # TODO - delete the existing tmp_dir first
+    # delete and not set to None due to manner in which they are created as lists
+    for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file']:
+        try:
+            del session[attr]
+        except KeyError:
+            pass
+
+
+def get_temp_dir(obj):
+
+    if obj.request.session.get('tmp_dir', None) is None:
+        tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
+        os.makedirs(tmp)
+        logger.debug('get_temp_dir: Creating temporary working directory %s', tmp)
+        obj.request.session['tmp_dir'] = tmp
+
+    return obj.request.session['tmp_dir']
+
+
+def cart_add(request, pk):
+    """ add an experiment to the analysis cart and return"""
+
+    pk=int(pk) # make integer for lookup within template
+    analyze_list = request.session.get('analyze_list', [])
+    if pk not in analyze_list:
+        analyze_list.append(pk)
+    request.session['analyze_list'] = analyze_list
+
+    return HttpResponseRedirect(reverse('tp:experiments'))
+
+
+def cart_del(request, pk):
+    """ remove an experiment from the analysis cart and return"""
+
+    pk=int(pk) # make integer for lookup within template
+    analyze_list = request.session.get('analyze_list', [])
+    if pk in analyze_list:
+        analyze_list.remove(pk)
+    request.session['analyze_list'] = analyze_list
+
+    return HttpResponseRedirect(reverse('tp:experiments'))
+
+
+def analyze(request, pk=None):
+    """ create a list of experiments to analyze / display the list"""
+
+    if request.method == 'POST':
+        form = ExperimentConfirmForm(request.POST)
+        if form.is_valid():
+
+            retained_ids = []
+            for exp in form.cleaned_data['experiments']:
+                retained_ids.append(exp.pk)
+
+            logger.debug('analyze: Experiments for analysis being saved in session: %s', retained_ids)
+            request.session['analyze_list'] = retained_ids
+            return HttpResponseRedirect(reverse('tp:experiments'))
+
+    else:
+
+        form = ExperimentConfirmForm()
+        # check that this exp_id is valid exp
+        if pk:
+            get_object_or_404(Experiment, pk=pk)
+
+        analyze_list = request.session.get('analyze_list', [])
+        if pk and pk not in analyze_list:
+            analyze_list.append(pk)
+
+        if not analyze_list:
+            message = 'Potential bug; Please add experiments to analyze from the experiments list first'
+            redirect_url = reverse('tp:experiments')
+            context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            return render(request, 'generic_message.html', context)
+        else:
+            request.session['analyze_list'] = analyze_list
+            # override the default queryset which is all samples
+            form.fields['experiments'].queryset = Experiment.objects.filter(pk__in=analyze_list)
+
+    context = {'form': form}
+    return render(request, 'analyze.html', context)
+
 
 def experiments_confirm(request):
     """ allow editing of experiments for which data will be uploaded """
@@ -55,23 +142,107 @@ def experiments_confirm(request):
             for exp in form.cleaned_data['experiments']:
                 retained_ids.append(exp.pk)
 
-            logger.debug('Experiments being saved in session: %s', retained_ids)
-            request.session['added_exps'] = retained_ids
-            return HttpResponseRedirect(reverse('tp:samples-upload'))
+            study = get_study_from_session(request.session)
+            exps = Experiment.objects.filter(study=study).all()
+            del_exps = list()
+            for e in exps:
+                if e.id not in retained_ids:
+                    del_exps.append(e.experiment_name)
+                    e.delete()
+
+            if del_exps:
+                logger.info('experiments_confirm: Deleted the following non-selected experiments: %s', del_exps)
+
+            # if deleted all existing samples by not checking any exps, need to add more before sample upload
+            if request.POST.get('_continue') is not None and len(retained_ids) > 0:
+                return HttpResponseRedirect(reverse('tp:samples-confirm'))
+            elif request.POST.get('_add') is not None:
+                return HttpResponseRedirect(reverse('tp:experiment-add'))
+            else:
+                message = 'Found bug in experiments_confirm; please report'
+                context = {'message': message, 'error': True}
+                return render(request, 'generic_message.html', context)
 
     else:
+        # set the value of study based on session content
+        study = get_study_from_session(request.session)
+        if study is None:
+            message = 'Potential bug in experiments_confirm; Please add or edit a study first and retry'
+            redirect_url = reverse('tp:studies')
+            context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            return render(request, 'generic_message.html', context)
 
-        if request.session.get('added_exps', None) is None or not request.session['added_exps']:
-            # TODO - want to put some sort of warning message into the HTML if this happens
-            logger.error('No experiments have been added yet')
+        exps = Experiment.objects.filter(study=study).all()
 
-        # get an empty form (in terms of existing samples) but pre-populate from loaded sample names
-        exp_ids = request.session['added_exps']
+        # if there aren't any existing experiments, skip this dialog and go straight to addition
+        if len(exps) == 0:
+            return HttpResponseRedirect(reverse('tp:experiment-add'))
+
         form = ExperimentConfirmForm()
-        # override the default queryset which is all samples
-        form.fields['experiments'].queryset = Experiment.objects.filter(pk__in=exp_ids)
-        context = {'form': form}
-        return render(request, 'experiments_confirm.html', context)
+        # override the default queryset which is all exps
+        form.fields['experiments'].queryset = exps
+
+    context = {'form': form}
+    return render(request, 'experiments_confirm.html', context)
+
+
+def samples_confirm(request):
+    """ review existing samples in database during study data upload """
+
+    if request.method == 'POST':
+        form = SampleConfirmForm(request.POST)
+        if form.is_valid():
+
+            retained_ids = []
+            for s in form.cleaned_data['samples']:
+                retained_ids.append(s.pk)
+
+            study = get_study_from_session(request.session)
+            smpls = Sample.objects.filter(study=study).all()
+            del_smpls = list()
+            for s in smpls:
+                if s.id not in retained_ids:
+                    del_smpls.append(s.sample_name)
+                    # delete any existing associations to experiment for this sample
+                    ExperimentSample.objects.filter(sample=s).delete()
+                    s.delete()
+
+            if del_smpls:
+                logger.info('samples_confirm: Deleted the following non-selected samples: %s', del_smpls)
+
+            # if deleted all existing samples by not checking any smpls, need to add more before sample upload
+            if request.POST.get('_continue') is not None and len(retained_ids) > 0:
+                return HttpResponseRedirect(reverse('tp:experiment-sample-add'))
+            elif request.POST.get('_add') is not None:
+                return HttpResponseRedirect(reverse('tp:samples-upload'))
+            else:
+                message = 'Found bug in samples_confirm; please report'
+                context = {'message': message, 'error': True}
+                return render(request, 'generic_message.html', context)
+
+    else:
+        # set the value of study based on session content
+        study = get_study_from_session(request.session)
+        if study is None:
+            message = 'Potential bug in sample_confirm; Please add or edit a study first and retry'
+            redirect_url = reverse('tp:studies')
+            context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            return render(request, 'generic_message.html', context)
+
+        smpls = Sample.objects.filter(study=study).all()
+
+        # if revising an existing, it's possible to move to experiment-vs-sample dialog without ever uploading
+        # a file (and hence setting sample_files and other stuff in session; force use of sample upload handler
+        # Also, if there aren't any existing samples, skip this dialog and go straight to upload handler
+        if len(smpls) == 0 or request.session.get('sample_file', None) is None:
+            return HttpResponseRedirect(reverse('tp:samples-upload'))
+
+        form = SampleConfirmForm()
+        # override the default queryset which is all smpls
+        form.fields['samples'].queryset = smpls
+
+    context = {'form': form}
+    return render(request, 'samples_confirm.html', context)
 
 
 def create_samples(request):
@@ -84,36 +255,65 @@ def create_samples(request):
             # the last one itself is not kept.  Not a simple matter of hitting null in list
             # since you can delete the first one and 2, 3, ... come through just not the last one
             # can also get this if you delete all orig ones and hand-enter new sample names
-            added = formset.save()
-            logger.error('Content of added formset %s', pprint.pformat(added))
-            # add the saved sample IDs to session for experiment vs. sample association
-            request.session['added_samples'] = [o.pk for o in added]
-            logger.debug('Added the following session vars %s', request.session['added_samples'])
-            return HttpResponseRedirect(reverse('tp:experient-sample-add'))
+            study = get_study_from_session(request.session)
+            samples = formset.save(commit=False)
+            # need to save the study which was not in the formset
+            for s in samples:
+                s.study = study
+                s.save()
+            return HttpResponseRedirect(reverse('tp:samples-confirm'))
 
     else:
         initial = []
         extra = 0
-        if request.session.get('added_sample_files', None) is None or not request.session['added_sample_files']:
-            # TODO - want to put some sort of warning message into the HTML if this happens
-            logger.error('Did not retrieve samples from uploaded file; form will be blank')
+
+        study = get_study_from_session(request.session)
+        if study is None:
+            message = 'Potential bug in create_samples; Please upload your results data files first'
+            redirect_url = reverse('tp:samples-upload')
+            context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            return render(request, 'generic_message.html', context)
+
+        # get list of existing samples previously uploaded
+        samples = Sample.objects.filter(study=study).all()
+        have_samples = list()
+        if samples:
+            # delete any existing exp-vs-sample associations - force re-association whenever reloading from files
+            ExperimentSample.objects.filter(sample__in=samples).delete()
+
+            have_samples = [s.sample_name for s in samples]
+
+        # set the value of study based on session content
+        if request.session.get('added_sample_names', None) is None:
+            message = 'Potential bug in create_samples; Please upload your results data files first'
+            redirect_url = reverse('tp:samples-upload')
+            context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            logger.error('create_samples: Did not retrieve samples from uploaded file; form will be blank')
+            return render(request, 'generic_message.html', context)
         else:
-            for sample in request.session['added_sample_files']:
-                initial.append({'sample_name': sample})
+            skipped_from_file = list()
+            for sample_name in request.session['added_sample_names']:
+                if have_samples and sample_name in have_samples:
+                    skipped_from_file.append(sample_name)
+                    continue
+
+                initial.append({'sample_name': sample_name})
                 extra += 1
+
+        # all the uploaded samples already exist in database; move on to confirm
+        if not initial:
+            logger.debug('All uploaded samples already in database; skip to confirm samples')
+            return HttpResponseRedirect(reverse('tp:samples-confirm'))
 
         # get an empty form (in terms of existing samples) but pre-populate from loaded sample names
         formset = SampleFormSet(queryset=Sample.objects.none(), initial=initial)
         setattr(formset, 'extra', extra)
-        return render(request, 'samples_add_form.html', {'formset': formset})
+
+    return render(request, 'samples_add_form.html', {'formset': formset, 'existing_samples': skipped_from_file})
 
 
-def create_experiment_sample_pair(request):
+def create_experiment_sample_pair(request, reset=None):
     """ create_experiment_sample_pair -- create association between experiments and samples """
-
-    user = None
-    if request.user.is_authenticated():
-        user = request.user
 
     if request.method == 'POST':
         form = ExperimentSampleForm(request.POST)
@@ -130,94 +330,104 @@ def create_experiment_sample_pair(request):
             # animal is a control for real surgery but can be intervention compared to a naive animal. Probably best
             # to take full control of process ...
             for s in form.cleaned_data['trt_samples']:
-                rec = ExperimentSample(sample=s, experiment=exp, group_type = 'I', owner=user)
+                rec = ExperimentSample(sample=s, experiment=exp, group_type = 'I')
                 rec.save()
-                process_rec['sample'].append({'sample_id': s.pk, 'sample_name': s.sample_name})
+                process_rec['sample'].append({'sample_id': s.pk, 'sample_name': s.sample_name, 'sample_type': 'I'})
                 process_rec['experiment_vs_sample'].append(rec.pk)
 
             for s in form.cleaned_data['ctl_samples']:
-                rec = ExperimentSample(sample=s, experiment=exp, group_type = 'C', owner=user)
+                rec = ExperimentSample(sample=s, experiment=exp, group_type = 'C')
                 rec.save()
-                process_rec['sample'].append({'sample_id': s.pk, 'sample_name': s.sample_name})
+                process_rec['sample'].append({'sample_id': s.pk, 'sample_name': s.sample_name, 'sample_type': 'C'})
                 process_rec['experiment_vs_sample'].append(rec.pk)
 
-            # remove any exp IDs encoured from the the session
-            exps = request.session['added_exps']
-            exps.remove(exp_id)
-            request.session['added_exps'] = exps
-
             # add the current experiment definition to session
-            computation_recs = request.session.get('computation_recs', None)
-            if computation_recs:
-                computation_recs.append(process_rec)
-            else:
-                computation_recs = [process_rec]
+            computation_recs = request.session.get('computation_recs', [])
+            computation_recs.append(process_rec)
             request.session['computation_recs'] = computation_recs
-
-            return HttpResponseRedirect(reverse('tp:experient-sample-add'))
+            # keep sending back to the same form until all newly-added experiments have sample associations
+            return HttpResponseRedirect(reverse('tp:experiment-sample-add'))
     else:
-        context = dict()
-        selected_experiment = None
 
         # retrieve newly added experiments
-        if request.session.get('added_exps', None) is None:
-            # TODO - want to put some sort of warning message into the HTML if this happens
-            logger.error('Did not retrieve experiments from session')
-        elif not request.session['added_exps']:
-            # all newly-added experiments have been processed and list is empty; redirect
-            return HttpResponseRedirect(reverse('tp:experient-sample-confirm'))
-        else:
-            selected_exp_id = request.session['added_exps'][0]
-            selected_experiment = Experiment.objects.get(pk=selected_exp_id)
-            context['selected_experiment'] = selected_experiment
+        study = get_study_from_session(request.session)
+        exps = list()
+        samples = list()
 
-        # retrieve newly added samples for association with experiment
-        if request.session.get('added_samples', None) is None or not request.session['added_samples']:
-            # TODO - want to put some sort of warning message into the HTML if this happens
-            logger.error('Did not retrieve samples from uploaded file')
+        if study is not None:
+            exps = Experiment.objects.filter(study=study).all()
+            samples = Sample.objects.filter(study=study).all()
 
-        added_sample_ids = request.session['added_samples']
-        form = ExperimentSampleForm(initial={'exp_id': selected_experiment.pk})
+        if not exps or not samples:
+            message = 'Potential bug; Please add new experiments for which you want to upload data first'
+            redirect_url = reverse('tp:experiment-add')
+            errcontext = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            logger.error('create_experiment_sample_pair: Did not retrieve experiments from session')
+            return render(request, 'generic_message.html', errcontext)
+
+        # if reset flag is true, dump existing exp-sample associations for all exps
+        if reset:
+            logger.debug('create_experiment_sample_pair: clearing existing sample associations for study %s', study.study_name)
+            ExperimentSample.objects.filter(experiment__in=exps).delete()
+
+        # create a list of which exps that go with this study
+        selected_exp = None
+        for e in exps:
+            # only check on exp ... samples can be used multiple times (e.g. controls)
+            has_sample_assoc = ExperimentSample.objects.filter(experiment=e).first()
+            if has_sample_assoc is None:
+                selected_exp = e
+                break
+
+        # done with association of these exps to samples
+        if selected_exp is None:
+            return HttpResponseRedirect(reverse('tp:experiment-sample-confirm'))
+
+        # pre-select the experiment in question in the form as that we're working on
+        form = ExperimentSampleForm(initial={'exp_id': selected_exp.pk})
         # override the default queryset which is all samples
-        form.fields['trt_samples'].queryset = Sample.objects.filter(pk__in=added_sample_ids)
-        form.fields['ctl_samples'].queryset = Sample.objects.filter(pk__in=added_sample_ids)
-        context['form'] = form
-        return render(request, 'experiment_vs_sample_form.html', context)
+        form.fields['trt_samples'].queryset = samples
+        form.fields['ctl_samples'].queryset = samples
+
+    context = {'form': form, 'selected_experiment': selected_exp}
+    return render(request, 'experiment_vs_sample_form.html', context)
 
 
 def confirm_experiment_sample_pair(request):
     """ display table of experiment vs. samples that will be processed """
 
     if request.method == 'POST':
-
         tmpdir = request.session.get('tmp_dir')
         comput_rec = request.session.get('computation_recs')
         file = os.path.join(tmpdir, 'computation_data.json')
-        logger.error('Have following as json job config file:  %s', file)
+        logger.debug('confirm_experiment_sample_pair: json job config file:  %s', file)
         with open(file, 'w') as outfile:
             json.dump(comput_rec, outfile)
-
+        request.session['computation_config'] = file
         return HttpResponseRedirect(reverse('tp:compute-fold-change'))
 
     else:
-
         if request.session.get('computation_recs', None) is None:
-            # TODO - put something in template
-            logger.error('Calling compute_fold_change without a computation_recs session variable')
+            message = 'confirm_experiment_sample_pair: no computation_recs session variable; report bug'
+            context = {'message': message, 'error': True}
+            logger.error('confirm_experiment_sample_pair: no computation_recs session variable')
+            return render(request, 'generic_message.html', context)
 
         if request.session.get('tmp_dir', None) is None:
-            # TODO - put something in template
-            logger.error('Calling compute_fold_change without tmp_dir session variable')
+            message = 'confirm_experiment_sample_pair: no tmp_dir session variable; report bug'
+            context = {'message': message, 'error': True}
+            logger.error('confirm_experiment_sample_pair: no tmp_dir session variable')
+            return render(request, 'generic_message.html', context)
 
         data = request.session['computation_recs']
         table_ids = []
         for row in data:
             table_ids += row['experiment_vs_sample']
 
-        logger.error('what we have in session %s', pprint.pformat(data))
+        logger.debug('confirm_experiment_sample_pair: computation_recs stored in session: %s', pprint.pformat(data))
         table_content = ExperimentSample.objects.filter(pk__in=table_ids)
         for row in table_content:
-            logger.error("Content of row %s, %s, %s", row.group_type, row.sample, row.experiment)
+            logger.debug("confirm_experiment_sample_pair: Content of row %s, %s, %s", row.group_type, row.sample, row.experiment)
 
         context = {'table': table_content}
         return render(request, 'experiment_vs_sample_confirm.html', context)
@@ -226,25 +436,167 @@ def confirm_experiment_sample_pair(request):
 def compute_fold_change(request):
     """ run computation script on meta data stored in session """
 
+    user = None
+    if request.user.is_authenticated():
+        user = request.user
+
     if request.method == 'POST':
         # once job is complete, clear all the session variables used in process
-        # TODO - uncomment below and do GC on tmp_dir
-        # request.session['computation_recs'] = None
-        # request.session['added_samples'] = None
-        # request.session['added_exps']= None
-        # request.session['tmp_dir'] = None
-
+        reset_session(request.session)
         return HttpResponseRedirect(reverse('tp:experiments'))
 
     else:
-        # TODO - kick off the job
-        return render(request, 'compute_fold_change.html')
+        # TODO - Should move most of this to the Computation.calc_fold_change location to keep this cleaner
+        file = request.session.get("computation_config")
+        logger.debug('compute_fold_change: json job config file:  %s', file)
+        with open(file) as infile:
+            experiments = json.load(infile)
+        tmpdir = os.path.dirname(file)
+        logger.debug('compute_fold_change: tmpdir: %s', tmpdir)
+        logger.debug('compute_fold_change: json contents %s', pprint.pformat(experiments))
+        log_settings = settings.LOGGING
+        exp_file = 'exps.csv'
+        config = {
+            'tmpdir': tmpdir,
+            'expfile': exp_file,
+            'celdir': '.',
+            'logfile': log_settings["handlers"]["file"]["filename"],
+            'email' : user.email,
+        }
+        context = {}
+        #
+        # Create the main configuration file
+        #
+        full_exp_file = os.path.join(tmpdir, exp_file)
+        logger.debug('compute_fold_change: full_exp_file %s', full_exp_file)
+        with open(full_exp_file, "w") as csvfile:
+            csv_writer = csv.writer(csvfile, delimiter=",")
+            csv_writer.writerow(['SAMPLE_TYPE', "EXPERIMENT_ID", "SAMPLE_ID"])
+            context['n_experiments'] = len(experiments)
+            n_samples = 0
+            for e in experiments:
+                exp  = e['experiment']['exp_id']
+                for s in e['sample']:
+                    n_samples += 1
+                    stype = "CTL"
+                    if s['sample_type'] == 'I':
+                        stype = "TRT"
+                    s_id = s['sample_name']
+                    sample_file = s_id + ".CEL"
+                    full_sample_file = os.path.join(tmpdir, sample_file)
+                    logger.debug("compute_fold_change: sample file: %s", sample_file)
+                    if os.path.isfile(full_sample_file):
+                        csv_writer.writerow([stype, exp, s_id])
+                        #TODO - Error check?
+                    else:
+                        logger.error("compute_fold_change: Sample file %s not found", sample_file)
+                        #TODO - Probably need to capture error and fail gracefully
+        csvfile.close()
+        context['n_samples'] = n_samples
+        res = process_user_files.delay(tmpdir, config, user.email)
+        logger.debug("compute_fold_change: config %s", pprint.pformat(config))
+
+        context['email'] = user.email
+        context['result'] = res
+        logger.debug("compute_fold_change: web context: %s", pprint.pformat(context))
+
+        return render(request, 'compute_fold_change.html', context)
 
 
-class ExperimentView(ListView):
+class ResetSessionMixin(object):
+
+    # TODO - better way to call an arbitary function (reset_session) on CBV lisview?
+    def get_context_data(self, **kwargs):
+
+        # only reason for doing this is to force a reset of session when flow from study->sample upload is interrupted
+        reset_session(self.request.session)
+        context = super(ResetSessionMixin, self).get_context_data(**kwargs)
+        return context
+
+
+class StudyView(ResetSessionMixin, ListView):
+    model = Study
+    template_name = 'study_list.html'
+    context_object_name = 'studies'
+    paginate_by = 12
+
+
+class StudyCreateUpdateMixin(object):
+
+    def get_success_url(self):
+
+        if self.request.POST.get('_save_ret') is not None:
+            return reverse('tp:studies')
+        elif self.request.POST.get('_save_add_exp') is not None:
+            return reverse('tp:experiments-confirm')
+        elif self.request.POST.get('_continue') is not None:
+            return reverse('tp:study-update', kwargs={'pk': self.object.pk})
+        else:
+            # the default behavior for Study object
+            return reverse('tp:studies')
+
+    def form_valid(self, form):
+
+        url = super(StudyCreateUpdateMixin, self).form_valid(form)
+
+        # set up the session so that experiment and sample additions can display study info
+        reset_session(self.request.session)
+        self.request.session['adding_study'] = {'id': self.object.pk, 'name': self.object.study_name}
+        logger.debug('StudyCreateUpdateMixin: cleared session and re-init to %s', self.request.session['adding_study'])
+
+        return url
+
+
+class StudyCreate(StudyCreateUpdateMixin, CreateView):
+    """ StudyCreate -- view class to handle creation of a user study """
+    model = Study
+    template_name = 'study_form.html'
+    form_class = StudyForm
+    success_url = reverse_lazy('tp:studies')
+
+
+class StudyUpdate(StudyCreateUpdateMixin, UpdateView):
+    """ StudyUpdate -- view class to handle updating values of a user study """
+    model = Study
+    template_name = 'study_form.html'
+    form_class = StudyForm
+    success_url = reverse_lazy('tp:studies')
+
+
+class StudyDelete(DeleteView):
+    """ StudyDelete -- view class to handle deletion of study """
+    model = Study
+    template_name = 'study_confirm_delete.html'
+    success_url = reverse_lazy('tp:studies')
+
+
+class ExperimentView(ResetSessionMixin, ListView):
     model = Experiment
     template_name = 'experiments_list.html'
     context_object_name = 'experiments'
+    paginate_by = 12
+
+    def get_queryset(self):
+
+        user_query = self.request.GET.get('query')
+        only_mine = self.request.GET.get('onlymyexp')
+        if user_query:
+            vector = SearchVector('experiment_name',
+                                  'compound_name',
+                                  'tissue',
+                                  'organism',
+                                  'strain')
+            exps = Experiment.objects.annotate(search=vector).filter(search=user_query)
+            logger.debug('User query returned %s', exps)
+        else:
+            exps = Experiment.objects.all()
+            logger.debug('ExperimentView: Standard query returned %s', exps)
+
+        if only_mine and self.request.user.is_authenticated():
+            exps = exps.filter(owner=self.request.user)
+            logger.debug('ExperimentView: Query after filtering on user returned %s', exps)
+
+        return exps
 
 
 class ExperimentSuccessURLMixin(object):
@@ -262,8 +614,8 @@ class ExperimentSuccessURLMixin(object):
             return reverse('tp:experiment-update', kwargs={'pk': self.object.pk})
         elif self.request.POST.get('_save') is not None:
             return reverse('tp:experiments-confirm')
-        elif self.request.POST.get('_delete') is not None:
-            return reverse('tp:experiment-delete', kwargs={'pk': self.object.pk})
+        elif self.request.POST.get('_save_ret') is not None:
+            return reverse('tp:experiments')
         else:
             # the default behavior for Experiment object
             return reverse('tp:samples-add')
@@ -290,35 +642,39 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
             logger.error('Retrieved prior experiment ID %s', last_exp_id)
             last_exp = Experiment.objects.get(pk=last_exp_id)
             # TODO - remove experiment name assuming that this will be prepopulated by other meta data
-            fields = ['experiment_name', 'tech', 'tech_detail', 'study_id', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue',
-                      'organism', 'strain', 'gender', 'single_repeat_type', 'route', 'source']
+            fields = ['experiment_name', 'tech', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue',
+                      'organism', 'strain', 'gender', 'single_repeat_type', 'route']
             for f in fields:
                 initial[f] = getattr(last_exp, f)
 
-            logger.info('What we have for prepopulated object %s', pprint.pformat(initial))
+            logger.info('ExperimentCreate.get_initial: prepopulated object %s', pprint.pformat(initial))
 
         return initial
 
+    def get_context_data(self, **kwargs):
+
+        context = super(ExperimentCreate, self).get_context_data(**kwargs)
+
+        # set the value of study based on session content
+        studyobj = get_study_from_session(self.request.session)
+        if studyobj is None:
+            context['study_error'] = 'Potential bug; Please try adding a new study before adding new experiments'
+            logger.error('ExperimentCreate: creating experiment without study info in session')
+            return context
+
+        return context
 
     def form_valid(self, form):
 
+        try:
+            study = Study.objects.get(pk=self.request.session['adding_study']['id'])
+        except:
+            logger.error('ExperimentCreate: study ID stored in session is not valid')
+            return self.form_invalid(form)
+
+        # the study field is not exposed and the form and is a required value - prepopulate
+        form.instance.study = study
         url = super(ExperimentCreate, self).form_valid(form)
-
-        # add the ID of newly added exp to session
-        session_exp = self.request.session.get('added_exps', None)
-
-        if session_exp and self.object.pk not in session_exp:
-            session_exp.append(self.object.pk)
-        # have a list of exps in session and this one already on this list
-        elif session_exp:
-            pass
-        # initiate new session
-        else:
-            session_exp = [self.object.pk]
-
-        logger.debug('Experiments being saved in session: %s', session_exp)
-        self.request.session['added_exps'] = session_exp
-
         return url
 
 
@@ -327,28 +683,6 @@ class ExperimentUpdate(ExperimentSuccessURLMixin, UpdateView):
     model = Experiment
     template_name = 'experiment_form.html'
     form_class = ExperimentForm
-
-    # TODO - delete this ... just for testing purposes, easier to edit exps than add from scratch
-    def form_valid(self, form):
-
-        url = super(ExperimentUpdate, self).form_valid(form)
-
-        # add the ID of newly added exp to session
-        session_exp = self.request.session.get('added_exps', None)
-
-        if session_exp and self.object.pk not in session_exp:
-            session_exp.append(self.object.pk)
-        # have a list of exps in session and this one already on this list
-        elif session_exp:
-            pass
-        # initiate new session
-        else:
-            session_exp = [self.object.pk]
-
-        logger.debug('Experiments being saved in session: %s', session_exp)
-        self.request.session['added_exps'] = session_exp
-
-        return url
 
 
 class ExperimentDelete(DeleteView):
@@ -364,17 +698,20 @@ class SampleSuccessURLMixin(object):
 
         if self.request.POST.get('_save') is not None:
             return reverse('tp:sample-add')
-        elif self.request.POST.get('_delete') is not None:
-            return reverse('tp:sample-delete', kwargs={'pk': self.object.pk})
+        elif self.request.POST.get('_continue') is not None:
+            return reverse('tp:sample-update', kwargs={'pk': self.object.pk})
+        elif self.request.POST.get('_save_ret') is not None:
+            return reverse('tp:samples')
         else:
             # the default behavior for Sample object
             return reverse('tp:samples')
 
 
-class SampleView(ListView):
+class SampleView(ResetSessionMixin, ListView):
     model = Sample
     template_name = 'samples_list.html'
     context_object_name = 'samples'
+    paginate_by = 12
 
 
 class SampleCreate(SampleSuccessURLMixin, CreateView):
@@ -384,19 +721,34 @@ class SampleCreate(SampleSuccessURLMixin, CreateView):
     form_class = SampleForm
     success_url = reverse_lazy('tp:sample-add')
 
+    def get_context_data(self, **kwargs):
+
+        context = super(SampleCreate, self).get_context_data(**kwargs)
+
+        # set the value of study based on session content
+        if self.request.session.get('adding_study', None) is None:
+            context['study_error'] = 'Potential bug; Please try adding a new study before adding new samples'
+            logger.error('SampleCreate: creating sample without study info in session')
+            return context
+
+        try:
+            Study.objects.get(pk=self.request.session['adding_study']['id'])
+        except:
+            context['study_error'] = 'Study ID stored in session is not valid; report bug'
+            logger.error('SampleCreate: study ID stored in session is not valid')
+
+        return context
+
     def form_valid(self, form):
 
+        try:
+            study = Study.objects.get(pk=self.request.session['adding_study']['id'])
+        except:
+            logger.error('SampleCreate: study ID stored in session is not valid')
+            return self.form_invalid(form)
+
+        form.instance.study = study
         url = super(SampleCreate, self).form_valid(form)
-
-        # add the ID of newly added sample to session
-        session_sample = self.request.session.get('added_samples', None)
-
-        if session_sample and self.object.pk not in session_sample:
-            session_sample.append(self.object.pk)
-        else:
-            session_sample = [self.object.pk]
-        self.request.session['added_samples'] = session_sample
-
         return url
 
 class SampleUpdate(SampleSuccessURLMixin, UpdateView):
@@ -419,28 +771,23 @@ class UploadSamplesView(FormView):
     form_class = FilesForm
     success_url = reverse_lazy('tp:samples-add')
 
-    def get_temp_dir(self):
-
-        if self.request.session.get('tmp_dir', None) is None:
-            tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
-            os.makedirs(tmp)
-            logger.error('Creating temporary working directory %s', tmp)
-            self.request.session['tmp_dir'] = tmp
-
-        return self.request.session['tmp_dir']
-
     def get_context_data(self, **kwargs):
 
         context = super(UploadSamplesView, self).get_context_data(**kwargs)
 
-        # display newly-added experiments at top of the form as an aid
-        if self.request.session.get('added_exps', None) is None or not self.request.session['added_exps']:
-            # TODO - want to put some sort of warning message into the HTML if this happens
-            logger.error('Did not retrieve experiments from session')
+        study = get_study_from_session(self.request.session)
+        exps = list()
+        if study:
+            exps = Experiment.objects.filter(study=study).all()
+
+        if study is None or not exps:
+            message = 'Potential bug; Please add experiments to analyze from the experiments list first'
+            redirect_url = reverse('tp:experiments')
+            context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            logger.error('UploadSamplesView: Did not retrieve study from session or existing experiments')
+            return render(self.request, 'generic_message.html', context)
         else:
-            added_exps = self.request.session['added_exps']
-            added_obj = Experiment.objects.filter(pk__in=added_exps)
-            added_names = [o.experiment_name for o in added_obj]
+            added_names = [o.experiment_name for o in exps]
             context['added_exp_names'] = added_names
 
         return context
@@ -456,15 +803,17 @@ class UploadSamplesView(FormView):
 
             samples_added = []
             if request.FILES.get('single_file', None) is not None:
-                tmpdir = self.get_temp_dir()
+                tmpdir = get_temp_dir(self)
                 f = request.FILES.get('single_file')
                 fs = FileSystemStorage(location=tmpdir)
                 fs.save(f.name, f)
+                self.request.session['sample_file'] = f.name
                 # TODO - read and parse the first row to get the sample names, append to samples_added
                 #samples_added = some_future_call()
             elif request.FILES.getlist('multiple_files'):
+                tmpdir = get_temp_dir(self)
+                self.request.session['sample_file'] = 'cel:in_directory'
                 mult_files = request.FILES.getlist('multiple_files')
-                tmpdir = self.get_temp_dir()
                 for f in mult_files:
                     sample_name = os.path.splitext(f.name)[0]
                     samples_added.append(sample_name)
@@ -474,7 +823,7 @@ class UploadSamplesView(FormView):
                 return self.form_invalid(form)
 
             # store the newly added samples in session for next handler
-            self.request.session['added_sample_files'] = samples_added
+            self.request.session['added_sample_names'] = samples_added
 
             return self.form_valid(form)
 
@@ -496,7 +845,7 @@ class UploadTechMapView(FormView):
         #TODO - same thing as above, don't load into memory then dump out again
         if form.is_valid() and request.FILES.get('map_file', None) is not None:
             f = request.FILES.get('map_file')
-            tmpdir = request.session.get('tmp_dir')
+            tmpdir = get_temp_dir(self)
             fs = FileSystemStorage(location=tmpdir)
             local_file = fs.save(f.name, f)
             full_path_file = os.path.join(tmpdir, local_file)

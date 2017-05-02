@@ -9,11 +9,16 @@
   <form role="form" method="post" enctype="multipart/form-data" class="form-vertical">
     {% csrf_token %}
     Upload a delimited (comma or tab) file for defining mapping identifiers used for data uploads (e.g. probe sets) to rat entrez gene IDs<br><br>
+    <strong>This may take several minutes to perform</strong><br><br>
     {# TODO example_identifer_map.txt not accessible form page ... issue with serving site_media? #}
     Download a sample <a href="{% static "site_media/example_identifier_map.txt" %}"> here</a><br><br>
     {% bootstrap_field form.map_file layout='vertical' %}
-    {% buttons submit='OK' reset="Cancel" %}{% endbuttons %}
+    {% buttons %}
+    {% bootstrap_button "Upload file" button_type="submit" name="_save" button_class="btn-primary" %}
+    <a class="btn btn-default" href="{% url 'tp:experiment-add' %}">Cancel</a>
+    {% endbuttons %}
   </form>
+<div id="uploadIcon"></div>
 </div>
 
-{% endblock content %}
+{% endblock %}

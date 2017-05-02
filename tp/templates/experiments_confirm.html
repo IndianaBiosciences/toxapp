@@ -4,15 +4,23 @@
 
 {% block content %}
 
-<div>
-  <strong>Review added experiments for which samples will be uploaded</strong>
-  <br><br>
+{% if request.session.adding_study %}
+  <div class="alert alert-info">
+    Adding samples for study:<br>
+    {{ request.session.adding_study.name }}
+  </div>
+{% endif %}
+
+<div class="alert alert-warning">
+  Review existing experiments associated with this study.
+  <strong>Any non-selected experiments will be deleted.</strong>
 </div>
 
 <form method="post" action="">
   {% csrf_token %}
   {% bootstrap_form form layout="horizontal" %}
-  {% bootstrap_button "Save and continue" button_type="submit" button_class="btn-primary" %}
+  {% bootstrap_button "Save and upload samples" button_type="submit" name="_continue" button_class="btn-primary" %}
+  {% bootstrap_button "Save and add experiments" button_type="submit" name="_add" button_class="btn-default" %}
   <a class="btn btn-default" href="{% url 'tp:experiments' %}">Cancel</a>
 </form>
 
