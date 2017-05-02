@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'django_bootstrap_dynamic_formsets',
     'tp',
+    'django_filters',
+    'django_tables2'
 ]
 
 MIDDLEWARE = [
@@ -156,10 +158,10 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'simple': {
-            'format': '%(levelname)s %(module)s %(message)s'
+            'format': '%(levelname)s %(module)s %(name)s %(funcName)s:%(message)s'
         },
         'detail': {
-            'format': '%(levelname)s %(asctime)s %(module)s %(message)s'
+            'format': '%(levelname)s %(asctime)s %(module)s %(name)s %(funcName)s %(lineno)s:%(message)s'
         },
     },
     'handlers': {
