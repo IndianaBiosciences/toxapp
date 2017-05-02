@@ -68,4 +68,15 @@ urlpatterns = [
     url(r'^cart_add/(?P<pk>\d+)/$', views.cart_add, name='cart-add'),
     url(r'^cart_del/(?P<pk>\d+)/$', views.cart_del, name='cart-del'),
 
+    # display list of module scores
+    url(r'^analysis_summary/$', views.analysis_summary, name='analysis-summary'),
+
+    # display list of module scores
+    url(r'^module_scores/$', views.ModuleFilteredSingleTableView.as_view(), name='module-scores'),
+
+    # display list of module scores
+    url(r'^gsa_scores/$', views.GSAFilteredSingleTableView.as_view(), name='gsa-scores'),  # display list of module scores
+
+    # display list of fold-change results at gene level
+    url(r'^gene_results/$', views.FoldChangeSingleTableView.as_view(), name='gene-foldchange'),
 ]

@@ -4,3 +4,5 @@ django-widget-tweaks
 django-bootstrap-dynamic-formsets
 celery
 rpy2
+django-tables2
+django-filter

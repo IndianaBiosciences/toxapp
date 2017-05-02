@@ -73,19 +73,23 @@ class Computation:
     def calc_fold_change(self, config):
         """ calculate group fold change from files in tmpdir and meta data received from webapp in config json file """
 
-        computation_config = settings.COMPUTATION
-        script_dir = computation_config["script_dir"]
-        script = os.path.join(script_dir, "computeGFC.py")
-        outfile = "groupFC.txt"
-        logger.info("calc_fold_change: config is %s", pprint.pformat(config))
-        script_cmd = "cd " + config['tmpdir'] + '; python ' + script + " -i " + config['expfile'] + " -o "
-        script_cmd = script_cmd + outfile + " -s " + script_dir + " -l " + config['logfile']
-        file = os.path.join(config['tmpdir'], outfile)
-        logger.info("calc_fold_change: command %s ", script_cmd)
-        output = subprocess.getoutput(script_cmd)
+        # TODO - this is where Dan/Meeta plug in group fold change calc
+        logger.info('Starting fold change calculation in directory %s using config %s', self.tmpdir, config)
+        file = self.tmpdir + '/groupFC.txt'
+
+        # computation_config = settings.COMPUTATION
+        # script_dir = computation_config["script_dir"]
+        # script = os.path.join(script_dir, "computeGFC.py")
+        # outfile = "groupFC.txt"
+        # logger.info("calc_fold_change: config is %s", pprint.pformat(config))
+        # script_cmd = "cd " + config['tmpdir'] + '; python ' + script + " -i " + config['expfile'] + " -o "
+        # script_cmd = script_cmd + outfile + " -s " + script_dir + " -l " + config['logfile']
+        # file = os.path.join(config['tmpdir'], outfile)
+        # logger.info("calc_fold_change: command %s ", script_cmd)
+        # #output = subprocess.getoutput(script_cmd)
         # TODO remove once meeta script running
-        #src = settings.BASE_DIR + '/data/sample_fc_data_DM_gemfibrozil_1d_7d_100mg_700_mg.txt'
-        #shutil.copyfile(src, file)
+        src = settings.BASE_DIR + '/data/sample_fc_data_DM_gemfibrozil_1d_7d_100mg_700_mg.txt'
+        shutil.copyfile(src, file)
 
         logger.info('calc_fold_change: Done fold change calculation; results in %s', file)
         return file
@@ -233,7 +237,7 @@ class Computation:
             row_as_bytes = str.encode(row)
             gmt.write(row_as_bytes)
 
-            if sig_count > 100 and logger.isEnabledFor(logging.DEBUG):
+            if sig_count > 100000 and logger.isEnabledFor(logging.DEBUG):
                 logger.warning('Limited to 100 gene sets in DEBUG mode')
                 break
 
@@ -442,11 +446,21 @@ class Computation:
                 if p > 0.1 and not self.gsa_info[sig]['core_set']:
                     continue
 
+                try:
+                    log10_p = math.log(p,10)
+                except:
+                    # p-values of 0 with large z-score are float issues in R ... very small p-value
+                    if p == 0 and score and abs(score) >= 5:
+                        log10_p = -17
+                    else:
+                        logger.error('Cannot take log10 of value %s for sig %s in experiment %s', p, sig, exp_id)
+                        continue
+
                 gsa_scores.append({'exp_id': exp_id,
                                    'exp_obj': exp_obj,
                                    'geneset': sig,
                                    'score': score,
-                                   'log10_p_BH': math.log(p,10)
+                                   'log10_p_BH': log10_p,
                                   })
 
             last_tech = this_tech

@@ -109,7 +109,7 @@ def analyze(request, pk=None):
 
             logger.debug('Experiments for analysis being saved in session: %s', retained_ids)
             request.session['analyze_list'] = retained_ids
-            return HttpResponseRedirect(reverse('tp:experiments'))
+            return HttpResponseRedirect(reverse('tp:analysis-summary'))
 
     else:
 
@@ -134,6 +134,21 @@ def analyze(request, pk=None):
 
     context = {'form': form}
     return render(request, 'analyze.html', context)
+
+
+def analysis_summary(request):
+    """  prepare page that presents the analysis summary """
+
+    analyze_list = request.session.get('analyze_list', [])
+
+    if not analyze_list:
+        message = 'Potential bug; accessing analysis_landing with no exps in analysis cart'
+        context = {'message': message, 'error': True}
+        return render(request, 'generic_message.html', context)
+
+    exps = Experiment.objects.filter(pk__in=analyze_list)
+    context = {'experiments': exps}
+    return render(request, 'analysis_summary.html', context)
 
 
 def experiments_confirm(request):
@@ -866,3 +881,46 @@ class UploadTechMapView(FormView):
             return self.form_invalid(form)
 
 
+class FilteredSingleTableView(SingleTableView):
+    filter_class = None
+
+    def get_table_data(self):
+        data = super(FilteredSingleTableView, self).get_table_data()
+
+        # if session contains experiment IDs from cart selection, filter to them
+        exp_list = self.request.session.get('analyze_list', [])
+        if exp_list:
+            logger.debug('Filtering to subset of experiments in cart: %s', exp_list)
+            data = data.filter(experiment__pk__in=exp_list)
+
+        self.filter = self.filter_class(self.request.GET, queryset=data)
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super(FilteredSingleTableView, self).get_context_data(**kwargs)
+        context['filter'] = self.filter
+        return context
+
+
+class ModuleFilteredSingleTableView(FilteredSingleTableView):
+    model = ModuleScores
+    template_name = 'result_list.html'
+    table_class = tp.tables.ModuleScoreTable
+    table_pagination = True
+    filter_class = tp.filters.ModuleScoreFilter
+
+
+class GSAFilteredSingleTableView(FilteredSingleTableView):
+    model = GSAScores
+    template_name = 'result_list.html'
+    table_class = tp.tables.GSAScoreTable
+    table_pagination = True
+    filter_class = tp.filters.GSAScoreFilter
+
+
+class FoldChangeSingleTableView(FilteredSingleTableView):
+    model = FoldChangeResult
+    template_name = 'result_list.html'
+    table_class = tp.tables.FoldChangeResultTable
+    table_pagination = True
+    filter_class = tp.filters.FoldChangeResultFilter
