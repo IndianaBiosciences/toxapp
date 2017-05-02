@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="alert alert-info">
+  <strong>Experiments selected:</strong>
+  <ul>
+    {% for exp in experiments %}
+      <li>{{ exp.experiment_name }}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+{# TODO more styling info with cards including images at https://v4-alpha.getbootstrap.com/components/card/ #}
+<div class="card-container">
+  <div id="genesection" class="card">
+    <div class="card-block">
+      <h4 class="card-title">Gene-level analysis</h4>
+      <a href="{% url 'tp:gene-foldchange' %}" class="btn btn-default">Results in browser</a>
+      <a href="{% url 'tp:gene-foldchange' %}" class="btn btn-default">Export to Excel</a>
+    </div>
+  </div>
+  <div id="modulesection" class="card">
+    <div class="card-block">
+      <h4 class="card-title">WGCNA module analysis</h4>
+      <a href="{% url 'tp:module-scores' %}" class="btn btn-default">Results in browser</a>
+      <a href="{% url 'tp:module-scores' %}" class="btn btn-default">Export to Excel</a>
+    </div>
+  </div>
+  <div id="gsasection" class="card">
+    <div class="card-block">
+      <h4 class="card-title">Gene set enrichment analysis</h4>
+      <a href="{% url 'tp:gsa-scores' %}" class="btn btn-default">Results in browser</a>
+      <a href="{% url 'tp:gsa-scores' %}" class="btn btn-default">Export to Excel</a>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}

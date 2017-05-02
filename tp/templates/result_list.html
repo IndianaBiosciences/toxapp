@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% load render_table from django_tables2 %}
+{% load bootstrap3 %}
+
+{% block content %}
+
+<div>
+  <a href="{% url 'tp:analysis-summary' %}" class="btn btn-primary">Back to summary</a>
+  <a href="{% url 'tp:analysis-summary' %}" class="btn btn-default">Export to Excel</a>
+</div>
+
+<div class="filter-dialog">
+  <form class="form" action="" method="get">
+      {% bootstrap_form filter.form layout='horizontal' %}
+      {% buttons %}
+      {% bootstrap_button "Update" button_type="submit" button_class="btn-primary" %}
+      <a class="btn btn-default" href="{{ request.path }}">Clear</a>
+      {% endbuttons %}
+  </form>
+</div>
+
+{% render_table table %}
+{% endblock content %}
