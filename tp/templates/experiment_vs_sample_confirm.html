@@ -18,22 +18,24 @@
         <th>Experiment name</th>
         <th>Sample name</th>
         <th>Group type</th>
+        <th>Reset link</th>
       </tr>
       {% for row in table %}
       <tr>
         <td>{{ row.experiment }}</td>
         <td>{{ row.sample }}</td>
         <td>{{ row.group_type }}</td>
+        <td><a href="{% url 'tp:experiment-sample-reset' reset=row.experiment.id %}"> Clear this </a></td>
       </tr>
       {% empty %}
-        <tr><td colspan="12">No experiment vs. sample pairs have been added yet.</td></tr>
+        <tr><td colspan="4">No experiment vs. sample pairs have been added yet.</td></tr>
       {% endfor %}
     </table>
 
-    {% buttons layout='horizontal' %}
+    {% buttons %}
     {% bootstrap_button "Confirm" button_type="submit" button_class="btn-primary" %}
     {# the reset option tells the get request to delete existing exp vs sample association #}
-    <a class="btn btn-default" href="{% url 'tp:experiment-sample-reset' reset=1 %}"> Cancel </a>
+    <a class="btn btn-default" href="{% url 'tp:experiment-sample-reset' reset='all' %}"> Clear all </a>
     {% endbuttons %}
   </form>
 </div>

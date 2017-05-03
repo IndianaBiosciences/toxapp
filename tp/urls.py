@@ -45,7 +45,7 @@ urlpatterns = [
     url(r'^samples_add/$', views.create_samples, name='samples-add'),
 
     # associate newly added experiments with newly added samples
-    url(r'^experiment_sample_add/(?P<reset>\d+)$', views.create_experiment_sample_pair, name='experiment-sample-reset'),
+    url(r'^experiment_sample_add/(?P<reset>\w+)$', views.create_experiment_sample_pair, name='experiment-sample-reset'),
     url(r'^experiment_sample_add/', views.create_experiment_sample_pair, name='experiment-sample-add'),
 
     # display the configured experiment vs. sample pairs for group fold change calculation

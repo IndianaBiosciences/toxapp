@@ -385,10 +385,20 @@ def create_experiment_sample_pair(request, reset=None):
             logger.error('Did not retrieve experiments from session')
             return render(request, 'generic_message.html', errcontext)
 
-        # if reset flag is true, dump existing exp-sample associations for all exps
-        if reset:
-            logger.debug('clearing existing sample associations for study %s', study.study_name)
+        # clearing some/all exp-sample associations
+        if reset and reset.lower() == 'all':
+            logger.debug('clearing all existing sample associations for study %s', study.study_name)
             ExperimentSample.objects.filter(experiment__in=exps).delete()
+        elif reset:
+            try:
+                this_exp = Experiment.objects.get(pk=reset)
+            except:
+                message = 'Potential bug; ID {} supplied to create_experiment_sample_pair is not valid experiment'.format(reset)
+                errcontext = {'message': message, 'error': True}
+                logger.error('Received %s to reset experiment-sample associations and not valid experiment ID', reset)
+                return render(request, 'generic_message.html', errcontext)
+            logger.debug('clearing existing sample associations for experiment %s', reset)
+            ExperimentSample.objects.filter(experiment=this_exp).delete()
 
         # create a list of which exps that go with this study
         selected_exp = None
