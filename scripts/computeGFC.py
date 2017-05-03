@@ -149,7 +149,7 @@ def compute_fold_factors(infile, outfile, celdir, sdir, verbose):
     if verbose:
         print("\nNormalizing the sample expression results\n")
     r_norm_script = os.path.join(sdir, "NORM.R")
-    if 0:  # temporarily bypass to keep moving
+    if 1:  # temporarily bypass to keep moving
         r_cmd = "R --vanilla <" + r_norm_script
         logger.info("Normalizing data using cmd:" + r_cmd)
         output = subprocess.getoutput(r_cmd)
@@ -290,7 +290,7 @@ def compute_fold_factors(infile, outfile, celdir, sdir, verbose):
     if verbose:
         print("\nRunning Limma to \n")
     r_limma_script = os.path.join(sdir, "Limma.R")
-    if 0:  # temporarily bypass to keep moving
+    if 1:  # temporarily bypass to keep moving
         r_cmd = "R --vanilla <" + r_limma_script
         logger.info("Running Limma model using cmd:" + r_cmd)
         output = subprocess.getoutput(r_cmd)

@@ -133,7 +133,7 @@ class ExperimentSample(models.Model):
 class FoldChangeResult(models.Model):
 
     experiment = models.ForeignKey(Experiment)
-    gene_identifier = models.CharField(max_length=20)
+    gene_identifier = models.CharField(max_length=32)
     log2_fc = models.DecimalField(max_digits=5, decimal_places=2)
     n_trt = models.IntegerField()
     n_ctl = models.IntegerField()

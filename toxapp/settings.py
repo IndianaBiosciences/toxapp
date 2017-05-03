@@ -139,7 +139,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'tp/static')
 
-LOGIN_REDIRECT_URL = '/experiments'
+LOGIN_REDIRECT_URL = '/studies'
 LOGOUT_REDIRECT_URL = '/'
 
 BOOTSTRAP3 = {'include_jquery': True}
