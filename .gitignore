@@ -1,5 +1,5 @@
 static/admin
-toxapp/tp/migrations/
+tp/migrations/
 logfile/toxapp.log
 .idea/
 __pycache__

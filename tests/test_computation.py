@@ -1,18 +1,18 @@
 import os
 from django.core.wsgi import get_wsgi_application
-from django.conf import settings
-from src.computation import Computation
-import tempfile
-import logging
-import pprint
-from tp.tasks import process_user_files
-
-pp = pprint.PrettyPrinter(indent=4)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "toxapp.settings")
 application = get_wsgi_application()
 
+from django.conf import settings
+from src.computation import Computation
+from tp.tasks import load_gsa_scores
+import tempfile
+import logging
+import pprint
+
 logger = logging.getLogger(__name__)
+pp = pprint.PrettyPrinter(indent=4)
 
 #
 # Set up necessary parameters
@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 log_settings = settings.LOGGING
 logfile = log_settings["handlers"]["file"]["filename"]
 logger.debug("Log file is %s", logfile)
+
+tmpdir = 'C:\\Users\Jeff Sutherland\AppData\Local\Temp\.7530676274658962134'
 
 logger.debug("temp directory is %s", tmpdir)
 
@@ -40,3 +42,4 @@ with open('test_gsa.txt', 'w') as f:
          txt = "\t".join([str(r['exp_id']), r['geneset'], str(r['score']), str(r['log10_p_BH'])])
          txt += "\n"
          f.write(txt)
+
