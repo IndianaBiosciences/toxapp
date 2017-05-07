@@ -4,7 +4,7 @@ from django.shortcuts import render
 
 from django.shortcuts import render, get_object_or_404
 from django.conf import settings
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.views.generic import ListView, DetailView, FormView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
@@ -19,12 +19,13 @@ from .tasks import load_measurement_tech_gene_map, process_user_files
 import tp.filters
 import tp.tables
 
+import math
 import os
 import time
 import logging
 import csv
 import pprint, json
-
+import xlwt
 
 logger = logging.getLogger(__name__)
 
@@ -531,6 +532,68 @@ def compute_fold_change(request):
         logger.debug("compute_fold_change: web context: %s", pprint.pformat(context))
 
         return render(request, 'compute_fold_change.html', context)
+
+
+def export_result_xls(request, restype):
+    """ query module / GSA / gene fold change and return excel file """
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="analysis_results.xls"'
+
+    # if session contains experiment IDs from cart selection, filter to them
+    exp_list = request.session.get('analyze_list', [])
+    if not exp_list:
+        message = 'Please report bug: trying to export results with no selected experiments in cart'
+        context = {'message': message, 'error': True}
+        return render(request, 'generic_message.html', context)
+
+    colnames = ['experiment id', 'experiment name']
+    data = list()
+    if restype.lower() == 'modules':
+        colnames += ['module', 'type', 'description', 'score']
+        rows = ModuleScores.objects.filter(experiment__pk__in=exp_list)
+        for r in rows:
+            nr = [r.experiment_id, r.experiment.experiment_name, r.module.name, r.module.type, r.module.desc, r.score]
+            data.append(nr)
+
+    elif restype.lower() == 'gsa':
+        colnames += ['gene set', 'type', 'description', 'source', 'score', 'p-adj']
+        rows = GSAScores.objects.filter(experiment__pk__in=exp_list)
+        for r in rows:
+            nr = [r.experiment_id, r.experiment.experiment_name, r.geneset.name, r.geneset.type, r.geneset.desc, r.geneset.source, r.score, math.pow(10, r.log10_p_bh)]
+            data.append(nr)
+
+    elif restype.lower() == 'genes':
+        colnames += ['gene_identifier', 'log2 fold change', 'treatment samples', 'control samples', 'expression avg controls', 'p', 'p-adj']
+        rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
+        for r in rows:
+            nr = [r.experiment_id, r.experiment.experiment_name, r.gene_identifier, r.log2_fc, r.n_trt, r.n_ctl, r.expression_ctl, math.pow(10, r.log10_p), math.pow(10, r.log10_p_bh)]
+            data.append(nr)
+
+    else:
+        raise NotImplementedError
+
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet(restype)
+
+    # Sheet header, first row
+    row_num = 0
+
+    font_style = xlwt.XFStyle()
+    font_style.font.bold = True
+
+    for col_num in range(len(colnames)):
+        ws.write(row_num, col_num, colnames[col_num], font_style)
+
+    # Sheet body, remaining rows
+    font_style = xlwt.XFStyle()
+
+    for row in data:
+        row_num += 1
+        for col_num in range(len(row)):
+            ws.write(row_num, col_num, row[col_num], font_style)
+
+    wb.save(response)
+    return response
 
 
 class ResetSessionMixin(object):

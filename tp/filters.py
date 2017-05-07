@@ -7,7 +7,7 @@ class ModuleScoreFilter(django_filters.FilterSet):
     class Meta:
         model = ModuleScores
         fields = collections.OrderedDict()
-        fields['module'] =['icontains']
+        fields['module__name'] =['icontains']
         fields['score'] = ['lt', 'gt']
 
 
@@ -17,7 +17,7 @@ class GSAScoreFilter(django_filters.FilterSet):
         fields = collections.OrderedDict()
         fields['geneset__name'] = ['icontains']
         fields['score'] = ['lt', 'gt']
-        fields['log10_p_BH'] = ['lt']
+        fields['log10_p_bh'] = ['lt']
 
 
 class FoldChangeResultFilter(django_filters.FilterSet):

@@ -157,17 +157,6 @@ class IdentifierVsGeneMap(models.Model):
         return txt
 
 
-class ModuleScores(models.Model):
-
-    experiment = models.ForeignKey(Experiment)
-    module = models.CharField(max_length=20)
-    score = models.DecimalField(max_digits = 5, decimal_places=2)
-
-    def __str__(self):
-        txt = "experiment {} vs module {}".format(self.experiment.id, self.module)
-        return txt
-
-
 class GeneSets(models.Model):
 
     name = models.CharField(max_length=200)
@@ -180,12 +169,23 @@ class GeneSets(models.Model):
         return self.name
 
 
+class ModuleScores(models.Model):
+
+    experiment = models.ForeignKey(Experiment)
+    module = models.ForeignKey(GeneSets)
+    score = models.DecimalField(max_digits = 5, decimal_places=2)
+
+    def __str__(self):
+        txt = "experiment {} vs module {}".format(self.experiment.id, self.module)
+        return txt
+
+
 class GSAScores(models.Model):
 
     experiment = models.ForeignKey(Experiment)
     geneset = models.ForeignKey(GeneSets)
     score = models.DecimalField(max_digits=5, decimal_places=2)
-    log10_p_BH = models.DecimalField(max_digits=5, decimal_places=2)
+    log10_p_bh = models.DecimalField(max_digits=5, decimal_places=2)
 
     def __str__(self):
         txt = "experiment {} vs geneset {}".format(self.experiment.id, self.geneset.id)

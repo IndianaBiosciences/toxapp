@@ -84,7 +84,7 @@ def process_user_files(tmpdir, config, email):
 
     # set status on experimens as ready for analysis
     for exp_id in fc_data.keys():
-        obj = compute.get_exp_obj()
+        obj = compute.get_exp_obj(exp_id)
         obj.results_ready = True
         obj.save()
 
@@ -210,6 +210,28 @@ def load_module_scores(module_scores):
     logger.info('Loading computed module scores into database')
 
     insert_count_scores = 0
+    insert_count_modules = 0
+
+    # compile a list of all modules for which results will be loaded
+    load_modules = dict()
+    for r in module_scores:
+        load_modules[r['module']] = None
+
+    for s in load_modules:
+
+        try:
+            geneset_obj = GeneSets.objects.get(name=s)
+        except:
+            geneset_obj = GeneSets.objects.create(
+                name=s,
+                type='liver_module',
+                desc='',
+                source='WGCNA',
+                core_set=True
+            )
+            insert_count_modules += 1
+
+        load_modules[s] = geneset_obj
 
     checked_exist = dict()
     for r in module_scores:
@@ -225,7 +247,7 @@ def load_module_scores(module_scores):
 
         ModuleScores.objects.create(
             experiment=r['exp_obj'],
-            module=r['module'],
+            module=load_modules[r['module']],
             score=r['score']
         )
         insert_count_scores += 1
@@ -296,7 +318,7 @@ def load_gsa_scores(compute_obj, gsa_scores):
             experiment=r['exp_obj'],
             geneset=load_gene_sets[r['geneset']],
             score=r['score'],
-            log10_p_BH=r['log10_p_BH']
+            log10_p_bh=r['log10_p_bh']
         )
         insert_count_scores += 1
 
@@ -306,3 +328,4 @@ def load_gsa_scores(compute_obj, gsa_scores):
 
     logging.info('Inserted %s new gene set definitions and %s GSA scores', insert_count_geneset, insert_count_scores)
     return 1
+

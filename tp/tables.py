@@ -12,7 +12,7 @@ class ModuleScoreTable(tables.Table):
 class GSAScoreTable(tables.Table):
     class Meta:
         model = GSAScores
-        fields = ['experiment', 'geneset', 'score', 'log10_p_BH']
+        fields = ['experiment', 'geneset', 'score', 'log10_p_bh']
         attrs = {'class': 'table table-striped custab'}
 
 

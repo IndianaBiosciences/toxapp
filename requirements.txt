@@ -6,3 +6,4 @@ celery
 rpy2
 django-tables2
 django-filter
+xlwt
