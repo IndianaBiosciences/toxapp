@@ -12,26 +12,27 @@
 </div>
 
 {# TODO more styling info with cards including images at https://v4-alpha.getbootstrap.com/components/card/ #}
+{# TODO - could use ajax / javascript to show download in process after clicking export to excel and stops spinning when done ... can be slow  #}
 <div class="card-container">
   <div id="genesection" class="card">
     <div class="card-block">
       <h4 class="card-title">Gene-level analysis</h4>
       <a href="{% url 'tp:gene-foldchange' %}" class="btn btn-default">Results in browser</a>
-      <a href="{% url 'tp:gene-foldchange' %}" class="btn btn-default">Export to Excel</a>
+      <a href="{% url 'tp:export-result' restype='genes' %}" class="btn btn-default">Export to Excel</a>
     </div>
   </div>
   <div id="modulesection" class="card">
     <div class="card-block">
       <h4 class="card-title">WGCNA module analysis</h4>
       <a href="{% url 'tp:module-scores' %}" class="btn btn-default">Results in browser</a>
-      <a href="{% url 'tp:module-scores' %}" class="btn btn-default">Export to Excel</a>
+      <a href="{% url 'tp:export-result' restype='modules' %}" class="btn btn-default">Export to Excel</a>
     </div>
   </div>
   <div id="gsasection" class="card">
     <div class="card-block">
       <h4 class="card-title">Gene set enrichment analysis</h4>
       <a href="{% url 'tp:gsa-scores' %}" class="btn btn-default">Results in browser</a>
-      <a href="{% url 'tp:gsa-scores' %}" class="btn btn-default">Export to Excel</a>
+      <a href="{% url 'tp:export-result' restype='gsa' %}" class="btn btn-default">Export to Excel</a>
     </div>
   </div>
 </div>

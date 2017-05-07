@@ -81,5 +81,9 @@ urlpatterns = [
     url(r'^gene_results/$', views.FoldChangeSingleTableView.as_view(), name='gene-foldchange'),
 
     # export to excel handler
-    url(r'^export_results/(?P<restype>\w+)$', views.export_result_xls, name='export-result-xls'),
+    url(r'^export_results/(?P<restype>\w+)$', views.export_result_xls, name='export-result'),
+
+    # export to filtered results to excel
+    url(r'^export_filtered_results/$', views.export_result_xls, name='export-filtered-result'),
+
 ]

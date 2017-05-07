@@ -534,8 +534,11 @@ def compute_fold_change(request):
         return render(request, 'compute_fold_change.html', context)
 
 
-def export_result_xls(request, restype):
+def export_result_xls(request, restype=None):
     """ query module / GSA / gene fold change and return excel file """
+
+    rowlimit = 100000
+    limit_breached = False
     response = HttpResponse(content_type='application/ms-excel')
     response['Content-Disposition'] = 'attachment; filename="analysis_results.xls"'
 
@@ -548,29 +551,74 @@ def export_result_xls(request, restype):
 
     colnames = ['experiment id', 'experiment name']
     data = list()
-    if restype.lower() == 'modules':
+    subset = list()
+
+    # restype will be None when coming from interactive filtered views of results; get it out of the session
+    if restype is None:
+        if request.session.get('filtered_type', None) is None:
+            message = 'Please report bug: trying to export results from filtered view with no info on result type in session'
+            context = {'message': message, 'error': True}
+            logger.error('Trying to export results from filtered view with no info on result type in session')
+            return render(request, 'generic_message.html', context)
+
+        # retrieve the subset of records to be included in the excel file
+        subset = request.session.get('filtered_list', [])
+        restype = request.session['filtered_type']
+        logging.info('Retrieving results from filtered view for result type %s and %s pre-filtered results', restype, len(subset))
+
+    if restype.lower() == 'modulescores':
         colnames += ['module', 'type', 'description', 'score']
         rows = ModuleScores.objects.filter(experiment__pk__in=exp_list)
+        if subset:
+            rows = rows.filter(pk__in=subset)
+
+        rowcount = 0
         for r in rows:
             nr = [r.experiment_id, r.experiment.experiment_name, r.module.name, r.module.type, r.module.desc, r.score]
             data.append(nr)
+            rowcount += 1
+            if rowcount > rowlimit:
+                limit_breached = True
+                break
 
-    elif restype.lower() == 'gsa':
+    elif restype.lower() == 'gsascores':
         colnames += ['gene set', 'type', 'description', 'source', 'score', 'p-adj']
         rows = GSAScores.objects.filter(experiment__pk__in=exp_list)
+        if subset:
+            rows = rows.filter(pk__in=subset)
+
+        rowcount = 0
         for r in rows:
             nr = [r.experiment_id, r.experiment.experiment_name, r.geneset.name, r.geneset.type, r.geneset.desc, r.geneset.source, r.score, math.pow(10, r.log10_p_bh)]
             data.append(nr)
+            rowcount += 1
+            if rowcount > rowlimit:
+                limit_breached = True
+                break
 
-    elif restype.lower() == 'genes':
+    elif restype.lower() == 'foldchangeresult':
         colnames += ['gene_identifier', 'log2 fold change', 'treatment samples', 'control samples', 'expression avg controls', 'p', 'p-adj']
         rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
+        if subset:
+            rows = rows.filter(pk__in=subset)
+
+        rowcount = 0
         for r in rows:
             nr = [r.experiment_id, r.experiment.experiment_name, r.gene_identifier, r.log2_fc, r.n_trt, r.n_ctl, r.expression_ctl, math.pow(10, r.log10_p), math.pow(10, r.log10_p_bh)]
             data.append(nr)
+            rowcount += 1
+            if rowcount > rowlimit:
+                limit_breached = True
+                break
 
     else:
         raise NotImplementedError
+
+    # warn user that output was limited ... avoid too-large excel spreadsheet
+    if limit_breached:
+        logger.info('Excel output was truncated')
+        nr = ['output truncated'] * len(colnames)
+        data.append(nr)
 
     wb = xlwt.Workbook(encoding='utf-8')
     ws = wb.add_sheet(restype)
@@ -967,7 +1015,19 @@ class FilteredSingleTableView(SingleTableView):
             data = data.filter(experiment__pk__in=exp_list)
 
         self.filter = self.filter_class(self.request.GET, queryset=data)
-        return self.filter.qs
+
+        # store the ids of results in case export to excel selected
+        # don't store if nothing was filtered
+        results = self.filter.qs
+
+        # record the type of objects being filtered
+        self.request.session['filtered_type'] = results[0].__class__.__name__
+        if len(self.filter.qs) < len(data):
+            ids = list(results.values_list('id', flat=True))
+            logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)
+            self.request.session['filtered_list'] = ids
+
+        return results
 
     def get_context_data(self, **kwargs):
         context = super(FilteredSingleTableView, self).get_context_data(**kwargs)
