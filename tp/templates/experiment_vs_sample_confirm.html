@@ -16,16 +16,28 @@
     <table class="table table-striped custab">
       <tr>
         <th>Experiment name</th>
-        <th>Sample name</th>
-        <th>Group type</th>
+        <th>Treatment</th>
+        <th>Control</th>
         <th>Reset link</th>
       </tr>
-      {% for row in table %}
+      {% for exp in data %}
       <tr>
-        <td>{{ row.experiment }}</td>
-        <td>{{ row.sample }}</td>
-        <td>{{ row.group_type }}</td>
-        <td><a href="{% url 'tp:experiment-sample-reset' reset=row.experiment.id %}"> Clear this </a></td>
+        <td style="vertical-align:middle">{{ exp.experiment.exp_name }}</td>
+        <td>
+             {% for s in exp.sample %}
+                 {% if s.sample_type == 'I' %}
+                    {{ s.sample_name }} <br>
+                 {% endif %}
+            {% endfor %}
+        </td>
+        <td>
+            {% for s in exp.sample %}
+                {%  if s.sample_type == 'C' %}
+                    {{ s.sample_name }} <br>
+                {%  endif %}
+            {% endfor %}
+        </td>
+        <td style="vertical-align:middle"><a href="{% url 'tp:experiment-sample-reset' reset=exp.experiment.exp_id %}"> Edit Sample Assignments </a></td>
       </tr>
       {% empty %}
         <tr><td colspan="4">No experiment vs. sample pairs have been added yet.</td></tr>
@@ -33,7 +45,7 @@
     </table>
 
     {% buttons %}
-    {% bootstrap_button "Confirm" button_type="submit" button_class="btn-primary" %}
+    {% bootstrap_button "Submit for Analysis" button_type="submit" button_class="btn-primary" %}
     {# the reset option tells the get request to delete existing exp vs sample association #}
     <a class="btn btn-default" href="{% url 'tp:experiment-sample-reset' reset='all' %}"> Clear all </a>
     {% endbuttons %}

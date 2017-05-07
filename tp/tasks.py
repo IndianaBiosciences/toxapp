@@ -18,21 +18,23 @@ def add(x, y):
 
 
 @shared_task
-def process_user_files(tmpdir, config, email):
+def process_user_files(tmpdir, config_file, email):
 
     #TODO - uploads of group fold change data is slow, ~1 minute for 15K records
     # could use http://pgfoundry.org/projects/pgloader/ assuming performance comparison
     # to oracle sql loader is appropriate
 
     # step1 - calculate group fold change and load data to the database
+    logger.info("Step 1")
     compute = Computation(tmpdir)
-    groupfc_file = compute.calc_fold_change(config)
+    groupfc_file = compute.calc_fold_change(config_file)
 
     if groupfc_file is None or not os.path.isfile(groupfc_file):
         message = 'Computation script failed to calculate fold change data'
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
+    logger.info("Step 1: gene-level fold change file created: %s", groupfc_file)
 
     status = load_group_fold_change(compute, groupfc_file)
     if status is None:
@@ -40,22 +42,27 @@ def process_user_files(tmpdir, config, email):
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
+    logger.info("Step 1: gene-level fold change data processed and loaded")
 
     # step 2 - map data for this measurement technology to rat entrez gene IDs
+    logger.info("Step 2")
     fc_data = compute.map_fold_change_data(groupfc_file)
     if fc_data is None:
         message = 'Failed to map fold change data to rat entrez gene IDs; no further computations performed'
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
+    logger.info("Step 2: gene-level fold change data mapped to genes")
 
     # step 3 - score experiment data using WGCNA modules and load to database
+    logger.info("Step 3")
     module_scores = compute.score_modules(fc_data)
     if module_scores is None:
         message = 'Failed to score experiment results using WGCNA modules; no further computations performed'
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
+    logger.info("Step 3a: experiment scored using WGCNA models")
 
     status = load_module_scores(module_scores)
     if status is None:
@@ -63,14 +70,17 @@ def process_user_files(tmpdir, config, email):
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
+    logger.info("Step 3b: experiment scored using WGCNA models loaded to database")
 
     # step 4 - score experiment data using GSA
+    logger.info("Step 4")
     gsa_scores = compute.score_gsa(fc_data)
     if gsa_scores is None:
         message = 'Failed to score experiment results using gene set analysis; no further computations performed'
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
+    logger.info("Step 4a: experiment scored using GSA")
 
     status = load_gsa_scores(compute, gsa_scores)
     if status is None:
@@ -78,9 +88,11 @@ def process_user_files(tmpdir, config, email):
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
+    logger.info("Step 4b: experiment scored using GSA and loaded to database")
 
     # step 5 - calculate near neighbors based on vector of module scores or GSA scores
     #TODO
+    logger.info("Step 5")
 
     # set status on experimens as ready for analysis
     for exp_id in fc_data.keys():
@@ -88,7 +100,7 @@ def process_user_files(tmpdir, config, email):
         obj.results_ready = True
         obj.save()
 
-    message = 'Uploaded expression data is ready for analysis'
+    message = 'Final: Uploaded expression data is ready for analysis'
     logger.info(message)
     send_mail('IBRI tox portal computation complete', message, 'do_not_reply@indianabiosciences.org', [email])
 

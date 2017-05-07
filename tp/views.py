@@ -268,6 +268,10 @@ def samples_confirm(request):
 def create_samples(request):
     """ allow bulk creation/edit of samples from uploaded file """
 
+    #TODO - Nasty bug where if you make mistake and select upload single sample and select file
+    # and then realize and go back and select the correct multiple files -- only the initial file
+    # will be uploaded to the tmpdir. However, the other samples are in the session and it appears
+    # to work until you launch the computation
     if request.method == 'POST':
         formset = SampleFormSet(request.POST)
         if formset.is_valid():
@@ -455,12 +459,12 @@ def confirm_experiment_sample_pair(request):
             table_ids += row['experiment_vs_sample']
 
         logger.debug('computation_recs stored in session: %s', pprint.pformat(data))
-        table_content = ExperimentSample.objects.filter(pk__in=table_ids)
-        for row in table_content:
-            logger.debug('Content of row %s, %s, %s', row.group_type, row.sample, row.experiment)
-
-        context = {'table': table_content}
-        return render(request, 'experiment_vs_sample_confirm.html', context)
+#        table_content = ExperimentSample.objects.filter(pk__in=table_ids)
+#        for row in table_content:
+#            logger.debug('Content of row %s, %s, %s', row.group_type, row.sample, row.experiment)
+#
+#        context = {'table': table_content}
+        return render(request, 'experiment_vs_sample_confirm.html', {'data': data})
 
 
 def compute_fold_change(request):
@@ -477,54 +481,20 @@ def compute_fold_change(request):
 
     else:
         # TODO - Should move most of this to the Computation.calc_fold_change location to keep this cleaner
+        tmpdir = request.session.get('tmp_dir')
         file = request.session.get("computation_config")
         logger.debug('compute_fold_change: json job config file:  %s', file)
         with open(file) as infile:
             experiments = json.load(infile)
-        tmpdir = os.path.dirname(file)
-        logger.debug('compute_fold_change: tmpdir: %s', tmpdir)
-        logger.debug('compute_fold_change: json contents %s', pprint.pformat(experiments))
-        log_settings = settings.LOGGING
-        exp_file = 'exps.csv'
-        config = {
-            'tmpdir': tmpdir,
-            'expfile': exp_file,
-            'celdir': '.',
-            'logfile': log_settings["handlers"]["file"]["filename"],
-            'email' : user.email,
-        }
-        context = {}
-        #
-        # Create the main configuration file
-        #
-        full_exp_file = os.path.join(tmpdir, exp_file)
-        logger.debug('compute_fold_change: full_exp_file %s', full_exp_file)
-        with open(full_exp_file, "w") as csvfile:
-            csv_writer = csv.writer(csvfile, delimiter=",")
-            csv_writer.writerow(['SAMPLE_TYPE', "EXPERIMENT_ID", "SAMPLE_ID"])
-            context['n_experiments'] = len(experiments)
-            n_samples = 0
-            for e in experiments:
-                exp  = e['experiment']['exp_id']
-                for s in e['sample']:
-                    n_samples += 1
-                    stype = "CTL"
-                    if s['sample_type'] == 'I':
-                        stype = "TRT"
-                    s_id = s['sample_name']
-                    sample_file = s_id + ".CEL"
-                    full_sample_file = os.path.join(tmpdir, sample_file)
-                    logger.debug("compute_fold_change: sample file: %s", sample_file)
-                    if os.path.isfile(full_sample_file):
-                        csv_writer.writerow([stype, exp, s_id])
-                        #TODO - Error check?
-                    else:
-                        logger.error("compute_fold_change: Sample file %s not found", sample_file)
-                        #TODO - Probably need to capture error and fail gracefully
-        csvfile.close()
+
+        # create context to send back to web page
+        context = dict()
+        n_samples = 0
+        for e in experiments:
+            n_samples += len(e['sample'])
         context['n_samples'] = n_samples
-        res = process_user_files.delay(tmpdir, config, user.email)
-        logger.debug("compute_fold_change: config %s", pprint.pformat(config))
+        res = process_user_files.delay(tmpdir, file, user.email)
+        logger.debug("compute_fold_change: config %s", pprint.pformat(experiments))
 
         context['email'] = user.email
         context['result'] = res

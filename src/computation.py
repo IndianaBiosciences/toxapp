@@ -70,21 +70,21 @@ class Computation:
 
         return self._experiment_tech_map[exp_id]
 
-    def calc_fold_change(self, config):
+    def calc_fold_change(self, config_file):
         """ calculate group fold change from files in tmpdir and meta data received from webapp in config json file """
 
-        logger.info('Starting fold change calculation in directory %s using config %s', self.tmpdir, config)
+        tmpdir = self.tmpdir
+        logger.info('Starting fold change calculation in directory %s using config_file %s', tmpdir, config_file)
         #file = self.tmpdir + '/groupFC.txt'
 
         computation_config = settings.COMPUTATION
         script_dir = computation_config["script_dir"]
         script = os.path.join(script_dir, "computeGFC.py")
         outfile = "groupFC.txt"
-        logger.info("calc_fold_change: config is %s", pprint.pformat(config))
-        script_cmd = "cd " + config['tmpdir'] + '; python ' + script + " -i " + config['expfile'] + " -o "
-        script_cmd = script_cmd + outfile + " -s " + script_dir + " -l " + config['logfile']
-        file = os.path.join(config['tmpdir'], outfile)
-        logger.info("calc_fold_change: command %s ", script_cmd)
+        script_cmd = "cd " + tmpdir + '; python ' + script + " -c " + config_file + " -o "
+        script_cmd = script_cmd + outfile + " -s " + script_dir
+        file = os.path.join(tmpdir, outfile)
+        logger.info("command %s ", script_cmd)
         output = subprocess.getoutput(script_cmd)
         # TODO remove once meeta script running
         #src = settings.BASE_DIR + '/data/sample_fc_data_DM_gemfibrozil_1d_7d_100mg_700_mg.txt'
@@ -261,26 +261,27 @@ class Computation:
         last_tech = None
         # track identifiers that failed to convert to rat entrez
         failed_map = dict()
+        success_map = dict()
         # dictionary of log2 fc results keyed on experiment / gene identifier
         fc_data = collections.defaultdict(dict)
 
         # read the fold change data
+        logger.debug("reading data from %s", fc_file)
         req_attr = ['experiment', 'gene_identifier', 'log2_fc']
         with open(fc_file) as f:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
-
                 if any(row[i] == '' for i in req_attr ):
                     logger.error('File %s contains undefined values for one or more required attributes %s', fc_file, ",".join(req_attr))
                     return None
 
                 exp_id = int(row['experiment'])
                 this_tech = self.get_experiment_tech_map(exp_id)
+
                 if this_tech is None:
                     continue
 
                 if last_tech is None or this_tech != last_tech:
-
                     # update the map of identifers to genes ... in case experiment contains multiple measurement platforms
                     identifiers = IdentifierVsGeneMap.objects.filter(tech=this_tech).all()
                     if identifiers is None or len(identifiers) < 1000:
@@ -292,26 +293,33 @@ class Computation:
                     for r in identifiers:
                         identifier_map[r.gene_identifier] = r.rat_entrez_gene
 
+                last_tech = this_tech
+
                 rat_entrez = identifier_map.get(row['gene_identifier'], None)
 
                 if rat_entrez is None:
                     failed_map[row['gene_identifier']] = 1
                     continue
+                else:
+                    success_map[row['gene_identifier']] = 1
 
                 if rat_entrez in fc_data.get(exp_id, {}):
                     logger.error('Data already defined for experiment %s and rat entrez gene %s; multiple gene identifers for same gene?', exp_id, rat_entrez)
                     continue
 
                 fc_data[exp_id][rat_entrez] = {'log2_fc': float(row['log2_fc']), 'identifier': row['gene_identifier']}
-                last_tech = this_tech
 
         if failed_map:
             n_fails = len(failed_map)
             ids = list(failed_map.keys())[0:10]
             id_str = ",".join(ids)
             logger.warning('A total of %s identifiers in file %s are not mapped to entrez gene IDs and ignored; the first 10 are: %s', n_fails, fc_file, id_str)
+            n_success = len(success_map)
+            if (n_fails > n_success):
+                logger.critical('Number of failed mappings %s were greater than number of successful mappings: %s. Assuming wrong tech setup ... exiting', n_fails, n_success)
+                exit(0)
 
-        #logger.debug('Have fold change data for file %s: %s', fc_file, pprint.pformat(fc_data))
+        logger.debug('Have fold change data for file %s: %s', fc_file, pprint.pformat(fc_data))
         return fc_data
 
     def score_modules(self, fc_data):
