@@ -20,7 +20,6 @@
     <tr>
       <th>Analyze</th>
       <th>Edit</th>
-      <th>Study</th>
       <th>Experiment Name</th>
       <th>Compound Name</th>
       <th>Dose</th>
@@ -40,7 +39,6 @@
         <td align="center"><a href="{% url 'tp:cart-add' pk=exp.pk %}" class="glyphicon glyphicon-plus" title="Add to analysis cart"></a></td>
         {% endif %}
         <td align="center"><a href="{% url 'tp:experiment-update' pk=exp.pk %}" class="glyphicon glyphicon-edit" title="Edit experiment "></a></td>
-        <td>{{ exp.study.study_name }}</td>
         <td>{{ exp.experiment_name }}</td>
         <td>{{ exp.compound_name }}</td>
         <td>{{ exp.dose }} {{ exp.dose_unit }}</td>
