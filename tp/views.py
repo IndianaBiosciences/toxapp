@@ -19,7 +19,6 @@ from .tasks import load_measurement_tech_gene_map, process_user_files
 import tp.filters
 import tp.tables
 
-import math
 import os
 import time
 import logging
@@ -589,7 +588,7 @@ def export_result_xls(request, restype=None):
 
         rowcount = 0
         for r in rows:
-            nr = [r.experiment_id, r.experiment.experiment_name, r.geneset.name, r.geneset.type, r.geneset.desc, r.geneset.source, r.score, math.pow(10, r.p_bh)]
+            nr = [r.experiment_id, r.experiment.experiment_name, r.geneset.name, r.geneset.type, r.geneset.desc, r.geneset.source, r.score, r.p_bh]
             data.append(nr)
             rowcount += 1
             if rowcount > rowlimit:
