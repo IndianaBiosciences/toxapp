@@ -21,12 +21,12 @@ log_settings = settings.LOGGING
 logfile = log_settings["handlers"]["file"]["filename"]
 logger.debug("Log file is %s", logfile)
 
-tmpdir = 'C:\\Users\Jeff Sutherland\AppData\Local\Temp\.7530676274658962134'
+tmpdir = '/var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/1519829635801310288'
 
 logger.debug("temp directory is %s", tmpdir)
 
 compute = Computation(tmpdir)
-fc_file = compute.calc_fold_change('dummy_config.json')
+fc_file = compute.calc_fold_change('computation_data.json')
 fc_data = compute.map_fold_change_data(fc_file)
 
 module_scores = compute.score_modules(fc_data)

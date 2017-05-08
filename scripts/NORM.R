@@ -2,7 +2,7 @@
 # These packages need to already be available in R
 # use setup.R to load in R before running if necessary
 #
-packages <- c("affy", "gcrma", "limma", "statmod" )
+packages <- c("affy", "rat2302rnentrezgcdf" )
 
 #
 # Core Functions
@@ -25,8 +25,8 @@ for (package in packages) {
 # Load packages quietly
 #
 suppressMessages(library(affy))
-suppressMessages(library(gcrma))
-suppressMessages(library(limma))
+library(rat2302rnentrezgcdf)
+
 
 myFile <- "cell_files.txt"
 if (!file.exists(myFile)) {
@@ -38,8 +38,7 @@ celList <- read.table(myFile)
 celList
 celList <- as.character(celList$V1)
     
-    
-affydata=ReadAffy(filenames=celList)
+affydata=ReadAffy(filenames=celList, cdfname="Rat2302_rn_ENTREZG")
     
 esetmas5 = mas5(affydata)
 gexp = exprs(esetmas5)
