@@ -589,7 +589,7 @@ def export_result_xls(request, restype=None):
 
         rowcount = 0
         for r in rows:
-            nr = [r.experiment_id, r.experiment.experiment_name, r.geneset.name, r.geneset.type, r.geneset.desc, r.geneset.source, r.score, math.pow(10, r.log10_p_bh)]
+            nr = [r.experiment_id, r.experiment.experiment_name, r.geneset.name, r.geneset.type, r.geneset.desc, r.geneset.source, r.score, math.pow(10, r.p_bh)]
             data.append(nr)
             rowcount += 1
             if rowcount > rowlimit:
@@ -604,7 +604,7 @@ def export_result_xls(request, restype=None):
 
         rowcount = 0
         for r in rows:
-            nr = [r.experiment_id, r.experiment.experiment_name, r.gene_identifier, r.log2_fc, r.n_trt, r.n_ctl, r.expression_ctl, math.pow(10, r.log10_p), math.pow(10, r.log10_p_bh)]
+            nr = [r.experiment_id, r.experiment.experiment_name, r.gene_identifier, r.log2_fc, r.n_trt, r.n_ctl, r.expression_ctl, r.p, r.p_bh]
             data.append(nr)
             rowcount += 1
             if rowcount > rowlimit:
@@ -1022,6 +1022,7 @@ class FilteredSingleTableView(SingleTableView):
 
         # record the type of objects being filtered
         self.request.session['filtered_type'] = results[0].__class__.__name__
+        self.request.session['filtered_list'] = None
         if len(self.filter.qs) < len(data):
             ids = list(results.values_list('id', flat=True))
             logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)

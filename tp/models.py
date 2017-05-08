@@ -138,8 +138,8 @@ class FoldChangeResult(models.Model):
     n_trt = models.IntegerField()
     n_ctl = models.IntegerField()
     expression_ctl = models.DecimalField(max_digits=7, decimal_places=2)
-    log10_p = models.DecimalField(max_digits = 5, decimal_places=2)
-    log10_p_bh = models.DecimalField(max_digits = 5, decimal_places=2)
+    p = models.FloatField()
+    p_bh = models.FloatField()
 
     def __str__(self):
         txt = "experiment {} vs gene {}".format(self.experiment_id, self.gene_identifier)
@@ -185,7 +185,7 @@ class GSAScores(models.Model):
     experiment = models.ForeignKey(Experiment)
     geneset = models.ForeignKey(GeneSets)
     score = models.DecimalField(max_digits=5, decimal_places=2)
-    log10_p_bh = models.DecimalField(max_digits=5, decimal_places=2)
+    p_bh = models.FloatField()
 
     def __str__(self):
         txt = "experiment {} vs geneset {}".format(self.experiment.id, self.geneset.id)

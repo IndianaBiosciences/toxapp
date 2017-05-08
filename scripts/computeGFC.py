@@ -333,7 +333,7 @@ def compute_fold_factors(infile, outfile, celdir, sdir, verbose):
     with open(outfile, 'w', newline='') as csvfile:
         out_writer = csv.writer(csvfile, delimiter='\t')
         header = ["experiment", "gene_identifier", "log2_fc", "n_trt", "n_ctl",
-                  "expression_ctl0", "log10_p", "log10_p_bh"]
+                  "expression_ctl0", "p", "p_bh"]
         out_writer.writerow(header)
         for e in sorted(experiments.keys()):
             for probe_id in sorted(limma_results[e].keys()):

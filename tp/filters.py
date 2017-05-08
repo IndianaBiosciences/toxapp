@@ -17,7 +17,7 @@ class GSAScoreFilter(django_filters.FilterSet):
         fields = collections.OrderedDict()
         fields['geneset__name'] = ['icontains']
         fields['score'] = ['lt', 'gt']
-        fields['log10_p_bh'] = ['lt']
+        fields['p_bh'] = ['lt']
 
 
 class FoldChangeResultFilter(django_filters.FilterSet):
@@ -26,5 +26,5 @@ class FoldChangeResultFilter(django_filters.FilterSet):
         fields = collections.OrderedDict()
         fields['gene_identifier'] = ['exact']
         fields['log2_fc'] = ['lt', 'gt']
-        fields['log10_p'] = ['lt']
-        fields['log10_p_bh'] = ['lt']
+        fields['p'] = ['lt']
+        fields['p_bh'] = ['lt']

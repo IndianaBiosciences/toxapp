@@ -6,7 +6,7 @@ application = get_wsgi_application()
 
 from django.conf import settings
 from src.computation import Computation
-from tp.tasks import load_gsa_scores
+from tp.tasks import load_module_scores
 import tempfile
 import logging
 import pprint
@@ -39,7 +39,7 @@ with open('test_module.txt', 'w') as f:
 gsa_scores = compute.score_gsa(fc_data)
 with open('test_gsa.txt', 'w') as f:
     for r in gsa_scores:
-         txt = "\t".join([str(r['exp_id']), r['geneset'], str(r['score']), str(r['log10_p_BH'])])
+         txt = "\t".join([str(r['exp_id']), r['geneset'], str(r['score']), str(r['p_bh'])])
          txt += "\n"
          f.write(txt)
 

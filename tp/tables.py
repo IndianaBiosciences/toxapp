@@ -12,13 +12,13 @@ class ModuleScoreTable(tables.Table):
 class GSAScoreTable(tables.Table):
     class Meta:
         model = GSAScores
-        fields = ['experiment', 'geneset', 'score', 'log10_p_bh']
+        fields = ['experiment', 'geneset', 'score', 'p_bh']
         attrs = {'class': 'table table-striped custab'}
 
 
 class FoldChangeResultTable(tables.Table):
     class Meta:
         model = FoldChangeResult
-        fields = ['experiment', 'gene_identifier', 'log2_fc', 'log10_p', 'log10_p_bh']
+        fields = ['experiment', 'gene_identifier', 'log2_fc', 'p', 'p_bh']
         attrs = {'class': 'table table-striped custab'}
 

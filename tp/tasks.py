@@ -127,8 +127,8 @@ def load_group_fold_change(compute, groupfc_file):
                 n_trt=row[3],
                 n_ctl=row[4],
                 expression_ctl=row[5],
-                log10_p=row[6],
-                log10_p_bh=row[7]
+                p=row[6],
+                p_bh=row[7]
             )
             insert_count += 1
 
@@ -318,7 +318,7 @@ def load_gsa_scores(compute_obj, gsa_scores):
             experiment=r['exp_obj'],
             geneset=load_gene_sets[r['geneset']],
             score=r['score'],
-            log10_p_bh=r['log10_p_bh']
+            p_bh=r['p_bh']
         )
         insert_count_scores += 1
 

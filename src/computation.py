@@ -444,21 +444,15 @@ class Computation:
                 if p > 0.1 and not self.gsa_info[sig]['core_set']:
                     continue
 
-                try:
-                    log10_p = math.log(p,10)
-                except:
-                    # p-values of 0 with large z-score are float issues in R ... very small p-value
-                    if p == 0 and score and abs(score) >= 5:
-                        log10_p = -17
-                    else:
-                        logger.error('Cannot take log10 of value %s for sig %s in experiment %s', p, sig, exp_id)
-                        continue
+                # p-values of 0 with large z-score are float issues in R ... very small p-value
+                if p == 0 and score and abs(score) >= 5:
+                    p = 1e-17
 
                 gsa_scores.append({'exp_id': exp_id,
                                    'exp_obj': exp_obj,
                                    'geneset': sig,
                                    'score': score,
-                                   'log10_p_bh': log10_p,
+                                   'p_bh': p,
                                   })
 
             last_tech = this_tech
