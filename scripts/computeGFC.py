@@ -167,14 +167,14 @@ def compute_fold_factors(infile, cfgfile, outfile, celdir, sdir, verbose):
     # prepare for R code to do the normalization and create the RMA.txt file
     if verbose:
         print("\nNormalizing the sample expression results\n")
-    r_norm_script = os.path.join(sdir, "NORM.R")
-    if 1:  # temporarily bypass to keep moving
-        r_cmd = "R --vanilla <" + r_norm_script
-        logger.info("Normalizing data using cmd:" + r_cmd)
-        output = subprocess.getoutput(r_cmd)
 
-        if verbose:
-            pp.pprint(output)
+    r_norm_script = os.path.join(sdir, "NORM.R")
+    r_cmd = "R --vanilla <" + r_norm_script
+    logger.info("Normalizing data using cmd:" + r_cmd)
+    output = subprocess.getoutput(r_cmd)
+
+    if verbose:
+        pp.pprint(output)
 
 
     # check to make sure everything worked okay
@@ -196,8 +196,10 @@ def compute_fold_factors(infile, cfgfile, outfile, celdir, sdir, verbose):
             rma_reader = csv.reader(csvfile, delimiter="\t")
             for row in rma_reader:
                 if rowcount == 0:
+                    row.pop(0)  # remove probe id
+                    pp.pprint(row)
                     for s in row:
-                        rma_samples_list.append(s.replace(".CEL", ""))
+                         rma_samples_list.append(s.replace(".CEL", ""))
                     logger.debug("Read " + str(len(rma_samples_list)) + " samples")
                 else:
                     rma_probes_list.append(row.pop(0))
@@ -213,7 +215,6 @@ def compute_fold_factors(infile, cfgfile, outfile, celdir, sdir, verbose):
     else:
         logger.critical("Normalizing cell file information failed using R script: " + r_norm_script)
         exit(0)
-
 
     # Compute the means for each of the experiments and each of the controls/treatments
     if verbose:
@@ -303,17 +304,16 @@ def compute_fold_factors(infile, cfgfile, outfile, celdir, sdir, verbose):
     # Prepare for R code to do the Limma and create the [e]_limmaoutput.csv file
     # in the Experiments directory
     #
-    # TODO: Will need to set this to a specific executable location on server
     if verbose:
         print("\nRunning script Limma to compute results\n")
-    r_limma_script = os.path.join(sdir, "Limma.R")
-    if 1:  # temporarily bypass to keep moving
-        r_cmd = "R --vanilla <" + r_limma_script
-        logger.info("Running Limma model using cmd:" + r_cmd)
-        output = subprocess.getoutput(r_cmd)
 
-        if verbose:
-            pp.pprint(output)
+    r_limma_script = os.path.join(sdir, "Limma.R")
+    r_cmd = "R --vanilla <" + r_limma_script
+    logger.info("Running Limma model using cmd:" + r_cmd)
+    output = subprocess.getoutput(r_cmd)
+
+    if verbose:
+        pp.pprint(output)
 
     #
     # Check that the appropriate files exist and then read contents
@@ -350,7 +350,7 @@ def compute_fold_factors(infile, cfgfile, outfile, celdir, sdir, verbose):
     with open(outfile, 'w', newline='') as csvfile:
         out_writer = csv.writer(csvfile, delimiter='\t')
         header = ["experiment", "gene_identifier", "log2_fc", "n_trt", "n_ctl",
-                  "expression_ctl0", "p", "p_bh"]
+                  "expression_ctl0", "p", "p_bh", "B"]
         out_writer.writerow(header)
         for e in sorted(experiments.keys()):
             for probe_id in sorted(limma_results[e].keys()):
@@ -360,8 +360,8 @@ def compute_fold_factors(infile, cfgfile, outfile, celdir, sdir, verbose):
                     row_data.append(fold_changes[e][probe_id][p])
                 for p in ["AveExpr", "P.Value", "adj.P.Val", "B"]:
                     val = limma_results[e][probe_id][p]
-                    if (p == "P.Value" or p == "adj.P.Val"):
-                        val = math.log10(float(val))
+ #                   if (p == "P.Value" or p == "adj.P.Val"):
+ #                       val = math.log10(float(val))
                     row_data.append(val)
                 out_writer.writerow(row_data)
     csvfile.close()
