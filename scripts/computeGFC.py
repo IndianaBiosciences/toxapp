@@ -93,27 +93,19 @@ def compute_fold_factors(infile, cfgfile, outfile, celdir, sdir, verbose):
         pp.pprint(experiments)
 
     elif infile:
-        samples = []
-        fields = []  # sample_type, experiment_name, sample_file
         if os.path.isfile(infile):
             rowcount = 0
             logger.debug("Reading infile:" + infile)
             with open(infile, newline='') as csvfile:
-                configreader = csv.reader(csvfile, delimiter=",")
-                for row in configreader:
+                csvreader = csv.reader(csvfile, delimiter=",")
+                for row in csvreader:
                     if verbose:
                         print(row)
-                    if rowcount == 0:
-                        fields = row
-                        message = "Fields: "
-                        for f in fields:
-                            message += " " + f
-                        logger.debug(message)
-                    else:
-                        data = {}
-                        for index in range(len(fields)):
-                            data[fields[index]] = row[index]
-                        samples.append(data)
+                    if rowcount != 0:	#skip header
+                    	e_id = row[1]
+                    	if not experiments.get(e_id):
+                    		experiments[e_id] = {'CTL': [], 'TRT': []} 
+                    	experiments[e_id][row[0]].append(row[2])
                     rowcount += 1
                 logger.info("Read " + str(rowcount - 1) + " lines from infile")
         else:
