@@ -80,7 +80,7 @@ def cart_add(request, pk):
         analyze_list.append(pk)
     request.session['analyze_list'] = analyze_list
 
-    return HttpResponseRedirect(reverse('tp:experiments'))
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 
 def cart_del(request, pk):
@@ -92,7 +92,7 @@ def cart_del(request, pk):
         analyze_list.remove(pk)
     request.session['analyze_list'] = analyze_list
 
-    return HttpResponseRedirect(reverse('tp:experiments'))
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 
 def analyze(request, pk=None):
@@ -524,7 +524,7 @@ def export_result_xls(request, restype=None):
     # restype will be None when coming from interactive filtered views of results; get it out of the session
     if restype is None:
         if request.session.get('filtered_type', None) is None:
-            message = 'Please report bug: trying to export results from filtered view with no info on result type in session'
+            message = 'Potential bug: trying to export results from filtered view with no info on result type in session; did you try exporting an empty result set?'
             context = {'message': message, 'error': True}
             logger.error('Trying to export results from filtered view with no info on result type in session')
             return render(request, 'generic_message.html', context)
@@ -565,14 +565,14 @@ def export_result_xls(request, restype=None):
                 break
 
     elif restype.lower() == 'foldchangeresult':
-        colnames += ['gene_identifier', 'log2 fold change', 'treatment samples', 'control samples', 'expression avg controls', 'p', 'p-adj']
+        colnames += ['gene_identifier', 'rat entrez gene ID', 'rat gene symbol', 'log2 fold change', 'treatment samples', 'control samples', 'expression avg controls', 'p', 'p-adj']
         rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
         if subset:
             rows = rows.filter(pk__in=subset)
 
         rowcount = 0
         for r in rows:
-            nr = [r.experiment_id, r.experiment.experiment_name, r.gene_identifier, r.log2_fc, r.n_trt, r.n_ctl, r.expression_ctl, r.p, r.p_bh]
+            nr = [r.experiment_id, r.experiment.experiment_name, r.gene_identifier.gene_identifier, r.gene_identifier.gene.rat_entrez_gene, r.gene_identifier.gene.rat_gene_symbol, r.log2_fc, r.n_trt, r.n_ctl, r.expression_ctl, r.p, r.p_bh]
             data.append(nr)
             rowcount += 1
             if rowcount > rowlimit:
@@ -580,7 +580,7 @@ def export_result_xls(request, restype=None):
                 break
 
     else:
-        raise NotImplementedError
+        raise NotImplementedError ('Type not implemented:', restype)
 
     # warn user that output was limited ... avoid too-large excel spreadsheet
     if limit_breached:
@@ -1010,13 +1010,20 @@ class FilteredSingleTableView(SingleTableView):
         # don't store if nothing was filtered
         results = self.filter.qs
 
-        # record the type of objects being filtered
-        self.request.session['filtered_type'] = results[0].__class__.__name__
-        self.request.session['filtered_list'] = None
-        if len(self.filter.qs) < len(data):
-            ids = list(results.values_list('id', flat=True))
-            logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)
-            self.request.session['filtered_list'] = ids
+        # store the object IDs in case data is exported to excel
+        # reset filtering session vars from any previous use
+        self.request.session['filtered_list'] = []
+        self.request.session['filtered_type'] = None
+
+        # TODO - will generate an error if someone tries exporting a set with nothing in it
+        # better way to store in general way type of sub-classed view using this?
+        if len(self.filter.qs) > 0:
+            self.request.session['filtered_type'] = results[0].__class__.__name__
+
+            if len(self.filter.qs) < len(data):
+                ids = list(results.values_list('id', flat=True))
+                logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)
+                self.request.session['filtered_list'] = ids
 
         return results
 
