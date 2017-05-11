@@ -38,10 +38,10 @@ class Computation:
         self.gsa_gsc_obj = None
         self._experiment_tech_map = dict()
         self._expid_obj_map = dict()
+        self._identifier_obj_map = dict()
 
     def get_exp_obj(self, exp_id):
-
-        """ wrapper class to avoid repeatedly checking existence of object for exp_id """
+        """ method to avoid repeatedly checking existence of object for exp_id """
 
         # record a None in map so that we don't repeatedly check for non-loaded exp; therefore use False as test here
         if self._expid_obj_map.get(exp_id, False) is False:
@@ -55,6 +55,25 @@ class Computation:
                 self._expid_obj_map[exp_id] = None
 
         return self._expid_obj_map[exp_id]
+
+    def get_identifier_obj(self, tech_obj, identifier):
+        """ method to avoid repeatedly checking existence of object for measurement tech identifier """
+
+        assert isinstance(tech_obj, MeasurementTech)
+        barcode = str(tech_obj.id) + ":" + identifier
+        # record a None in map so that we don't repeatedly check for non-loaded exp; therefore use False as test here
+        if self._identifier_obj_map.get(barcode, False) is False:
+
+            try:
+                #logger.debug('Querying object for tech id:gene identifier %s', barcode)
+                identifier_obj = IdentifierVsGeneMap.objects.get(gene_identifier=identifier, tech=tech_obj)
+                self._identifier_obj_map[barcode] = identifier_obj
+            except:
+                # be quiet on these, potentially hundreds per experiment, calling method should provide a summary
+                #logger.debug('Failed to retrieve information on identifier %s for measurement tech %s', identifier, tech_obj)
+                self._identifier_obj_map[barcode] = None
+
+        return self._identifier_obj_map[barcode]
 
     def get_experiment_tech_map(self, exp_id):
 
@@ -150,7 +169,7 @@ class Computation:
         # discard genes from gene sets not being measured
         keep_rat_genes = dict()
         for r in identifiers:
-            keep_rat_genes[r.rat_entrez_gene] = 1
+            keep_rat_genes[r.gene.rat_entrez_gene] = 1
 
         gsa_info = collections.defaultdict(dict)
         gsa_genes = collections.defaultdict(dict)
@@ -291,7 +310,7 @@ class Computation:
                     identifier_map = {} # empty the dict in case collision between ids on two measurement platforms
                     # map for converting measurement platform identifiers to rat entrez gene IDs
                     for r in identifiers:
-                        identifier_map[r.gene_identifier] = r.rat_entrez_gene
+                        identifier_map[r.gene_identifier] = r.gene.rat_entrez_gene
 
                 last_tech = this_tech
 
@@ -315,11 +334,11 @@ class Computation:
             id_str = ",".join(ids)
             logger.warning('A total of %s identifiers in file %s are not mapped to entrez gene IDs and ignored; the first 10 are: %s', n_fails, fc_file, id_str)
             n_success = len(success_map)
-            if (n_fails > n_success):
+            if n_fails > n_success:
                 logger.critical('Number of failed mappings %s were greater than number of successful mappings: %s. Assuming wrong tech setup ... exiting', n_fails, n_success)
-                exit(0)
+                return None
 
-        logger.debug('Have fold change data for file %s: %s', fc_file, pprint.pformat(fc_data))
+        #logger.debug('Have fold change data for file %s: %s', fc_file, pprint.pformat(fc_data))
         return fc_data
 
     def score_modules(self, fc_data):

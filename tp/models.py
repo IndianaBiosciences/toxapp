@@ -74,7 +74,7 @@ class Experiment(models.Model):
     ROUTE_CHOICES = (
         ('gavage', 'gavage'),
         ('subcutaneous', 'subcutaneous'),
-        ('injection', 'injection'),
+        ('intravenous', 'intravenous'),
         ('intraperitoneal', 'intraperitoneal'),
         ('diet', 'diet'),
         ('NA', 'Not applicable'),
@@ -84,7 +84,7 @@ class Experiment(models.Model):
     tech = models.ForeignKey(MeasurementTech)
     study = models.ForeignKey(Study)
     compound_name = models.CharField(max_length=50)
-    dose = models.DecimalField(max_digits=5, decimal_places=2)
+    dose = models.DecimalField(max_digits=10, decimal_places=2)
     dose_unit = models.CharField(max_length=20)
     time = models.DecimalField(max_digits=5, decimal_places=2)
     tissue = models.CharField(max_length=20, choices=TISSUE_CHOICES, default=TISSUE_CHOICES[0][0])
@@ -92,7 +92,7 @@ class Experiment(models.Model):
     strain = models.CharField(max_length=50)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default=GENDER_CHOICES[0][0])
     single_repeat_type = models.CharField(max_length=10, choices=REPEAT_TYPE_CHOICES, default=REPEAT_TYPE_CHOICES[0][0])
-    route = models.CharField(max_length=10, choices=ROUTE_CHOICES, default=ROUTE_CHOICES[0][0])
+    route = models.CharField(max_length=20, choices=ROUTE_CHOICES, default=ROUTE_CHOICES[0][0])
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
     results_ready = models.BooleanField(default=False)
 
@@ -130,10 +130,35 @@ class ExperimentSample(models.Model):
         return self.group_type
 
 
+class Gene(models.Model):
+
+    # the core organism is rat, must have rat entrez gene
+    rat_entrez_gene = models.IntegerField(unique=True)
+    rat_gene_symbol = models.CharField(max_length=30)
+    mouse_entrez_gene = models.IntegerField(blank=True, null=True)
+    mouse_gene_symbol = models.CharField(max_length=30, blank=True, null=True)
+    human_entrez_gene = models.IntegerField(blank=True, null=True)
+    human_gene_symbol = models.CharField(max_length=30, blank=True, null=True)
+
+    def __str__(self):
+        return self.rat_gene_symbol
+
+
+class IdentifierVsGeneMap(models.Model):
+
+    tech = models.ForeignKey(MeasurementTech)
+    gene_identifier = models.CharField(max_length=30)
+    gene = models.ForeignKey(Gene)
+
+    def __str__(self):
+        txt = "{}-{}".format(self.tech, self.gene_identifier)
+        return txt
+
+
 class FoldChangeResult(models.Model):
 
     experiment = models.ForeignKey(Experiment)
-    gene_identifier = models.CharField(max_length=32)
+    gene_identifier = models.ForeignKey(IdentifierVsGeneMap)
     log2_fc = models.DecimalField(max_digits=5, decimal_places=2)
     n_trt = models.IntegerField()
     n_ctl = models.IntegerField()
@@ -143,17 +168,6 @@ class FoldChangeResult(models.Model):
 
     def __str__(self):
         txt = "experiment {} vs gene {}".format(self.experiment_id, self.gene_identifier)
-        return txt
-
-
-class IdentifierVsGeneMap(models.Model):
-
-    tech = models.ForeignKey(MeasurementTech)
-    gene_identifier = models.CharField(max_length=30)
-    rat_entrez_gene = models.IntegerField()
-
-    def __str__(self):
-        txt = "{}-{}-{}".format(self.tech, self.gene_identifier, self.rat_entrez_gene)
         return txt
 
 
@@ -190,5 +204,4 @@ class GSAScores(models.Model):
     def __str__(self):
         txt = "experiment {} vs geneset {}".format(self.experiment.id, self.geneset.id)
         return txt
-
 
