@@ -28,7 +28,6 @@ import xlwt
 
 logger = logging.getLogger(__name__)
 
-
 def index(request):
     """ the home page for tp """
     return render(request, 'index.html')
@@ -628,7 +627,7 @@ class StudyView(ResetSessionMixin, ListView):
     model = Study
     template_name = 'study_list.html'
     context_object_name = 'studies'
-    paginate_by = 12
+    paginate_by = 25
 
 
 class StudyCreateUpdateMixin(object):
@@ -684,7 +683,7 @@ class ExperimentView(ResetSessionMixin, ListView):
     model = Experiment
     template_name = 'experiments_list.html'
     context_object_name = 'experiments'
-    paginate_by = 12
+    paginate_by = 25
 
     def get_queryset(self):
 
@@ -707,6 +706,28 @@ class ExperimentView(ResetSessionMixin, ListView):
             logger.debug('Query after filtering on user returned %s', exps)
 
         return exps
+
+    def get_context_data(self, **kwargs):
+        context = super(ExperimentView, self).get_context_data(**kwargs)
+        if not context.get('is_paginated', False):
+            return context
+
+        # TODO - too many pages shown, this solution is OK for now
+        # http://stackoverflow.com/questions/39088813/django-paginator-with-many-pages
+        paginator = context.get('paginator')
+        num_pages = paginator.num_pages
+        current_page = context.get('page_obj')
+        page_no = current_page.number
+
+        if num_pages <= 11 or page_no <= 6:  # case 1 and 2
+            pages = [x for x in range(1, min(num_pages + 1, 12))]
+        elif page_no > num_pages - 6:  # case 4
+            pages = [x for x in range(num_pages - 10, num_pages + 1)]
+        else:  # case 3
+            pages = [x for x in range(page_no - 5, page_no + 6)]
+
+        context.update({'pages': pages})
+        return context
 
 
 class ExperimentSuccessURLMixin(object):
@@ -821,7 +842,7 @@ class SampleView(ResetSessionMixin, ListView):
     model = Sample
     template_name = 'samples_list.html'
     context_object_name = 'samples'
-    paginate_by = 12
+    paginate_by = 25
 
 
 class SampleCreate(SampleSuccessURLMixin, CreateView):
