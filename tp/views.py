@@ -28,7 +28,6 @@ import xlwt
 
 logger = logging.getLogger(__name__)
 
-
 def index(request):
     """ the home page for tp """
     return render(request, 'index.html')
@@ -81,7 +80,7 @@ def cart_add(request, pk):
         analyze_list.append(pk)
     request.session['analyze_list'] = analyze_list
 
-    return HttpResponseRedirect(reverse('tp:experiments'))
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 
 def cart_del(request, pk):
@@ -93,7 +92,7 @@ def cart_del(request, pk):
         analyze_list.remove(pk)
     request.session['analyze_list'] = analyze_list
 
-    return HttpResponseRedirect(reverse('tp:experiments'))
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 
 def analyze(request, pk=None):
@@ -525,7 +524,7 @@ def export_result_xls(request, restype=None):
     # restype will be None when coming from interactive filtered views of results; get it out of the session
     if restype is None:
         if request.session.get('filtered_type', None) is None:
-            message = 'Please report bug: trying to export results from filtered view with no info on result type in session'
+            message = 'Potential bug: trying to export results from filtered view with no info on result type in session; did you try exporting an empty result set?'
             context = {'message': message, 'error': True}
             logger.error('Trying to export results from filtered view with no info on result type in session')
             return render(request, 'generic_message.html', context)
@@ -566,14 +565,14 @@ def export_result_xls(request, restype=None):
                 break
 
     elif restype.lower() == 'foldchangeresult':
-        colnames += ['gene_identifier', 'log2 fold change', 'treatment samples', 'control samples', 'expression avg controls', 'p', 'p-adj']
+        colnames += ['gene_identifier', 'rat entrez gene ID', 'rat gene symbol', 'log2 fold change', 'treatment samples', 'control samples', 'expression avg controls', 'p', 'p-adj']
         rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
         if subset:
             rows = rows.filter(pk__in=subset)
 
         rowcount = 0
         for r in rows:
-            nr = [r.experiment_id, r.experiment.experiment_name, r.gene_identifier, r.log2_fc, r.n_trt, r.n_ctl, r.expression_ctl, r.p, r.p_bh]
+            nr = [r.experiment_id, r.experiment.experiment_name, r.gene_identifier.gene_identifier, r.gene_identifier.gene.rat_entrez_gene, r.gene_identifier.gene.rat_gene_symbol, r.log2_fc, r.n_trt, r.n_ctl, r.expression_ctl, r.p, r.p_bh]
             data.append(nr)
             rowcount += 1
             if rowcount > rowlimit:
@@ -581,7 +580,7 @@ def export_result_xls(request, restype=None):
                 break
 
     else:
-        raise NotImplementedError
+        raise NotImplementedError ('Type not implemented:', restype)
 
     # warn user that output was limited ... avoid too-large excel spreadsheet
     if limit_breached:
@@ -628,7 +627,7 @@ class StudyView(ResetSessionMixin, ListView):
     model = Study
     template_name = 'study_list.html'
     context_object_name = 'studies'
-    paginate_by = 12
+    paginate_by = 25
 
 
 class StudyCreateUpdateMixin(object):
@@ -684,7 +683,7 @@ class ExperimentView(ResetSessionMixin, ListView):
     model = Experiment
     template_name = 'experiments_list.html'
     context_object_name = 'experiments'
-    paginate_by = 12
+    paginate_by = 25
 
     def get_queryset(self):
 
@@ -707,6 +706,28 @@ class ExperimentView(ResetSessionMixin, ListView):
             logger.debug('Query after filtering on user returned %s', exps)
 
         return exps
+
+    def get_context_data(self, **kwargs):
+        context = super(ExperimentView, self).get_context_data(**kwargs)
+        if not context.get('is_paginated', False):
+            return context
+
+        # TODO - too many pages shown, this solution is OK for now
+        # http://stackoverflow.com/questions/39088813/django-paginator-with-many-pages
+        paginator = context.get('paginator')
+        num_pages = paginator.num_pages
+        current_page = context.get('page_obj')
+        page_no = current_page.number
+
+        if num_pages <= 11 or page_no <= 6:  # case 1 and 2
+            pages = [x for x in range(1, min(num_pages + 1, 12))]
+        elif page_no > num_pages - 6:  # case 4
+            pages = [x for x in range(num_pages - 10, num_pages + 1)]
+        else:  # case 3
+            pages = [x for x in range(page_no - 5, page_no + 6)]
+
+        context.update({'pages': pages})
+        return context
 
 
 class ExperimentSuccessURLMixin(object):
@@ -821,7 +842,7 @@ class SampleView(ResetSessionMixin, ListView):
     model = Sample
     template_name = 'samples_list.html'
     context_object_name = 'samples'
-    paginate_by = 12
+    paginate_by = 25
 
 
 class SampleCreate(SampleSuccessURLMixin, CreateView):
@@ -989,13 +1010,20 @@ class FilteredSingleTableView(SingleTableView):
         # don't store if nothing was filtered
         results = self.filter.qs
 
-        # record the type of objects being filtered
-        self.request.session['filtered_type'] = results[0].__class__.__name__
-        self.request.session['filtered_list'] = None
-        if len(self.filter.qs) < len(data):
-            ids = list(results.values_list('id', flat=True))
-            logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)
-            self.request.session['filtered_list'] = ids
+        # store the object IDs in case data is exported to excel
+        # reset filtering session vars from any previous use
+        self.request.session['filtered_list'] = []
+        self.request.session['filtered_type'] = None
+
+        # TODO - will generate an error if someone tries exporting a set with nothing in it
+        # better way to store in general way type of sub-classed view using this?
+        if len(self.filter.qs) > 0:
+            self.request.session['filtered_type'] = results[0].__class__.__name__
+
+            if len(self.filter.qs) < len(data):
+                ids = list(results.values_list('id', flat=True))
+                logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)
+                self.request.session['filtered_list'] = ids
 
         return results
 

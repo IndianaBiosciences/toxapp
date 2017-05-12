@@ -1,6 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task, current_task
-from .models import Experiment, FoldChangeResult, MeasurementTech, IdentifierVsGeneMap, ModuleScores, GeneSets, GSAScores
+from .models import Experiment, FoldChangeResult, MeasurementTech, Gene, IdentifierVsGeneMap, ModuleScores, GeneSets, GSAScores
 from django.conf import settings
 from django.core.mail import send_mail
 from src.computation import Computation
@@ -110,6 +110,8 @@ def load_group_fold_change(compute, groupfc_file):
     logger.info('Reading fold change data from %s', groupfc_file)
 
     insert_count = 0
+    rownum = 0
+    identifier_lookup_fail = dict()
     with open(groupfc_file) as f:
         reader = csv.reader(f, delimiter='\t')
         next(reader, None)  # skip the header
@@ -117,10 +119,16 @@ def load_group_fold_change(compute, groupfc_file):
         checked_exist = dict()
         for row in reader:
 
+            rownum += 1
             exp_id = int(row[0])
             # use the method in compute object to avoid repeatedly checking same ID
             exp_obj = compute.get_exp_obj(exp_id)
             if exp_obj is None:
+                continue
+
+            identifier_obj = compute.get_identifier_obj(exp_obj.tech, row[1])
+            if identifier_obj is None:
+                identifier_lookup_fail[row[1]] = 1
                 continue
 
             # query once for existence of results for this experiment and delete all if found
@@ -134,7 +142,7 @@ def load_group_fold_change(compute, groupfc_file):
 
             FoldChangeResult.objects.create(
                 experiment=exp_obj,
-                gene_identifier=row[1],
+                gene_identifier=identifier_obj,
                 log2_fc=row[2],
                 n_trt=row[3],
                 n_ctl=row[4],
@@ -148,18 +156,29 @@ def load_group_fold_change(compute, groupfc_file):
         logger.error('Failed to load any records from file')
         return None
 
-    logging.info('Inserted %s records from file %s', insert_count, groupfc_file)
+    if identifier_lookup_fail:
+        n_fails = len(identifier_lookup_fail)
+        ids = list(identifier_lookup_fail.keys())[0:10]
+        id_str = ",".join(ids)
+        logger.warning('A total of %s identifiers in file %s are not entrez gene IDs in database and ignored; the first 10 are: %s', n_fails, groupfc_file, id_str)
+        if n_fails > rownum/2:
+            logger.critical('More than 50% of identifiers in file (%s) lack a corresponding identifier in database; Probable error ... exiting', n_fails)
+            exit(0)
+
+    logging.info('Inserted %s out of %s records from file %s', insert_count, rownum, groupfc_file)
     return 1
 
 
 def load_measurement_tech_gene_map(file):
 
     logger.info('Loading mapping of identifiers to genes for file %s', file)
-    required_cols = ['TECH', 'TECH_DETAIL', 'IDENTIFIER', 'RAT_ENTREZ_GENE']
+    required_cols = ['TECH', 'TECH_DETAIL', 'SPECIES', 'IDENTIFIER', 'SPECIES_ENTREZ_GENE']
 
     rownum = 0
     insert_count = 0
     tech_vs_obj = dict()
+    gene_lookup_fail = dict()
+
     with open(file) as f:
         dialect = csv.Sniffer().sniff(f.read(1024))
         f.seek(0)
@@ -169,14 +188,17 @@ def load_measurement_tech_gene_map(file):
             tech = row['TECH']
             tech_detail = row['TECH_DETAIL']
             for col in required_cols:
-                if row[col]:
+                if row.get(col, None) is not None:
                     pass
                 else:
                     logger.error("Missing value of %s on row %s of file %s", col, rownum, file)
                     return None
 
-            thistech = tech + "-" + tech_detail
+            if row['SPECIES'].lower() not in ['rat', 'mouse', 'human']:
+                logger.error('Species obtained is %s; only rat, mouse and human are supported', row['SPECIES'])
+                return None
 
+            thistech = tech + "-" + tech_detail
             tech_obj = tech_vs_obj.get(thistech, None)
 
             # first time this measurement tech encountered in file - either create or retrieve apprpriate obj
@@ -189,14 +211,43 @@ def load_measurement_tech_gene_map(file):
                     logger.warning('Deleting existing identifer vs. gene map for measurement tech %s', tech_obj)
                     prev_map.delete()
 
+            # lookup the gene obj ...don't store these as should be seen only once per file
+            if row['SPECIES'].lower() == 'rat':
+                gene_obj = Gene.objects.filter(rat_entrez_gene=row['SPECIES_ENTREZ_GENE']).first()
+                if gene_obj is None:
+                    gene_lookup_fail[row['SPECIES_ENTREZ_GENE']] = 1
+            elif row['SPECIES'].lower() == 'mouse':
+                gene_obj = Gene.objects.filter(mouse_entrez_gene=row['SPECIES_ENTREZ_GENE']).first()
+                if gene_obj is None:
+                    gene_lookup_fail[row['SPECIES_ENTREZ_GENE']] = 1
+            elif row['SPECIES'].lower() == 'human':
+                gene_obj = Gene.objects.filter(human_entrez_gene=row['SPECIES_ENTREZ_GENE']).first()
+                if gene_obj is None:
+                    gene_lookup_fail[row['SPECIES_ENTREZ_GENE']] = 1
+            else:
+                raise NotImplementedError
+
+            if gene_obj is None:
+                continue
+
             IdentifierVsGeneMap.objects.create(
                 tech=tech_obj,
                 gene_identifier=row['IDENTIFIER'],
-                rat_entrez_gene=row['RAT_ENTREZ_GENE']
+                gene=gene_obj
             )
             insert_count += 1
 
-    logging.info('Inserted %s records from file %s', insert_count, file)
+    logging.info('Inserted %s out of %s records from file %s', insert_count, rownum, file)
+
+    if gene_lookup_fail:
+        n_fails = len(gene_lookup_fail)
+        ids = list(gene_lookup_fail.keys())[0:10]
+        id_str = ",".join(ids)
+        logger.warning('A total of %s identifiers in file %s are not entrez gene IDs in database and ignored; the first 10 are: %s', n_fails, file, id_str)
+        if n_fails > rownum/2:
+            logger.critical('More than 50% of identifiers in file (%s) lack a corresponding entrez gene ID in database; Probable error ... exiting', n_fails)
+            exit(0)
+
     return insert_count
 
 

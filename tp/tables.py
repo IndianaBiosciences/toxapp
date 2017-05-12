@@ -19,6 +19,6 @@ class GSAScoreTable(tables.Table):
 class FoldChangeResultTable(tables.Table):
     class Meta:
         model = FoldChangeResult
-        fields = ['experiment', 'gene_identifier', 'log2_fc', 'p', 'p_bh']
+        fields = ['experiment', 'gene_identifier.gene_identifier', 'gene_identifier.gene.rat_gene_symbol', 'log2_fc', 'p', 'p_bh']
         attrs = {'class': 'table table-striped custab'}
 
