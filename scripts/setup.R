@@ -7,11 +7,7 @@
 
 source("http://bioconductor.org/biocLite.R")
 biocLite()
-biocLite('affy')
-biocLite('gcrma')
-biocLite('limma')
-biocLite('statmod')
-biocLite('piano')
+biocLite('affy', 'limma', 'piano')
 
 #
 # need to install rat2302rnentrezgcdf
@@ -19,3 +15,5 @@ biocLite('piano')
 install.packages("devtools")
 library("devtools")
 install_url("http://mbni.org/customcdf/21.0.0/entrezg.download/rat2302rnentrezgcdf_21.0.0.tar.gz", quiet=FALSE)
+install_url("http://mbni.org/customcdf/21.0.0/entrezg.download/hgu133plus2hsentrezgcdf_21.0.0.tar.gz", quiet=FALSE)
+install_url("http://mbni.org/customcdf/21.0.0/entrezg.download/mouse4302mmentrezgcdf_21.0.0.tar.gz", quiet=FALSE)
