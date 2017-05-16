@@ -13,3 +13,5 @@ create schema toxapp authorization toxapp;
 grant all on schema toxapp to toxapp_user;
 grant usage on schema toxapp to toxapp_reader;
 drop schema public;
+alter DATABASE ibri SET search_path TO toxapp;
+

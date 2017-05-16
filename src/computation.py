@@ -1,4 +1,4 @@
-from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, GeneSets
+from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult
 from django.conf import settings
 from tempfile import NamedTemporaryFile
 
@@ -10,11 +10,11 @@ import logging
 import os
 import csv
 import collections
-import math
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 
 logger = logging.getLogger(__name__)
+
 
 class Vividict(dict):
     def __missing__(self, key):
@@ -39,6 +39,24 @@ class Computation:
         self._experiment_tech_map = dict()
         self._expid_obj_map = dict()
         self._identifier_obj_map = dict()
+
+    def map_fold_change_from_exp(self, exp_obj):
+
+        assert isinstance(exp_obj, Experiment)
+        results = FoldChangeResult.objects.filter(experiment=exp_obj)
+
+        if not results:
+            logger.error('No results loaded for experiment %s, aborting', exp_obj.id)
+            return None
+
+        # dictionary of log2 fc results keyed on experiment / gene identifier
+        fc_data = collections.defaultdict(dict)
+
+        for r in results:
+            rat_eg = r.gene_identifier.gene.rat_entrez_gene
+            fc_data[exp_obj.id][rat_eg] = {'log2_fc': float(r.log2_fc), 'identifier': r.gene_identifier.gene_identifier}
+
+        return fc_data
 
     def get_exp_obj(self, exp_id):
         """ method to avoid repeatedly checking existence of object for exp_id """
@@ -255,9 +273,9 @@ class Computation:
             row_as_bytes = str.encode(row)
             gmt.write(row_as_bytes)
 
-            if sig_count > 100 and logger.isEnabledFor(logging.DEBUG):
-                logger.warning('Limited to 100 gene sets in DEBUG mode')
-                break
+            # if sig_count > 100 and logger.isEnabledFor(logging.DEBUG):
+            #     logger.warning('Limited to 100 gene sets in DEBUG mode')
+            #     break
 
         gmt.close()
 
@@ -274,7 +292,13 @@ class Computation:
 
     def map_fold_change_data(self, fc_file):
 
-        """ read the fold change data and map to rat entrez gene IDs"""
+        """ read the fold change data and map to rat entrez gene IDs starting from a file """
+
+        # TODO - this could be retired by using the map_fold_change_from_exp as we are effectively doing the same
+        # mapping exercise twice - once when loading the FC data in tasks.py function, then once again here.
+        # However this means that the Computation script could no longer run without loading the fold change data using
+        # the function in tasks.  As it stands script can perform complete calculation without actually loading anything
+        # to DB
 
         identifier_map = dict()
         last_tech = None
@@ -406,18 +430,18 @@ class Computation:
                 n_missing = len(warned_gene)
                 ratio_missed = n_missing/n_genes
                 if ratio_missed > 0.30:
-                    logger.warning('Missing more than 30percent of genes (%s) for module %s of size %s; lower concern for small modules', n_missing, m, n_genes)
+                    pass
+                    #logger.warning('Missing more than 30percent of genes (%s) for module %s of size %s; lower concern for small modules', n_missing, m, n_genes)
 
         #logger.debug('Have results from module scoring: %s', pprint.pformat(module_scores, indent=4))
         return module_scores
 
-    def score_gsa(self, fc_data):
+    def score_gsa(self, fc_data, last_tech=None):
 
         """ use data mapped to entrez gene for calculating module scores"""
 
         # need to re-initiliaze gsa if measurement tech were to change during one set of experiment upload to
         # avoid having genes in R gsc object that are not defined in fold change data
-        last_tech = None
         gsa_scores = list()
 
         for exp_id in fc_data.keys():
@@ -487,4 +511,3 @@ class Computation:
 
         #logger.debug('Have results from GSA scoring: %s', pprint.pformat(gsa_scores, indent=4))
         return gsa_scores
-
