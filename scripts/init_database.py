@@ -106,7 +106,8 @@ def load_DM_TG_experiments():
                 Experiment.objects.create(**row)
                 createcount += 1
 
-            created_exps.append(exp)
+            # exp is a queryset with one instance
+            created_exps.append(exp.first())
 
     logging.info('Number of experiments created: %s, number updated: %s', createcount, updatecount)
     return created_exps
