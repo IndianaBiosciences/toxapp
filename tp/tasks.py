@@ -1,6 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task, current_task
-from .models import Experiment, FoldChangeResult, MeasurementTech, Gene, IdentifierVsGeneMap, ModuleScores, GeneSets, GSAScores
+from .models import Experiment, FoldChangeResult, MeasurementTech, Gene, IdentifierVsGeneMap, ModuleScores, GeneSets,\
+    GSAScores, ExperimentCorrelation
 from django.conf import settings
 from django.core.mail import send_mail
 from src.computation import Computation
@@ -9,6 +10,7 @@ import pprint
 import logging
 import os
 import csv
+import operator
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +22,8 @@ def add(x, y):
 @shared_task
 def process_user_files(tmpdir, config_file, email):
 
-    #TODO - uploads of group fold change data is slow, ~1 minute for 15K records
-    # could use http://pgfoundry.org/projects/pgloader/ assuming performance comparison
-    # to oracle sql loader is appropriate
-
     # step1 - calculate group fold change and load data to the database
-    logger.info("Step 1")
+    logger.info('Step 1')
     compute = Computation(tmpdir)
     groupfc_file = compute.calc_fold_change(config_file)
 
@@ -34,7 +32,7 @@ def process_user_files(tmpdir, config_file, email):
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
-    logger.info("Step 1: gene-level fold change file created: %s", groupfc_file)
+    logger.info('Step 1: gene-level fold change file created: %s', groupfc_file)
 
     status = load_group_fold_change(compute, groupfc_file)
     if status is None:
@@ -42,27 +40,27 @@ def process_user_files(tmpdir, config_file, email):
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
-    logger.info("Step 1: gene-level fold change data processed and loaded")
+    logger.info('Step 1: gene-level fold change data processed and loaded')
 
     # step 2 - map data for this measurement technology to rat entrez gene IDs
-    logger.info("Step 2")
+    logger.info('Step 2')
     fc_data = compute.map_fold_change_data(groupfc_file)
     if fc_data is None:
         message = 'Failed to map fold change data to rat entrez gene IDs; no further computations performed'
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
-    logger.info("Step 2: gene-level fold change data mapped to genes")
+    logger.info('Step 2: gene-level fold change data mapped to genes')
 
     # step 3 - score experiment data using WGCNA modules and load to database
-    logger.info("Step 3")
+    logger.info('Step 3')
     module_scores = compute.score_modules(fc_data)
     if module_scores is None:
         message = 'Failed to score experiment results using WGCNA modules; no further computations performed'
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
-    logger.info("Step 3a: experiment scored using WGCNA models")
+    logger.info('Step 3a: experiment scored using WGCNA models')
 
     status = load_module_scores(module_scores)
     if status is None:
@@ -70,17 +68,17 @@ def process_user_files(tmpdir, config_file, email):
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
-    logger.info("Step 3b: experiment scored using WGCNA models loaded to database")
+    logger.info('Step 3b: experiment scored using WGCNA models loaded to database')
 
     # step 4 - score experiment data using GSA
-    logger.info("Step 4")
+    logger.info('Step 4')
     gsa_scores = compute.score_gsa(fc_data)
     if gsa_scores is None:
         message = 'Failed to score experiment results using gene set analysis; no further computations performed'
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
-    logger.info("Step 4a: experiment scored using GSA")
+    logger.info('Step 4a: experiment scored using GSA')
 
     status = load_gsa_scores(compute, gsa_scores)
     if status is None:
@@ -88,17 +86,48 @@ def process_user_files(tmpdir, config_file, email):
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
-    logger.info("Step 4b: experiment scored using GSA and loaded to database")
+    logger.info('Step 4b: experiment scored using GSA and loaded to database')
+
+    new_exps = Experiment.objects.filter(id__in=list(fc_data.keys()))
 
     # step 5 - calculate near neighbors based on vector of module scores or GSA scores
-    #TODO
-    logger.info("Step 5")
+    logger.info('Step 5: evaluating pairwise similarity vs. experiments  using WGCNA and ARACNE')
+    correl = compute.calc_exp_correl(new_exps, 'WGCNA')
+    if correl is None:
+        message = 'Failed to calculate correlation to existing experiments using WGCNA; no further computations performed'
+        logger.error(message)
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        return
+    logger.info('Step 5a: experiment correlation calculated using WGCNA and loaded to database')
+
+    status = load_correl_results(compute, correl, 'WGCNA')
+    if status is None:
+        message = 'Failed to load experiment correlation for WGCNA; no further computations performed'
+        logger.error(message)
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        return
+    logger.info('Step 5b: experiment correl using WGCNA loaded to database')
+
+    correl = compute.calc_exp_correl(new_exps, 'ARACNE')
+    if correl is None:
+        message = 'Failed to calculate correlation to existing experiments using ARACNE; no further computations performed'
+        logger.error(message)
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        return
+    logger.info('Step 5c: experiment correlation calculated using ARACNE and loaded to database')
+
+    status = load_correl_results(compute, correl, 'ARACNE')
+    if status is None:
+        message = 'Failed to load experiment correlation for ARACNE; no further computations performed'
+        logger.error(message)
+        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        return
+    logger.info('Step 5d: experiment correl using ARACNE loaded to database')
 
     # set status on experimens as ready for analysis
-    for exp_id in fc_data.keys():
-        obj = compute.get_exp_obj(exp_id)
-        obj.results_ready = True
-        obj.save()
+    for exp in new_exps:
+        exp.results_ready = True
+        exp.save()
 
     message = 'Final: Uploaded expression data is ready for analysis'
     logger.info(message)
@@ -159,9 +188,9 @@ def load_group_fold_change(compute, groupfc_file):
     if identifier_lookup_fail:
         n_fails = len(identifier_lookup_fail)
         ids = list(identifier_lookup_fail.keys())[0:10]
-        id_str = ",".join(ids)
+        id_str = ','.join(ids)
         logger.warning('A total of %s identifiers in file %s are not entrez gene IDs in database and ignored; the first 10 are: %s', n_fails, groupfc_file, id_str)
-        if n_fails > rownum/2:
+        if n_fails > int(rownum/2):
             logger.critical('More than 50% of identifiers in file (%s) lack a corresponding identifier in database; Probable error ... exiting', n_fails)
             exit(0)
 
@@ -244,7 +273,7 @@ def load_measurement_tech_gene_map(file):
         ids = list(gene_lookup_fail.keys())[0:10]
         id_str = ",".join(ids)
         logger.warning('A total of %s identifiers in file %s are not entrez gene IDs in database and ignored; the first 10 are: %s', n_fails, file, id_str)
-        if n_fails > rownum/2:
+        if n_fails > int(rownum/2):
             logger.critical('More than 50% of identifiers in file (%s) lack a corresponding entrez gene ID in database; Probable error ... exiting', n_fails)
             exit(0)
 
@@ -392,3 +421,63 @@ def load_gsa_scores(compute_obj, gsa_scores):
     logging.info('Inserted %s new gene set definitions and %s GSA scores', insert_count_geneset, insert_count_scores)
     return 1
 
+
+def load_correl_results(compute, correl, source):
+
+    assert source in ['WGCNA', 'ARACNE']
+
+    insert_count = 0
+
+    for qry_id in correl:
+
+        qry_obj = compute.get_exp_obj(qry_id)
+        if qry_obj is None:
+            continue
+
+        logger.debug('Working on experiment id %s', qry_id)
+        sorted_exps = sorted(correl[qry_id].items(), key=operator.itemgetter(1))
+        bottom50 = sorted_exps[:50]
+        top50 = sorted_exps[-50:]
+        top50.reverse()
+
+        # get rid of any existing correlations
+        ExperimentCorrelation.objects.filter(experiment1=qry_obj).delete()
+
+        i = 0
+        for ref_exp_id, r in bottom50:
+            i -= 1
+            ref_obj = compute.get_exp_obj(ref_exp_id)
+            if ref_obj is None:
+                continue
+
+            ExperimentCorrelation.objects.create(
+                experiment1=qry_obj,
+                experiment2=ref_obj,
+                source=source,
+                correl=r,
+                rank=i
+            )
+            insert_count += 1
+
+        i = 0
+        for ref_exp_id, r in top50:
+            i += 1
+            ref_obj = compute.get_exp_obj(ref_exp_id)
+            if ref_obj is None:
+                continue
+
+            ExperimentCorrelation.objects.create(
+                experiment1=qry_obj,
+                experiment2=ref_obj,
+                source=source,
+                correl=r,
+                rank=i
+            )
+            insert_count += 1
+
+    if insert_count == 0:
+        logging.error('Failed to insert any experiment correlations into database')
+        return None
+
+    logging.info('Inserted %s correlations of type %s', insert_count, source)
+    return 1
