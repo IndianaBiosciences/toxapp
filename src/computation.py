@@ -1,6 +1,7 @@
-from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult
+from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores, GSAScores
 from django.conf import settings
 from tempfile import NamedTemporaryFile
+from scipy.stats.stats import pearsonr
 
 import pprint
 import shutil
@@ -511,3 +512,53 @@ class Computation:
 
         #logger.debug('Have results from GSA scoring: %s', pprint.pformat(gsa_scores, indent=4))
         return gsa_scores
+
+    def calc_exp_correl(self, qry_exps, source):
+
+        assert isinstance(qry_exps[0], Experiment)
+        assert source in ['WGCNA', 'ARACNE']
+
+        sets = GeneSets.objects.filter(source=source, core_set=True)
+        logger.debug('Performing similarity analysis on method %s with %s gene sets', source, len(sets))
+        sets_ids = [x.id for x in sets]
+        ref_scores = Vividict()
+
+        if source == 'WGCNA':
+            ref = ModuleScores.objects.filter(module__in=sets)
+            for o in ref:
+                ref_scores[o.experiment_id][o.module_id] = float(o.score)
+
+        elif source == 'ARACNE':
+            ref = GSAScores.objects.filter(geneset__in=sets)
+            for o in ref:
+                ref_scores[o.experiment_id][o.geneset_id] = float(o.score)
+
+        else:
+            raise NotImplementedError
+
+        if not ref_scores:
+            logger.critical('Did not retrieve any scores of type %s; empty database?', source)
+            return
+
+        results = Vividict()
+
+        for qry_exp in qry_exps:
+
+            if ref_scores.get(qry_exp.id, None) is None:
+                logger.error('Did not retrieve scores of type %s for experiment %s', source, qry_exp.experiment_name)
+                return
+
+            sorted_qry_scores = [ref_scores[qry_exp.id][i] for i in sets_ids]
+
+            for ref_exp_id in ref_scores:
+
+                if qry_exp.id == ref_exp_id:
+                    continue
+
+                sorted_ref_scores = [ref_scores[ref_exp_id][i] for i in sets_ids]
+
+                logger.debug('Evaluating correl between query exp %s and ref exp %s', qry_exp.id, ref_exp_id)
+                correl, pval = pearsonr(sorted_qry_scores, sorted_ref_scores)
+                results[qry_exp.id][ref_exp_id] = correl
+
+        return results

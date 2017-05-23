@@ -205,3 +205,15 @@ class GSAScores(models.Model):
         txt = "experiment {} vs geneset {}".format(self.experiment.id, self.geneset.id)
         return txt
 
+
+class ExperimentCorrelation(models.Model):
+
+    experiment1 = models.ForeignKey(Experiment, related_name='qry_experiment')
+    experiment2 = models.ForeignKey(Experiment, related_name='ref_experiment')
+    source = models.CharField(max_length=10)
+    correl = models.DecimalField(max_digits=3, decimal_places=2)
+    rank = models.IntegerField()
+
+    def __str__(self):
+        txt = "experiment {} vs experiment {} correlation: {}".format(self.experiment1.id, self.experiment2.id, self.correl)
+        return txt

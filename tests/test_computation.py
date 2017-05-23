@@ -1,4 +1,6 @@
 import os
+import logging
+import pprint
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "toxapp.settings")
@@ -6,10 +8,7 @@ application = get_wsgi_application()
 
 from django.conf import settings
 from src.computation import Computation
-from tp.tasks import load_module_scores
-import tempfile
-import logging
-import pprint
+from tp.models import Experiment
 
 logger = logging.getLogger(__name__)
 pp = pprint.PrettyPrinter(indent=4)
@@ -18,14 +17,16 @@ pp = pprint.PrettyPrinter(indent=4)
 # Set up necessary parameters
 #
 log_settings = settings.LOGGING
-logfile = log_settings["handlers"]["file"]["filename"]
-logger.debug("Log file is %s", logfile)
+logfile = log_settings['handlers']['file']['filename']
+logger.debug('Log file is %s', logfile)
 
-tmpdir = '/var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/1519829635801310288'
+# TODO - need to archive content of ready-to-calc directory for a sample exp and use that
+tmpdir = '/tmp/test'
 
-logger.debug("temp directory is %s", tmpdir)
+logger.debug('temp directory is %s', tmpdir)
 
 compute = Computation(tmpdir)
+
 fc_file = compute.calc_fold_change('computation_data.json')
 fc_data = compute.map_fold_change_data(fc_file)
 
@@ -43,3 +44,6 @@ with open('test_gsa.txt', 'w') as f:
          txt += "\n"
          f.write(txt)
 
+# must have module score data loaded in DB
+qry_exps = Experiment.objects.filter(id__in=[9067, 9070])
+correl = compute.calc_exp_correl(qry_exps, 'WGCNA')
