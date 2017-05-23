@@ -271,6 +271,8 @@ def create_samples(request):
     # and then realize and go back and select the correct multiple files -- only the initial file
     # will be uploaded to the tmpdir. However, the other samples are in the session and it appears
     # to work until you launch the computation
+    skipped_from_file = list()
+
     if request.method == 'POST':
         formset = SampleFormSet(request.POST)
         if formset.is_valid():
@@ -314,7 +316,6 @@ def create_samples(request):
             logger.error('Did not retrieve samples from uploaded file; form will be blank')
             return render(request, 'generic_message.html', context)
         else:
-            skipped_from_file = list()
             for sample_name in request.session['added_sample_names']:
                 if have_samples and sample_name in have_samples:
                     skipped_from_file.append(sample_name)

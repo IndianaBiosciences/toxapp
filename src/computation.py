@@ -167,7 +167,7 @@ class Computation:
                     return None
 
                 system = ":".join([row['tissue'], row['organism'], row['tech'], row['tech_detail']])
-                gs[system][row['identifier']] = {'mean_fc':float(row['mean_fc']), 'stdev_fc':float(row['stdev_fc']), 'source':row['source']}
+                gs[system][row['identifier']] = {'mean_fc': float(row['mean_fc']), 'stdev_fc': float(row['stdev_fc']), 'source': row['source']}
 
         #logger.debug('Read following gene identifier stats from file %s: %s', genestats_file, pprint.pformat(gs, indent=4))
 
@@ -201,7 +201,7 @@ class Computation:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
 
-                if any(row[i] == '' for i in req_attr_core ):
+                if any(row[i] == '' for i in req_attr_core):
                     logger.error('File %s contains undefined values for one or more required attributes %s', core_list, ",".join(req_attr_core))
                     return None
 
@@ -214,7 +214,7 @@ class Computation:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
 
-                if any(row[i] == '' for i in req_attr_go ):
+                if any(row[i] == '' for i in req_attr_go):
                     logger.error('File %s contains undefined values for one or more required attributes %s', go_file, ",".join(req_attr_go))
                     return None
 
@@ -234,7 +234,7 @@ class Computation:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
 
-                if any(row[i] == '' for i in req_attr_msigdb ):
+                if any(row[i] == '' for i in req_attr_msigdb):
                     logger.error('File %s contains undefined values for one or more required attributes %s', msigdb_file, ",".join(req_attr_msigdb))
                     return None
 
@@ -315,7 +315,7 @@ class Computation:
         with open(fc_file) as f:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
-                if any(row[i] == '' for i in req_attr ):
+                if any(row[i] == '' for i in req_attr):
                     logger.error('File %s contains undefined values for one or more required attributes %s', fc_file, ",".join(req_attr))
                     return None
 
@@ -426,7 +426,7 @@ class Computation:
                     modsum += scaled_fc[gene]*md[system][m]['genes'][gene]
 
                 modsum /= md[system][m]['stdev']
-                module_scores.append({'exp_id':exp_id, 'exp_obj':exp_obj, 'module':m, 'score':modsum})
+                module_scores.append({'exp_id': exp_id, 'exp_obj': exp_obj, 'module': m, 'score': modsum})
 
                 n_missing = len(warned_gene)
                 ratio_missed = n_missing/n_genes
@@ -491,7 +491,7 @@ class Computation:
 
                 score = scores[i]
                 # the p-value to use is the one corresponding to direction of change (induction/repression) conveyed by z-score
-                p = p_adj_up[i] if score>=0 else p_adj_down[i]
+                p = p_adj_up[i] if score >=0 else p_adj_down[i]
 
                 # only store non-significant results for the core liver-relevant set
                 if p > 0.1 and not self.gsa_info[sig]['core_set']:
