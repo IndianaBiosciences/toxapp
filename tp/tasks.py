@@ -441,7 +441,7 @@ def load_correl_results(compute, correl, source):
         top50.reverse()
 
         # get rid of any existing correlations
-        ExperimentCorrelation.objects.filter(experiment1=qry_obj).delete()
+        ExperimentCorrelation.objects.filter(experiment=qry_obj).delete()
 
         i = 0
         for ref_exp_id, r in bottom50:
@@ -451,8 +451,8 @@ def load_correl_results(compute, correl, source):
                 continue
 
             ExperimentCorrelation.objects.create(
-                experiment1=qry_obj,
-                experiment2=ref_obj,
+                experiment=qry_obj,
+                experiment_ref=ref_obj,
                 source=source,
                 correl=r,
                 rank=i
@@ -467,8 +467,8 @@ def load_correl_results(compute, correl, source):
                 continue
 
             ExperimentCorrelation.objects.create(
-                experiment1=qry_obj,
-                experiment2=ref_obj,
+                experiment=qry_obj,
+                experiment_ref=ref_obj,
                 source=source,
                 correl=r,
                 rank=i

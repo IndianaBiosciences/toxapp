@@ -208,12 +208,17 @@ class GSAScores(models.Model):
 
 class ExperimentCorrelation(models.Model):
 
-    experiment1 = models.ForeignKey(Experiment, related_name='qry_experiment')
-    experiment2 = models.ForeignKey(Experiment, related_name='ref_experiment')
-    source = models.CharField(max_length=10)
+    SOURCE_TYPE = (
+        ('WGCNA', 'WGCNA'),
+        ('ARACNE', 'ARACNE'),
+    )
+
+    experiment = models.ForeignKey(Experiment, related_name='qry_experiment')
+    experiment_ref = models.ForeignKey(Experiment, related_name='ref_experiment')
+    source = models.CharField(max_length=10, choices=SOURCE_TYPE)
     correl = models.DecimalField(max_digits=3, decimal_places=2)
     rank = models.IntegerField()
 
     def __str__(self):
-        txt = "experiment {} vs experiment {} correlation: {}".format(self.experiment1.id, self.experiment2.id, self.correl)
+        txt = "experiment {} vs experiment {} correlation: {}".format(self.experiment.id, self.experiment_ref.id, self.correl)
         return txt

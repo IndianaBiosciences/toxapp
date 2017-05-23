@@ -12,7 +12,8 @@ from django.core.files.storage import FileSystemStorage
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django_tables2 import SingleTableView
 from tempfile import gettempdir
-from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores
+from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
+                    ExperimentCorrelation
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm
 from .tasks import load_measurement_tech_gene_map, process_user_files
@@ -580,6 +581,21 @@ def export_result_xls(request, restype=None):
                 limit_breached = True
                 break
 
+    elif restype.lower() == 'experimentcorrelation':
+        colnames += ['experiment_ref_id', 'experiment_ref_name', 'method', 'Pearson R', 'rank']
+        rows = ExperimentCorrelation.objects.filter(experiment__pk__in=exp_list)
+        if subset:
+            rows = rows.filter(pk__in=subset)
+
+        rowcount = 0
+        for r in rows:
+            nr = [r.experiment_id, r.experiment.experiment_name, r.experiment_ref_id, r.experiment_ref.experiment_name, r.source, r.correl, r.rank]
+            data.append(nr)
+            rowcount += 1
+            if rowcount > rowlimit:
+                limit_breached = True
+                break
+
     else:
         raise NotImplementedError ('Type not implemented:', restype)
 
@@ -703,7 +719,7 @@ class ExperimentView(ResetSessionMixin, ListView):
             logger.debug('Standard query returned %s', exps)
 
         if only_mine and self.request.user.is_authenticated():
-            exps = exps.filter(owner=self.request.user)
+            exps = exps.filter(study__owner=self.request.user)
             logger.debug('Query after filtering on user returned %s', exps)
 
         return exps
@@ -883,6 +899,7 @@ class SampleCreate(SampleSuccessURLMixin, CreateView):
         url = super(SampleCreate, self).form_valid(form)
         return url
 
+
 class SampleUpdate(SampleSuccessURLMixin, UpdateView):
     """ SampleUpdate -- view class to handle updating values of a user sample """
     model = Sample
@@ -1056,3 +1073,11 @@ class FoldChangeSingleTableView(FilteredSingleTableView):
     table_class = tp.tables.FoldChangeResultTable
     table_pagination = True
     filter_class = tp.filters.FoldChangeResultFilter
+
+
+class SimilarExperimentsSingleTableView(FilteredSingleTableView):
+    model = ExperimentCorrelation
+    template_name = 'result_list.html'
+    table_class = tp.tables.SimilarExperimentsTable
+    table_pagination = True
+    filter_class = tp.filters.SimilarExperimentsFilter

@@ -80,6 +80,9 @@ urlpatterns = [
     # display list of fold-change results at gene level
     url(r'^gene_results/$', views.FoldChangeSingleTableView.as_view(), name='gene-foldchange'),
 
+    # display list of fold-change results at gene level
+    url(r'^similar_experiments/$', views.SimilarExperimentsSingleTableView.as_view(), name='similar-exps'),
+
     # export to excel handler
     url(r'^export_results/(?P<restype>\w+)$', views.export_result_xls, name='export-result'),
 

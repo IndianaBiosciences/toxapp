@@ -35,6 +35,13 @@
       <a href="{% url 'tp:export-result' restype='gsascores' %}" class="btn btn-default">Export to Excel</a>
     </div>
   </div>
+  <div id="similaritysection" class="card">
+    <div class="card-block">
+      <h4 class="card-title">Most similar experiments</h4>
+      <a href="{% url 'tp:similar-exps' %}" class="btn btn-default">Results in browser</a>
+      <a href="{% url 'tp:export-result' restype='experimentcorrelation' %}" class="btn btn-default">Export to Excel</a>
+    </div>
+  </div>
 </div>
 
 {% endblock content %}
