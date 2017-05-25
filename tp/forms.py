@@ -14,7 +14,7 @@ class StudyForm(ModelForm):
         model = Study
         # TODO - neither of __all__ or exclude recommended due to security risks per doc
         # list explicitly once model is stable
-        exclude = ['owner', 'date_created']
+        exclude = ['owner_id', 'date_created']
         widgets = {
             'date': forms.TextInput(attrs={'class': 'datepicker'}),
         }

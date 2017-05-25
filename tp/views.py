@@ -643,9 +643,16 @@ class ResetSessionMixin(object):
 class StudyView(ResetSessionMixin, ListView):
     model = Study
     template_name = 'study_list.html'
-    context_object_name = 'studies'
     paginate_by = 25
+    context_object_name = "studies"
 
+    def get_queryset(self):
+        new_context = Study.objects.filter(owner_id=self.request.user.id)
+        return new_context
+
+    def get_context_data(self, **kwargs):
+        context = super(StudyView, self).get_context_data(**kwargs)
+        return context
 
 class StudyCreateUpdateMixin(object):
 

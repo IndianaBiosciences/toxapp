@@ -2,7 +2,7 @@
 # These packages need to already be available in R
 # use setup.R to load in R before running if necessary
 #
-packages <- c("affy", "rat2302rnentrezgcdf" )
+packages <- c("affy")
 
 #
 # Core Functions
@@ -38,17 +38,9 @@ celList <- read.table(myFile)
 celList
 celList <- as.character(celList$V1)
     
-affydata=ReadAffy(filenames=celList, cdfname="Rat2302_rn_ENTREZG")
-    
-esetmas5 = mas5(affydata)
-gexp = exprs(esetmas5)
-    
-t2=date()
-geset <- justRMA(filenames=celList, celfile.path = NULL)
-    
-dff <- exprs(geset)
-
-write.table(dff, file="RMA.txt", quote=F, sep="\t")
+affydata <- ReadAffy(filenames=celList, cdfname="Rat2302_rn_ENTREZG")
+geset <- rma(affydata)
+write.exprs(geset, file="RMA.txt")
     
 
 

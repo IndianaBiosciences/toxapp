@@ -118,7 +118,7 @@ class Computation:
         script_dir = computation_config["script_dir"]
         script = os.path.join(script_dir, "computeGFC.py")
         outfile = "groupFC.txt"
-        script_cmd = "cd " + tmpdir + '; python ' + script + " -c " + config_file + " -o "
+        script_cmd = "cd " + tmpdir + '; python ' + script + " -i " + config_file + " -o "
         script_cmd = script_cmd + outfile + " -s " + script_dir
         file = os.path.join(tmpdir, outfile)
         logger.info("command %s ", script_cmd)
@@ -143,7 +143,7 @@ class Computation:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
 
-                if any(row[i] == '' for i in req_attr_m ):
+                if any(row[i] == '' for i in req_attr_m):
                     logger.error('File %s contains undefined values for one or more required attributes %s', module_file, ",".join(req_attr_m))
                     return None
 
@@ -225,7 +225,8 @@ class Computation:
 
                 if not row['GO_id'] in gsa_info:
                     core_set = True if core_gene_sets.get(row['GO_id'], None) is not None else False
-                    gsa_info[row['GO_id']] = {'desc': row['GO_name'], 'type': row['GO_type'], 'core_set': core_set, 'source': 'GO'}
+                    gsa_info[row['GO_id']] = {'desc': row['GO_name'], 'type': row['GO_type'],
+                                              'core_set': core_set, 'source': 'GO'}
 
         # read MSigDB signature vs. gene pairs from flat file
         msigdb_file = os.path.join(settings.BASE_DIR, 'data/MSigDB_and_TF_annotation.txt')

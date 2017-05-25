@@ -9,7 +9,11 @@
   {% bootstrap_form_errors form type='non_fields' %}
 
   {% for field in form %}
-    {% bootstrap_field field layout='vertical' %}
+    {% if field.name == "owner" %}
+      <input type="hidden" name="{{ field.name }}" value="{{ request.user.id }}">
+    {% else %}
+      {% bootstrap_field field layout='vertical' %}
+    {% endif %}
   {% endfor %}
   {% buttons %}
     {% bootstrap_button "Save and return" button_type="submit" name="_save_ret" button_class="btn-primary" %}
