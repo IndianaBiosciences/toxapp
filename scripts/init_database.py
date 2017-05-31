@@ -241,22 +241,22 @@ if __name__ == '__main__':
     logger.debug('Creating temporary working directory %s', tmpdir)
 
     # step 1 - load gene info the Gene model
-    #setup_gene_table()
+    setup_gene_table()
 
     # step 2) establish that RG230-2 microarray is avail, otherwise load it
     tech_obj = setup_measurement_tech()
 
     # step 3) load the DM/TG studies and experiments
-    #created_exp_list = load_DM_TG_experiments()
+    created_exp_list = load_DM_TG_experiments()
 
     # step 4) load the fold change data
-    #load_fold_change_data()
+    load_fold_change_data()
 
     # step 5 - iterate through newly added experiments and perform module / GSA scoring
     # TODO - temp for testing
-    created_exp_list = Experiment.objects.all()
+    #created_exp_list = Experiment.objects.all()
     #tech_obj = created_exp_list[0].tech
-    #score_experiments(created_exp_list)
+    score_experiments(created_exp_list)
 
     # step 6 - load the pairwise experiment similarities
     correlw = compute.calc_exp_correl(created_exp_list, 'WGCNA')

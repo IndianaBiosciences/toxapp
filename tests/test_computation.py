@@ -21,7 +21,8 @@ logfile = log_settings['handlers']['file']['filename']
 logger.debug('Log file is %s', logfile)
 
 # TODO - need to archive content of ready-to-calc directory for a sample exp and use that
-tmpdir = '/tmp/test'
+# also need there to be experiment with corresponding ID in DB - i.e. DM or TG
+tmpdir = '/tmp/2278365665375990855'
 
 logger.debug('temp directory is %s', tmpdir)
 
@@ -45,5 +46,7 @@ with open('test_gsa.txt', 'w') as f:
          f.write(txt)
 
 # must have module score data loaded in DB
-qry_exps = Experiment.objects.filter(id__in=[9067, 9070])
-correl = compute.calc_exp_correl(qry_exps, 'WGCNA')
+qry_exps = Experiment.objects.filter(id__in=[11])
+correl1 = compute.calc_exp_correl(qry_exps, 'WGCNA')
+correl2 = compute.calc_exp_correl(qry_exps, 'ARACNE')
+

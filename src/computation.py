@@ -9,6 +9,7 @@ import json
 import subprocess
 import logging
 import os
+import sys
 import csv
 import collections
 import rpy2.robjects as robjects
@@ -118,7 +119,7 @@ class Computation:
         script_dir = computation_config["script_dir"]
         script = os.path.join(script_dir, "computeGFC.py")
         outfile = "groupFC.txt"
-        script_cmd = "cd " + tmpdir + '; python ' + script + " -i " + config_file + " -o "
+        script_cmd = "cd " + tmpdir + '; ' + sys.executable + ' ' + script + " -i " + config_file + " -o "
         script_cmd = script_cmd + outfile + " -s " + script_dir
         file = os.path.join(tmpdir, outfile)
         logger.info("command %s ", script_cmd)
@@ -243,11 +244,16 @@ class Computation:
                 if keep_rat_genes.get(rat_entrez_gene, None) is None:
                     continue
 
+                source = 'MSigDB'
+                # DAS ARACNE networks included in this file - use a separate source for these, not MSigDB
+                if row['sub_category'] == 'ARACNE':
+                    source = 'ARACNE'
+
                 gsa_genes[row['sig_name']][rat_entrez_gene] = 1
                 if not row['sig_name'] in gsa_info:
                     core_set = True if core_gene_sets.get(row['sig_name'], None) is not None else False
                     gsa_info[row['sig_name']] = {'desc': row['description'], 'type': row['sub_category'],
-                                                 'core_set': core_set, 'source': 'MSigDB'}
+                                                 'core_set': core_set, 'source': source}
 
         # eliminate gene sets too small / too large
         sigs_to_drop = list()
@@ -549,16 +555,34 @@ class Computation:
                 logger.error('Did not retrieve scores of type %s for experiment %s', source, qry_exp.experiment_name)
                 return
 
-            sorted_qry_scores = [ref_scores[qry_exp.id][i] for i in sets_ids]
+            sorted_qry_scores = list()
+            # sublist to use for this set of calculations in case some features are missing; can happen in cases where
+            # uploaded experiment does not contain data for all genes
+            this_sets_ids = list()
+            for i in sets_ids:
+                if ref_scores[qry_exp.id].get(i, None) is None:
+                    logger.warning('Missing core feature %s in correlation calc of query experiment %s; removing feature', i, qry_exp.id)
+                else:
+                    this_sets_ids.append(i)
+                    sorted_qry_scores.append(ref_scores[qry_exp.id][i])
 
             for ref_exp_id in ref_scores:
 
                 if qry_exp.id == ref_exp_id:
                     continue
 
-                sorted_ref_scores = [ref_scores[ref_exp_id][i] for i in sets_ids]
+                sorted_ref_scores = list()
 
-                logger.debug('Evaluating correl between query exp %s and ref exp %s', qry_exp.id, ref_exp_id)
+                for i in this_sets_ids:
+                    val = None
+                    if ref_scores[ref_exp_id].get(i, None) is None:
+                        logger.warning('Missing core feature %s in correlation calc of experiment %s; setting to 0', i, ref_exp_id)
+                        val = 0
+                    else:
+                        val = ref_scores[ref_exp_id][i]
+                    sorted_ref_scores.append(val)
+
+                #logger.debug('Evaluating correl between query exp %s and ref exp %s', qry_exp.id, ref_exp_id)
                 correl, pval = pearsonr(sorted_qry_scores, sorted_ref_scores)
                 results[qry_exp.id][ref_exp_id] = correl
 

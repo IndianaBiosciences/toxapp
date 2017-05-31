@@ -6,8 +6,8 @@ application = get_wsgi_application()
 
 from tp.tasks import process_user_files
 
-tmpdir = '/var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/222092004455828672'
-config = '/var/folders/jg/96y1wjb16774h99s835sybt40000gq/T/222092004455828672/computation_data.json'
+tmpdir = '/tmp/2278365665375990855'
+config = '/tmp/2278365665375990855/computation_data.json'
 email = 'drobertson@indianabiosciences.com'
 
 process_user_files(tmpdir, config, email)
