@@ -37,7 +37,7 @@ import csv
 import json
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('computeGFC.gffactors')
 
 # set up pretty printer for verbose
 pp = pprint.PrettyPrinter(indent=4)

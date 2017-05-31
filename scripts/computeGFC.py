@@ -35,7 +35,7 @@ import pprint
 import os
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('computeGFC')
 
 # set up pretty printer for verbose
 pp = pprint.PrettyPrinter(indent=4)
