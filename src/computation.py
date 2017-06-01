@@ -219,7 +219,8 @@ class Computation:
                     logger.error('File %s contains undefined values for one or more required attributes %s', go_file, ",".join(req_attr_go))
                     return None
 
-                if keep_rat_genes.get(row['entrez_gene_id'], None) is None:
+                rat_entrez_gene = int(row['entrez_gene_id'])
+                if keep_rat_genes.get(rat_entrez_gene, None) is None:
                     continue
 
                 gsa_genes[row['GO_id']][row['entrez_gene_id']] = 1
