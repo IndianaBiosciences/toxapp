@@ -5,6 +5,8 @@ sudo apt-get install python-psycopg2
 sudo apt-get install libpq-dev
 sudo apt-get install python3-dev
 sudo apt-get install pgloader
+sudo apt-get install bblas-dev
+sudo apt-get install liblapack-dev
 
 # location where celery will store communication files
 sudo mkdir -p /tmp/celery/results
