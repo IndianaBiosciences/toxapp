@@ -66,6 +66,7 @@ def get_temp_dir(obj):
     if obj.request.session.get('tmp_dir', None) is None:
         tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
         os.makedirs(tmp)
+        os.chmod(tmp, 0o777)
         logger.debug('Creating temporary working directory %s', tmp)
         obj.request.session['tmp_dir'] = tmp
 
