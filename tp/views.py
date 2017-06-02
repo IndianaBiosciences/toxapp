@@ -488,7 +488,10 @@ def compute_fold_change(request):
         logger.debug('compute_fold_change: json job config file:  %s', file)
         with open(file) as infile:
             experiments = json.load(infile)
-
+        # need to make sure world readable as script run by different user
+        for f in os.listdir(tmpdir):
+            logger.debug("chmod on %s", f)
+            os.chmod(os.path.join(tmpdir, f), 0o777)
         # create context to send back to web page
         context = dict()
         n_samples = 0
