@@ -113,7 +113,11 @@ class Computation:
         """ calculate group fold change from files in tmpdir and meta data received from webapp in config json file """
 
         tmpdir = self.tmpdir
-        logger.debug('Starting fold change calculation in directory %s using config_file %s', tmpdir, cfg_file)
+        # need to make sure world readable as script run by different user
+        for f in os.listdir(tmpdir):
+            logger.debug("chmod on %s", f)
+            os.chmod(os.path.join(tmpdir, f), 0o777)
+        logger.debug('Starting fold change calculation in directory %s using config_file %s', tmpdir, config_file)
 
         script_dir = settings.COMPUTATION['script_dir']
         script = os.path.join(script_dir, "computeGFC.py")
