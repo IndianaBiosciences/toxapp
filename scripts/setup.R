@@ -7,6 +7,9 @@
 
 source("http://bioconductor.org/biocLite.R")
 biocLite()
+biocLite('gcrma')
+biocLite('statmod')
+biocLite('DESeq2')
 biocLite('affy', 'limma', 'piano')
 
 #

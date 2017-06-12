@@ -66,6 +66,7 @@ def get_temp_dir(obj):
     if obj.request.session.get('tmp_dir', None) is None:
         tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
         os.makedirs(tmp)
+        os.chmod(tmp, 0o777)
         logger.debug('Creating temporary working directory %s', tmp)
         obj.request.session['tmp_dir'] = tmp
 
@@ -433,11 +434,14 @@ def confirm_experiment_sample_pair(request):
 
     if request.method == 'POST':
         tmpdir = request.session.get('tmp_dir')
-        comput_rec = request.session.get('computation_recs')
+        computation_config = settings.COMPUTATION
+        json_cfg = dict(experiments=request.session.get('computation_recs'),
+                        file_type=request.session.get('sample_type'), tmpdir=request.session.get('tmp_dir'),
+                        script_dir=computation_config["script_dir"])
         file = os.path.join(tmpdir, 'computation_data.json')
         logger.debug('json job config file:  %s', file)
         with open(file, 'w') as outfile:
-            json.dump(comput_rec, outfile)
+            json.dump(json_cfg, outfile)
         request.session['computation_config'] = file
         return HttpResponseRedirect(reverse('tp:compute-fold-change'))
 
@@ -483,18 +487,22 @@ def compute_fold_change(request):
     else:
         # TODO - Should move most of this to the Computation.calc_fold_change location to keep this cleaner
         tmpdir = request.session.get('tmp_dir')
-        file = request.session.get("computation_config")
-        logger.debug('compute_fold_change: json job config file:  %s', file)
-        with open(file) as infile:
-            experiments = json.load(infile)
-
+        cfg_file = request.session.get("computation_config")
+        logger.debug('compute_fold_change: json job config file:  %s', cfg_file)
+        with open(cfg_file) as infile:
+            json_cfg = json.load(infile)
+            experiments = json_cfg['experiments']
+        # need to make sure world readable as script run by different user
+        for f in os.listdir(tmpdir):
+            logger.debug("chmod on %s", f)
+            os.chmod(os.path.join(tmpdir, f), 0o777)
         # create context to send back to web page
         context = dict()
         n_samples = 0
         for e in experiments:
             n_samples += len(e['sample'])
         context['n_samples'] = n_samples
-        res = process_user_files.delay(tmpdir, file, user.email)
+        res = process_user_files.delay(tmpdir, cfg_file, user.email)
         logger.debug("compute_fold_change: config %s", pprint.pformat(experiments))
 
         context['email'] = user.email
@@ -964,11 +972,25 @@ class UploadSamplesView(FormView):
                 fs = FileSystemStorage(location=tmpdir)
                 fs.save(f.name, f)
                 self.request.session['sample_file'] = f.name
-                # TODO - read and parse the first row to get the sample names, append to samples_added
+                self.request.session['sample_type'] = "RNAseq"
+                logger.debug("reading samples names from single file %s in dir %s", f.name, tmpdir)
+                rnafile = os.path.join(tmpdir, f.name)
+                if os.path.isfile(rnafile):
+                    with open(rnafile, newline='') as txtfile:
+                        txtreader = csv.reader(txtfile, delimiter='\t')
+                        header = next(txtreader)
+                        header.pop(0) # remove first column
+                        logger.debug(pprint.pformat(header))
+                        for s in header:
+                            samples_added.append(s)
+                else:
+                    logger.warning("unable to read uploaded file % in dir %s", f.name, tmpdir)
+                        # TODO - read and parse the first row to get the sample names, append to samples_added
                 #samples_added = some_future_call()
             elif request.FILES.getlist('multiple_files'):
                 tmpdir = get_temp_dir(self)
                 self.request.session['sample_file'] = 'cel:in_directory'
+                self.request.session['sample_type'] = "CEL"
                 mult_files = request.FILES.getlist('multiple_files')
                 for f in mult_files:
                     sample_name = os.path.splitext(f.name)[0]
@@ -979,6 +1001,7 @@ class UploadSamplesView(FormView):
                 return self.form_invalid(form)
 
             # store the newly added samples in session for next handler
+            logger.debug('adding %s samples to experiment', len(samples_added))
             self.request.session['added_sample_names'] = samples_added
 
             return self.form_valid(form)

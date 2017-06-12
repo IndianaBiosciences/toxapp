@@ -23,8 +23,8 @@
 <div class="container">
   <div class="row">
     <div>
-      <p>Upload samples by selecting either a single file that points to the location
-        of the samples -or- by uploading multiple files</p>
+      <p>Upload samples by selecting either a single file that contains the RNAseq results
+        or multiple files relating to the Affy Cel files</p>
       <form role="form" method="post" enctype="multipart/form-data" class="form-vertical">
         {% csrf_token %}
         <div class="panel panel-primary">
@@ -33,8 +33,8 @@
             <span class="pull-right">
               <!-- Tabs -->
               <ul class="nav panel-tabs">
-                <li class="active"><a href="#tab1" data-toggle="tab">Single</a></li>
-                <li><a href="#tab2" data-toggle="tab">Multiple</a></li>
+                <li class="active"><a href="#tab1" data-toggle="tab">RNAseq File</a></li>
+                <li><a href="#tab2" data-toggle="tab">Affy CEL Files</a></li>
               </ul>
             </span>
           </div>
