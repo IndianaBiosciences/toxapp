@@ -74,7 +74,8 @@ def read_exp_file_json(infile):
     if os.path.isfile(infile):
         with open(infile) as myfile:
             config = json.load(myfile)
-            for e in config:
+            exps   = config['experiments']
+            for e in exps:
                 e_id = str(e['experiment']['exp_id'])
                 experiments[e_id] = {'CTL': [], 'TRT': []}
                 for s in e['sample']:

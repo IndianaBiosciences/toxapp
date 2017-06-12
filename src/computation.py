@@ -109,18 +109,17 @@ class Computation:
 
         return self._experiment_tech_map[exp_id]
 
-    def calc_fold_change(self, config_file):
+    def calc_fold_change(self, cfg_file):
         """ calculate group fold change from files in tmpdir and meta data received from webapp in config json file """
 
         tmpdir = self.tmpdir
-        logger.debug('Starting fold change calculation in directory %s using config_file %s', tmpdir, config_file)
+        logger.debug('Starting fold change calculation in directory %s using config_file %s', tmpdir, cfg_file)
 
-        computation_config = settings.COMPUTATION
-        script_dir = computation_config["script_dir"]
+
+        script_dir = settings.COMPUTATION['script_dir']
         script = os.path.join(script_dir, "computeGFC.py")
         outfile = "groupFC.txt"
-        script_cmd = "cd " + tmpdir + '; ' + sys.executable + ' ' + script + " -i " + config_file + " -o "
-        script_cmd = script_cmd + outfile + " -s " + script_dir
+        script_cmd = "cd "+tmpdir+'; '+sys.executable+' '+script+" -i "+cfg_file+" -o "+outfile
         file = os.path.join(tmpdir, outfile)
         logger.info("command %s ", script_cmd)
         output = subprocess.getoutput(script_cmd)
