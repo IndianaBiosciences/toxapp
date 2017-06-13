@@ -86,6 +86,7 @@ def read_exp_file_json(infile):
     else:
         logger.critical("Unable to locate defined input json file " + infile)
         exit(0)
+    logger.warning(pprint.pformat(experiments))
     return experiments
 
 
@@ -410,7 +411,7 @@ class MyTests(unittest.TestCase):
         self.assertEqual(len(experiments_1.keys()), 4)
         self.assertEqual(experiments_1['53648']['CTL'][0], '15day_c1')
 
-        experiments_2 = read_exp_file('exps.json')
+        experiments_2 = read_exp_file('cfg_CEL.json')
         self.assertEqual(len(experiments_2.keys()), 4)
         self.assertEqual(experiments_2['53650']['TRT'][2], '29day_h3')
 

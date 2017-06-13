@@ -436,7 +436,9 @@ def confirm_experiment_sample_pair(request):
         tmpdir = request.session.get('tmp_dir')
         computation_config = settings.COMPUTATION
         json_cfg = dict(experiments=request.session.get('computation_recs'),
-                        file_type=request.session.get('sample_type'), tmpdir=request.session.get('tmp_dir'),
+                        file_name=request.session.get('sample_file'),
+                        file_type=request.session.get('sample_type'),
+                        tmpdir=request.session.get('tmp_dir'),
                         script_dir=computation_config["script_dir"])
         file = os.path.join(tmpdir, 'computation_data.json')
         logger.debug('json job config file:  %s', file)
