@@ -115,7 +115,6 @@ class Computation:
         tmpdir = self.tmpdir
         logger.debug('Starting fold change calculation in directory %s using config_file %s', tmpdir, cfg_file)
 
-
         script_dir = settings.COMPUTATION['script_dir']
         script = os.path.join(script_dir, "computeGFC.py")
         outfile = "groupFC.txt"
@@ -411,7 +410,7 @@ class Computation:
             for gene in fc_data[exp_id].keys():
                 identifier = fc_data[exp_id][gene]['identifier']
                 if gs[systech].get(identifier, None) is None:
-                    if warned_scaling[identifier] is None:
+                    if warned_scaling.get(identifier, None) is None:
                         logger.warning('No scaling data for gene identifier %s for system %s; skipping', identifier, systech)
                         warned_scaling[identifier] = 1
                     continue
