@@ -10,7 +10,9 @@ biocLite()
 biocLite('gcrma')
 biocLite('statmod')
 biocLite('DESeq2')
-biocLite('affy', 'limma', 'piano')
+biocLite('affy')
+biocLite('limma')
+biocLite('piano')
 
 #
 # need to install rat2302rnentrezgcdf
