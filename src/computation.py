@@ -113,7 +113,7 @@ class Computation:
         """ calculate group fold change from files in tmpdir and meta data received from webapp in config json file """
 
         tmpdir = self.tmpdir
-        logger.debug('Starting fold change calculation in directory %s using config_file %s', tmpdir, config_file)
+        logger.debug('Starting fold change calculation in directory %s using config_file %s', tmpdir, cfg_file)
 
         script_dir = settings.COMPUTATION['script_dir']
         script = os.path.join(script_dir, "computeGFC.py")
