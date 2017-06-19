@@ -42,6 +42,13 @@
       <a href="{% url 'tp:export-result' restype='experimentcorrelation' %}" class="btn btn-default">Export to Excel</a>
     </div>
   </div>
+  <div id="toxicologyresultssection" class="card">
+    <div class="card-block">
+      <h4 class="card-title">Clinical chemistry and/or histology (if available)</h4>
+      <a href="{% url 'tp:toxicology-results' %}" class="btn btn-default">Results in browser</a>
+      <a href="{% url 'tp:export-result' restype='toxicologyresult' %}" class="btn btn-default">Export to Excel</a>
+    </div>
+  </div>
 </div>
 
 {% endblock content %}

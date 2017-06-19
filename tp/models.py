@@ -222,3 +222,16 @@ class ExperimentCorrelation(models.Model):
     def __str__(self):
         txt = "experiment {} vs experiment {} correlation: {}".format(self.experiment.id, self.experiment_ref.id, self.correl)
         return txt
+
+
+class ToxicologyResult(models.Model):
+
+    experiment = models.ForeignKey(Experiment)
+    result_type = models.CharField(max_length=30)
+    result_name = models.CharField(max_length=100)
+    group_avg = models.DecimalField(max_digits=10, decimal_places=2)
+    animal_details = models.CharField(max_length=100)
+
+    def __str__(self):
+        txt = "experiment {} vs result {}".format(self.experiment.id, self.result_name)
+        return txt

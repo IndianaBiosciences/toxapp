@@ -13,7 +13,7 @@ from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django_tables2 import SingleTableView
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation
+                    ExperimentCorrelation, ToxicologyResult
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm
 from .tasks import load_measurement_tech_gene_map, process_user_files
@@ -54,7 +54,7 @@ def reset_session(session):
     logger.debug('Resetting session info for tracking metadata across handlers')
     # TODO - delete the existing tmp_dir first
     # delete and not set to None due to manner in which they are created as lists
-    for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file']:
+    for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
         try:
             del session[attr]
         except KeyError:
@@ -606,6 +606,25 @@ def export_result_xls(request, restype=None):
                 limit_breached = True
                 break
 
+    elif restype.lower() == 'toxicologyresult':
+
+        colnames += ['result type', 'result name', 'group average', 'animal details']
+        # diff patern here compared to other result types; for toxicologyresult the filtered result IDs may not involve
+        # the experiments in the cart when results are for the ref_exp_ids in SimilarExperiments view
+        if subset:
+            rows = ToxicologyResult.objects.filter(pk__in=subset)
+        else:
+            rows = ToxicologyResult.objects.filter(experiment__pk__in=exp_list)
+
+        rowcount = 0
+        for r in rows:
+            nr = [r.experiment_id, r.experiment.experiment_name, r.result_type, r.result_name, r.group_avg, r.animal_details]
+            data.append(nr)
+            rowcount += 1
+            if rowcount > rowlimit:
+                limit_breached = True
+                break
+
     else:
         raise NotImplementedError ('Type not implemented:', restype)
 
@@ -1046,21 +1065,48 @@ class FilteredSingleTableView(SingleTableView):
     filter_class = None
 
     def get_table_data(self):
+
         data = super(FilteredSingleTableView, self).get_table_data()
 
-        # if session contains experiment IDs from cart selection, filter to them
+        # when tox results are being viewed for the most similar experiments (given those in analyze_list), we want to
+        # query based on the stored attribute set when those results were being viewed
+        referrer = self.request.META.get('HTTP_REFERER', None)
+        sim_list = self.request.session.get('sim_list', [])
         exp_list = self.request.session.get('analyze_list', [])
-        if exp_list:
+        used_simexp = False
+
+        # when accessing ToxicologyResults from the analysis_summary, reset the list of similar experiments so that
+        # additional queries on the class (when user filters results) is not recognized as having come from Sim Exps
+        # (the referrer will be itself)
+        # TODO - a better way to check referrer? what if URL is setup differently?
+        if type(self).__name__ == 'ToxicologyResultsSingleTableView' and referrer and 'analysis_summary' in referrer:
+            logger.debug('Resetting stored list of similar experiments since referrer was analysis_summary')
+            sim_list = list()
+            self.request.session['sim_list'] = sim_list
+
+        # cannot check the referrer as coming from SimilarExperiments, because subsequent views by user using filtering
+        # will show the referrer at itself; that's why sim_list is cleared above for access through analysis_summary
+        if type(self).__name__ == 'ToxicologyResultsSingleTableView' and sim_list:
+            logger.debug('Accessing ToxicologyResults after viewing SimilarExperiments; using ref pairs to query exps')
+            expcorrel_objs = ExperimentCorrelation.objects.filter(id__in=sim_list)
+            ref_exp_list = map(lambda x: x.experiment_ref.id, expcorrel_objs)
+            data = data.filter(experiment__pk__in=ref_exp_list)
+            used_simexp = True
+        elif exp_list:
             logger.debug('Filtering to subset of experiments in cart: %s', exp_list)
             data = data.filter(experiment__pk__in=exp_list)
 
         self.filter = self.filter_class(self.request.GET, queryset=data)
-
-        # store the ids of results in case export to excel selected
-        # don't store if nothing was filtered
         results = self.filter.qs
 
-        # store the object IDs in case data is exported to excel
+        # if the current result list is from SimilarExperiments, store the result IDs so that ref experiments can be
+        # accessed in subsequent ToxicologyResults view
+        if type(self).__name__ == 'SimilarExperimentsSingleTableView':
+            ids = list(results.values_list('id', flat=True))
+            logger.debug('Storing retrieved data in session for subsequent ToxicologyResult view')
+            self.request.session['sim_list'] = ids
+
+        # store the object IDs in case data is exported to excel via separate handler
         # reset filtering session vars from any previous use
         self.request.session['filtered_list'] = []
         self.request.session['filtered_type'] = None
@@ -1070,7 +1116,11 @@ class FilteredSingleTableView(SingleTableView):
         if len(self.filter.qs) > 0:
             self.request.session['filtered_type'] = results[0].__class__.__name__
 
-            if len(self.filter.qs) < len(data):
+            # no need to store long list of ids for viewed results if nothing was filtered (although maybe this is
+            # harmless, didn't do any performance testing).
+            # However, force storage of selected IDs when working with ToxicologyResults through SimilarExperiments, so
+            # that subsequent excel export does not revert to using the experiments in analysis cart
+            if len(self.filter.qs) < len(data) or used_simexp:
                 ids = list(results.values_list('id', flat=True))
                 logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)
                 self.request.session['filtered_list'] = ids
@@ -1078,8 +1128,11 @@ class FilteredSingleTableView(SingleTableView):
         return results
 
     def get_context_data(self, **kwargs):
+
         context = super(FilteredSingleTableView, self).get_context_data(**kwargs)
         context['filter'] = self.filter
+        if type(self).__name__ == 'SimilarExperimentsSingleTableView':
+            context['show_tox_result_link'] = True
         return context
 
 
@@ -1113,3 +1166,12 @@ class SimilarExperimentsSingleTableView(FilteredSingleTableView):
     table_class = tp.tables.SimilarExperimentsTable
     table_pagination = True
     filter_class = tp.filters.SimilarExperimentsFilter
+
+
+class ToxicologyResultsSingleTableView(FilteredSingleTableView):
+    model = ToxicologyResult
+    template_name = 'result_list.html'
+    table_class = tp.tables.ToxicologyResultsTable
+    table_pagination = True
+    filter_class = tp.filters.ToxicologyResultsFilter
+

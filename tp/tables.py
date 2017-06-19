@@ -1,5 +1,5 @@
 import django_tables2 as tables
-from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation
+from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult
 
 
 class ModuleScoreTable(tables.Table):
@@ -29,3 +29,9 @@ class SimilarExperimentsTable(tables.Table):
         fields = ['experiment', 'experiment_ref', 'source', 'correl', 'rank']
         attrs = {'class': 'table table-striped custab'}
 
+
+class ToxicologyResultsTable(tables.Table):
+    class Meta:
+        model = ToxicologyResult
+        fields = ['experiment', 'result_type', 'result_name', 'group_avg', 'animal_details']
+        attrs = {'class': 'table table-striped custab'}
