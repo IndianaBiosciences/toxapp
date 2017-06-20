@@ -732,11 +732,12 @@ class StudyDelete(DeleteView):
     success_url = reverse_lazy('tp:studies')
 
 
-class ExperimentView(ResetSessionMixin, ListView):
+class ExperimentView(ResetSessionMixin, SingleTableView):
     model = Experiment
     template_name = 'experiments_list.html'
     context_object_name = 'experiments'
-    paginate_by = 25
+    table_class = tp.tables.ExperimentListTable
+    table_pagination = True
 
     def get_queryset(self):
 
@@ -759,28 +760,6 @@ class ExperimentView(ResetSessionMixin, ListView):
             logger.debug('Query after filtering on user returned %s', exps)
 
         return exps
-
-    def get_context_data(self, **kwargs):
-        context = super(ExperimentView, self).get_context_data(**kwargs)
-        if not context.get('is_paginated', False):
-            return context
-
-        # TODO - too many pages shown, this solution is OK for now
-        # http://stackoverflow.com/questions/39088813/django-paginator-with-many-pages
-        paginator = context.get('paginator')
-        num_pages = paginator.num_pages
-        current_page = context.get('page_obj')
-        page_no = current_page.number
-
-        if num_pages <= 11 or page_no <= 6:  # case 1 and 2
-            pages = [x for x in range(1, min(num_pages + 1, 12))]
-        elif page_no > num_pages - 6:  # case 4
-            pages = [x for x in range(num_pages - 10, num_pages + 1)]
-        else:  # case 3
-            pages = [x for x in range(page_no - 5, page_no + 6)]
-
-        context.update({'pages': pages})
-        return context
 
 
 class ExperimentSuccessURLMixin(object):

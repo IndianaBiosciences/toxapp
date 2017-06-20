@@ -1,0 +1,7 @@
+{% if record.results_ready is False %}
+<span class="glyphicon glyphicon-ban-circle" title="Not ready for analysis"></span>
+{% elif record.id in request.session.analyze_list %}
+<a href="{% url 'tp:cart-del' pk=record.pk %}" class="glyphicon glyphicon-remove-sign" title="Remove from analysis cart"></a>
+{% else %}
+<a href="{% url 'tp:cart-add' pk=record.pk %}" class="glyphicon glyphicon-plus" title="Add to analysis cart"></a>
+{% endif %}
