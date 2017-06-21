@@ -18,7 +18,18 @@
 
 <form method="post" action="">
   {% csrf_token %}
-  {% bootstrap_form form layout="horizontal" %}
+  {% bootstrap_form_errors form type='non_fields' %}
+
+  <table class="table table-striped custab table-nonfluid">
+  {% for id, name in form.experiments.field.choices %}
+    <tr>
+      <td align="center"><input checked type="checkbox" value="{{ value }}"></td>
+      <td>{{ name }}</td>
+      <td align="center"><a href="{% url 'tp:experiment-update' pk=id %}" class="glyphicon glyphicon-edit" title="Edit experiment "> Edit</a></td>
+    </tr>
+  {% endfor %}
+  </table>
+
   {% bootstrap_button "Save and upload samples" button_type="submit" name="_continue" button_class="btn-primary" %}
   {% bootstrap_button "Save and add experiments" button_type="submit" name="_add" button_class="btn-default" %}
   <a class="btn btn-default" href="{% url 'tp:experiments' %}">Cancel</a>

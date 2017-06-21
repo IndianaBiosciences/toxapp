@@ -23,7 +23,8 @@
 
   {% for field in form %}
     {% if field.name == 'tech' %}
-      {# TODO may need to be refactored to use widget in the form def in order to be able to use reverse url lookup  #}
+      {# TODO may need to be refactored to use widget in the form def in order to be able to use reverse url lookup; #}
+      {# update: reverse lookup doesn't work in form widgets #}
       {% bootstrap_field field layout='horizontal' addon_before='<a href="/tech_map_upload">Add</a>' %}
     {% else %}
       {% bootstrap_field field layout='horizontal' %}

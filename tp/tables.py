@@ -1,6 +1,6 @@
 import django_tables2 as tables
 from django_tables2.utils import A
-from .models import Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult
+from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult
 
 
 class ModuleScoreTable(tables.Table):
@@ -56,4 +56,20 @@ class ExperimentListTable(tables.Table):
         model = Experiment
         fields = ['experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route']
         sequence = ('analyze', 'edit', 'experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route')
+        attrs = {'class': 'table table-striped custab'}
+
+
+class StudyListTable(tables.Table):
+
+    edit = tables.LinkColumn('tp:study-update', args=[A('pk')], orderable=False, text='',
+                                     attrs={
+                                         'a': {'class': 'glyphicon glyphicon-edit',
+                                               'title': 'Edit experiment'},
+                                         'td': {'align': 'center'},
+                                     })
+
+    class Meta:
+        model = Study
+        fields = ['study_name', 'source', 'date_created', 'owner', 'permission']
+        sequence = ('edit', 'study_name', 'source', 'date_created', 'owner', 'permission')
         attrs = {'class': 'table table-striped custab'}

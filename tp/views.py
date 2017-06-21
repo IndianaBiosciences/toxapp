@@ -73,6 +73,15 @@ def get_temp_dir(obj):
     return obj.request.session['tmp_dir']
 
 
+def remove_from_computation_recs(request, exp):
+
+    logger.debug('Removing experiment %s from computation_recs in session', exp)
+    computation_recs = request.session.get('computation_recs', [])
+    exp_id = exp.pk
+    computation_recs[:] = [r for r in computation_recs if r['experiment']['exp_id'] != exp_id]
+    request.session['computation_recs'] = computation_recs
+
+
 def cart_add(request, pk):
     """ add an experiment to the analysis cart and return"""
 
@@ -395,6 +404,9 @@ def create_experiment_sample_pair(request, reset=None):
         if reset and reset.lower() == 'all':
             logger.debug('clearing all existing sample associations for study %s', study.study_name)
             ExperimentSample.objects.filter(experiment__in=exps).delete()
+            # if deleted exps. vs sample assoc was set in session on post side of view, delete
+            for e in exps:
+                remove_from_computation_recs(request, e)
         elif reset:
             try:
                 this_exp = Experiment.objects.get(pk=reset)
@@ -405,8 +417,10 @@ def create_experiment_sample_pair(request, reset=None):
                 return render(request, 'generic_message.html', errcontext)
             logger.debug('clearing existing sample associations for experiment %s', reset)
             ExperimentSample.objects.filter(experiment=this_exp).delete()
-
+            remove_from_computation_recs(request, this_exp)
         # create a list of which exps that go with this study
+        # we iterate through all experiments and keep hitting this view until all experiments have had samples
+        # associated with them
         selected_exp = None
         for e in exps:
             # only check on exp ... samples can be used multiple times (e.g. controls)
@@ -516,7 +530,7 @@ def compute_fold_change(request):
 
 def export_result_xls(request, restype=None):
     """ query module / GSA / gene fold change and return excel file """
-
+    
     rowlimit = 100000
     limit_breached = False
     response = HttpResponse(content_type='application/ms-excel')
@@ -669,19 +683,18 @@ class ResetSessionMixin(object):
         return context
 
 
-class StudyView(ResetSessionMixin, ListView):
+class StudyView(ResetSessionMixin, SingleTableView):
     model = Study
     template_name = 'study_list.html'
-    paginate_by = 25
-    context_object_name = "studies"
+    context_object_name = 'studies'
+    table_class = tp.tables.StudyListTable
+    table_pagination = True
 
     def get_queryset(self):
+        # to ensure that only a user's study are shown to him/her
         new_context = Study.objects.filter(owner_id=self.request.user.id)
         return new_context
 
-    def get_context_data(self, **kwargs):
-        context = super(StudyView, self).get_context_data(**kwargs)
-        return context
 
 class StudyCreateUpdateMixin(object):
 
