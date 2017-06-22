@@ -5,9 +5,18 @@
 
 {% block content %}
 
+{% if error_message %}
+  <div class="alert alert-danger">
+    {{ error_message }}
+  </div>
+{% endif %}
+
 <div>
   <a href="{% url 'tp:analysis-summary' %}" class="btn btn-primary">Back to summary</a>
   <a href="{% url 'tp:export-filtered-result' %}" class="btn btn-default">Export to Excel</a>
+  {% if show_tox_result_link %}
+  <a href="{% url 'tp:toxicology-results' %}" class="btn btn-default">Toxicology results for similar experiments</a>
+  {% endif %}
 </div>
 
 <div class="filter-dialog">

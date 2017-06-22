@@ -1,7 +1,7 @@
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.forms import ModelForm, modelformset_factory
-from .models import Study, Experiment, Sample, ExperimentSample
+from .models import Study, Experiment, Sample
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,14 +71,14 @@ class ExperimentConfirmForm(forms.Form):
     """ checkbox form to identify which of existing experiments will be retained """
     experiments = forms.ModelMultipleChoiceField(required=False,
                                                  queryset=Experiment.objects.all(),
-                                                 widget=forms.CheckboxSelectMultiple(attrs={"checked":""}))
+                                                 widget=forms.CheckboxSelectMultiple(attrs={'checked': ''}))
 
 
 class SampleConfirmForm(forms.Form):
     """ checkbox form to identify which of existing samples will be retained"""
     samples = forms.ModelMultipleChoiceField(required=False,
-                                                 queryset=Sample.objects.all(),
-                                                 widget=forms.CheckboxSelectMultiple(attrs={"checked":""}))
+                                             queryset=Sample.objects.all(),
+                                             widget=forms.CheckboxSelectMultiple(attrs={'checked': ''}))
 
 
 class MapFileForm(forms.Form):

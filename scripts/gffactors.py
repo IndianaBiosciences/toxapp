@@ -685,7 +685,7 @@ def compute_fold_factors(infile, outfile, celdir, sdir):
 
     # run different workflows
     if config['file_type'] == 'CEL':
-        compute_gfc_CEL(infile, outfile, celdir, sdir)
+        compute_gfc_CEL(infile, outfile, celdir, config['script_dir'])
     else:
         compute_gfc_rnaseq(config['file_name'], config['experiments'], outfile, config['script_dir'])
 

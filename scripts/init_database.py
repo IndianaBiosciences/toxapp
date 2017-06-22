@@ -14,7 +14,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "toxapp.settings")
 application = get_wsgi_application()
 
 from django.conf import settings
-from tp.models import MeasurementTech, IdentifierVsGeneMap, Gene, Study, Experiment
+from tp.models import MeasurementTech, IdentifierVsGeneMap, Gene, Study, Experiment, ToxicologyResult
 from tp.tasks import load_measurement_tech_gene_map, load_module_scores, load_gsa_scores, load_correl_results
 from src.computation import Computation
 
@@ -111,6 +111,31 @@ def load_DM_TG_experiments():
 
     logging.info('Number of experiments created: %s, number updated: %s', createcount, updatecount)
     return created_exps
+
+
+def load_tox_results():
+
+    tf = os.path.join(settings.BASE_DIR, config['DEFAULT']['tox_results_file'])
+    logger.info('Loading toxicology results from file %s', tf)
+    createcount = 0
+    rowcount = 0
+    # delete existing data if any
+    ToxicologyResult.objects.all().delete()
+
+    with open(tf) as f:
+        reader = csv.DictReader(f, delimiter='\t')
+        for row in reader:
+            rowcount += 1
+
+            exp_obj = compute.get_exp_obj(row['experiment'])
+            if exp_obj is None:
+                continue
+
+            row['experiment'] = exp_obj
+            ToxicologyResult.objects.create(**row)
+            createcount += 1
+
+    logging.info('Number of Toxicology results created: %s; number read in file %s', createcount, rowcount)
 
 
 def load_fold_change_data():
@@ -249,18 +274,22 @@ if __name__ == '__main__':
     # step 3) load the DM/TG studies and experiments
     created_exp_list = load_DM_TG_experiments()
 
-    # step 4) load the fold change data
+    # step 4) load the toxicology results file
+    load_tox_results()
+
+    # step 5) load the fold change data
     load_fold_change_data()
 
-    # step 5 - iterate through newly added experiments and perform module / GSA scoring
-    # TODO - temp for testing
+    # step 6 - iterate through newly added experiments and perform module / GSA scoring
+    # commented out - temp for resuming loads
     #created_exp_list = Experiment.objects.all()
     #tech_obj = created_exp_list[0].tech
     score_experiments(created_exp_list)
 
-    # step 6 - load the pairwise experiment similarities
+    # step 7 - load the pairwise experiment similarities
     correlw = compute.calc_exp_correl(created_exp_list, 'WGCNA')
     load_correl_results(compute, correlw, 'WGCNA')
 
     correla = compute.calc_exp_correl(created_exp_list, 'ARACNE')
     load_correl_results(compute, correla, 'ARACNE')
+

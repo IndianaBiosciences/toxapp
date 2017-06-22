@@ -18,7 +18,21 @@
 
 <form method="post" action="">
   {% csrf_token %}
-  {% bootstrap_form form layout="horizontal" %}
+  {% bootstrap_form_errors form type='non_fields' %}
+
+  <table class="table table-striped custab table-nonfluid">
+  {# hack to get around constraints of modelMultipleChoiceField with showing links; JS created by seeing what #}
+  {# the standard {{ form }} produced and named inputs accordingly; the post side of standard view #}
+  {# is accepting the result and putting valid objects in cleaned data #}
+  {% for id, name in form.experiments.field.choices %}
+    <tr>
+      <td align="center"><input checked id="id_experiments_{{ forloop.counter0 }}" name="experiments", type="checkbox" value="{{ id }}"></td>
+      <td>{{ name }}</td>
+      <td align="center"><a href="{% url 'tp:experiment-update' pk=id %}" class="glyphicon glyphicon-edit" title="Edit experiment "> Edit</a></td>
+    </tr>
+  {% endfor %}
+  </table>
+
   {% bootstrap_button "Save and upload samples" button_type="submit" name="_continue" button_class="btn-primary" %}
   {% bootstrap_button "Save and add experiments" button_type="submit" name="_add" button_class="btn-default" %}
   <a class="btn btn-default" href="{% url 'tp:experiments' %}">Cancel</a>

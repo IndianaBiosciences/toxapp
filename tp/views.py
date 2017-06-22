@@ -13,7 +13,7 @@ from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django_tables2 import SingleTableView
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation
+                    ExperimentCorrelation, ToxicologyResult
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm
 from .tasks import load_measurement_tech_gene_map, process_user_files
@@ -54,7 +54,7 @@ def reset_session(session):
     logger.debug('Resetting session info for tracking metadata across handlers')
     # TODO - delete the existing tmp_dir first
     # delete and not set to None due to manner in which they are created as lists
-    for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file']:
+    for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
         try:
             del session[attr]
         except KeyError:
@@ -71,6 +71,15 @@ def get_temp_dir(obj):
         obj.request.session['tmp_dir'] = tmp
 
     return obj.request.session['tmp_dir']
+
+
+def remove_from_computation_recs(request, exp):
+
+    logger.debug('Removing experiment %s from computation_recs in session', exp)
+    computation_recs = request.session.get('computation_recs', [])
+    exp_id = exp.pk
+    computation_recs[:] = [r for r in computation_recs if r['experiment']['exp_id'] != exp_id]
+    request.session['computation_recs'] = computation_recs
 
 
 def cart_add(request, pk):
@@ -204,6 +213,7 @@ def experiments_confirm(request):
         form.fields['experiments'].queryset = exps
 
     context = {'form': form}
+    logger.debug('Have %s', form.fields['experiments'].choices)
     return render(request, 'experiments_confirm.html', context)
 
 
@@ -395,6 +405,9 @@ def create_experiment_sample_pair(request, reset=None):
         if reset and reset.lower() == 'all':
             logger.debug('clearing all existing sample associations for study %s', study.study_name)
             ExperimentSample.objects.filter(experiment__in=exps).delete()
+            # if deleted exps. vs sample assoc was set in session on post side of view, delete
+            for e in exps:
+                remove_from_computation_recs(request, e)
         elif reset:
             try:
                 this_exp = Experiment.objects.get(pk=reset)
@@ -405,8 +418,10 @@ def create_experiment_sample_pair(request, reset=None):
                 return render(request, 'generic_message.html', errcontext)
             logger.debug('clearing existing sample associations for experiment %s', reset)
             ExperimentSample.objects.filter(experiment=this_exp).delete()
-
+            remove_from_computation_recs(request, this_exp)
         # create a list of which exps that go with this study
+        # we iterate through all experiments and keep hitting this view until all experiments have had samples
+        # associated with them
         selected_exp = None
         for e in exps:
             # only check on exp ... samples can be used multiple times (e.g. controls)
@@ -516,7 +531,7 @@ def compute_fold_change(request):
 
 def export_result_xls(request, restype=None):
     """ query module / GSA / gene fold change and return excel file """
-
+    
     rowlimit = 100000
     limit_breached = False
     response = HttpResponse(content_type='application/ms-excel')
@@ -606,6 +621,25 @@ def export_result_xls(request, restype=None):
                 limit_breached = True
                 break
 
+    elif restype.lower() == 'toxicologyresult':
+
+        colnames += ['result type', 'result name', 'group average', 'animal details']
+        # diff patern here compared to other result types; for toxicologyresult the filtered result IDs may not involve
+        # the experiments in the cart when results are for the ref_exp_ids in SimilarExperiments view
+        if subset:
+            rows = ToxicologyResult.objects.filter(pk__in=subset)
+        else:
+            rows = ToxicologyResult.objects.filter(experiment__pk__in=exp_list)
+
+        rowcount = 0
+        for r in rows:
+            nr = [r.experiment_id, r.experiment.experiment_name, r.result_type, r.result_name, r.group_avg, r.animal_details]
+            data.append(nr)
+            rowcount += 1
+            if rowcount > rowlimit:
+                limit_breached = True
+                break
+
     else:
         raise NotImplementedError ('Type not implemented:', restype)
 
@@ -650,19 +684,18 @@ class ResetSessionMixin(object):
         return context
 
 
-class StudyView(ResetSessionMixin, ListView):
+class StudyView(ResetSessionMixin, SingleTableView):
     model = Study
     template_name = 'study_list.html'
-    paginate_by = 25
-    context_object_name = "studies"
+    context_object_name = 'studies'
+    table_class = tp.tables.StudyListTable
+    table_pagination = True
 
     def get_queryset(self):
+        # to ensure that only a user's study are shown to him/her
         new_context = Study.objects.filter(owner_id=self.request.user.id)
         return new_context
 
-    def get_context_data(self, **kwargs):
-        context = super(StudyView, self).get_context_data(**kwargs)
-        return context
 
 class StudyCreateUpdateMixin(object):
 
@@ -713,11 +746,12 @@ class StudyDelete(DeleteView):
     success_url = reverse_lazy('tp:studies')
 
 
-class ExperimentView(ResetSessionMixin, ListView):
+class ExperimentView(ResetSessionMixin, SingleTableView):
     model = Experiment
     template_name = 'experiments_list.html'
     context_object_name = 'experiments'
-    paginate_by = 25
+    table_class = tp.tables.ExperimentListTable
+    table_pagination = True
 
     def get_queryset(self):
 
@@ -740,28 +774,6 @@ class ExperimentView(ResetSessionMixin, ListView):
             logger.debug('Query after filtering on user returned %s', exps)
 
         return exps
-
-    def get_context_data(self, **kwargs):
-        context = super(ExperimentView, self).get_context_data(**kwargs)
-        if not context.get('is_paginated', False):
-            return context
-
-        # TODO - too many pages shown, this solution is OK for now
-        # http://stackoverflow.com/questions/39088813/django-paginator-with-many-pages
-        paginator = context.get('paginator')
-        num_pages = paginator.num_pages
-        current_page = context.get('page_obj')
-        page_no = current_page.number
-
-        if num_pages <= 11 or page_no <= 6:  # case 1 and 2
-            pages = [x for x in range(1, min(num_pages + 1, 12))]
-        elif page_no > num_pages - 6:  # case 4
-            pages = [x for x in range(num_pages - 10, num_pages + 1)]
-        else:  # case 3
-            pages = [x for x in range(page_no - 5, page_no + 6)]
-
-        context.update({'pages': pages})
-        return context
 
 
 class ExperimentSuccessURLMixin(object):
@@ -802,9 +814,10 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
         # Get the initial dictionary from the superclass method
         initial = super(ExperimentCreate, self).get_initial()
 
+        # prepopulate experiment based on last one
         if self.request.session.get('last_exp_id', None) is not None:
             last_exp_id = self.request.session['last_exp_id']
-            logger.error('Retrieved prior experiment ID %s', last_exp_id)
+            logger.debug('Retrieved prior experiment ID %s', last_exp_id)
             last_exp = Experiment.objects.get(pk=last_exp_id)
             # TODO - remove experiment name assuming that this will be prepopulated by other meta data
             fields = ['experiment_name', 'tech', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue',
@@ -1046,21 +1059,48 @@ class FilteredSingleTableView(SingleTableView):
     filter_class = None
 
     def get_table_data(self):
+
         data = super(FilteredSingleTableView, self).get_table_data()
 
-        # if session contains experiment IDs from cart selection, filter to them
+        # when tox results are being viewed for the most similar experiments (given those in analyze_list), we want to
+        # query based on the stored attribute set when those results were being viewed
+        referrer = self.request.META.get('HTTP_REFERER', None)
+        sim_list = self.request.session.get('sim_list', [])
         exp_list = self.request.session.get('analyze_list', [])
-        if exp_list:
+        used_simexp = False
+
+        # when accessing ToxicologyResults from the analysis_summary, reset the list of similar experiments so that
+        # additional queries on the class (when user filters results) is not recognized as having come from Sim Exps
+        # (the referrer will be itself)
+        # TODO - a better way to check referrer? what if URL is setup differently?
+        if type(self).__name__ == 'ToxicologyResultsSingleTableView' and referrer and 'analysis_summary' in referrer:
+            logger.debug('Resetting stored list of similar experiments since referrer was analysis_summary')
+            sim_list = list()
+            self.request.session['sim_list'] = sim_list
+
+        # cannot check the referrer as coming from SimilarExperiments, because subsequent views by user using filtering
+        # will show the referrer at itself; that's why sim_list is cleared above for access through analysis_summary
+        if type(self).__name__ == 'ToxicologyResultsSingleTableView' and sim_list:
+            logger.debug('Accessing ToxicologyResults after viewing SimilarExperiments; using ref pairs to query exps')
+            expcorrel_objs = ExperimentCorrelation.objects.filter(id__in=sim_list)
+            ref_exp_list = map(lambda x: x.experiment_ref.id, expcorrel_objs)
+            data = data.filter(experiment__pk__in=ref_exp_list)
+            used_simexp = True
+        elif exp_list:
             logger.debug('Filtering to subset of experiments in cart: %s', exp_list)
             data = data.filter(experiment__pk__in=exp_list)
 
         self.filter = self.filter_class(self.request.GET, queryset=data)
-
-        # store the ids of results in case export to excel selected
-        # don't store if nothing was filtered
         results = self.filter.qs
 
-        # store the object IDs in case data is exported to excel
+        # if the current result list is from SimilarExperiments, store the result IDs so that ref experiments can be
+        # accessed in subsequent ToxicologyResults view
+        if type(self).__name__ == 'SimilarExperimentsSingleTableView':
+            ids = list(results.values_list('id', flat=True))
+            logger.debug('Storing retrieved data in session for subsequent ToxicologyResult view')
+            self.request.session['sim_list'] = ids
+
+        # store the object IDs in case data is exported to excel via separate handler
         # reset filtering session vars from any previous use
         self.request.session['filtered_list'] = []
         self.request.session['filtered_type'] = None
@@ -1070,7 +1110,11 @@ class FilteredSingleTableView(SingleTableView):
         if len(self.filter.qs) > 0:
             self.request.session['filtered_type'] = results[0].__class__.__name__
 
-            if len(self.filter.qs) < len(data):
+            # no need to store long list of ids for viewed results if nothing was filtered (although maybe this is
+            # harmless, didn't do any performance testing).
+            # However, force storage of selected IDs when working with ToxicologyResults through SimilarExperiments, so
+            # that subsequent excel export does not revert to using the experiments in analysis cart
+            if len(self.filter.qs) < len(data) or used_simexp:
                 ids = list(results.values_list('id', flat=True))
                 logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)
                 self.request.session['filtered_list'] = ids
@@ -1078,8 +1122,11 @@ class FilteredSingleTableView(SingleTableView):
         return results
 
     def get_context_data(self, **kwargs):
+
         context = super(FilteredSingleTableView, self).get_context_data(**kwargs)
         context['filter'] = self.filter
+        if type(self).__name__ == 'SimilarExperimentsSingleTableView':
+            context['show_tox_result_link'] = True
         return context
 
 
@@ -1113,3 +1160,12 @@ class SimilarExperimentsSingleTableView(FilteredSingleTableView):
     table_class = tp.tables.SimilarExperimentsTable
     table_pagination = True
     filter_class = tp.filters.SimilarExperimentsFilter
+
+
+class ToxicologyResultsSingleTableView(FilteredSingleTableView):
+    model = ToxicologyResult
+    template_name = 'result_list.html'
+    table_class = tp.tables.ToxicologyResultsTable
+    table_pagination = True
+    filter_class = tp.filters.ToxicologyResultsFilter
+

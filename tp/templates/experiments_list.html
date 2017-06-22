@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load render_table from django_tables2 %}
+{% load bootstrap3 %}
 {% load tp_extras %}
 
 {% block content %}
@@ -17,67 +19,7 @@
   </form>
 
   <h4>Available Experiments</h4>
-
-  <table class="table table-striped custab">
-    <tr>
-      <th>Analyze</th>
-      <th>Edit</th>
-      <th>Experiment Name</th>
-      <th>Compound Name</th>
-      <th>Dose</th>
-      <th>Time (days)</th>
-      <th>Tissue</th>
-      <th>Organism</th>
-      <th>Repeat Type</th>
-      <th>Route</th>
-    </tr>
-    {% for exp in experiments %}
-      <tr>
-        {% if exp.results_ready is False %}
-        <td align="center"><span class="glyphicon glyphicon-ban-circle" title="Not ready for analysis"></span></td>
-        {% elif exp.id in request.session.analyze_list %}
-        <td align="center"><a href="{% url 'tp:cart-del' pk=exp.pk %}" class="glyphicon glyphicon-remove-sign" title="Remove from analysis cart"></a></td>
-        {% else %}
-        <td align="center"><a href="{% url 'tp:cart-add' pk=exp.pk %}" class="glyphicon glyphicon-plus" title="Add to analysis cart"></a></td>
-        {% endif %}
-        <td align="center"><a href="{% url 'tp:experiment-update' pk=exp.pk %}" class="glyphicon glyphicon-edit" title="Edit experiment "></a></td>
-        <td>{{ exp.experiment_name }}</td>
-        <td>{{ exp.compound_name }}</td>
-        <td>{{ exp.dose }} {{ exp.dose_unit }}</td>
-        <td>{{ exp.time }}</td>
-        <td>{{ exp.tissue }}</td>
-        <td>{{ exp.organism }}</td>
-        <td>{{ exp.single_repeat_type }}</td>
-        <td>{{ exp.route }}</td>
-      </tr>
-    {% empty %}
-      <tr>
-        <td colspan="10">No experiments found</td>
-      </tr>
-    {% endfor %}
-  </table>
-
-  {% if is_paginated %}
-    <ul class="pagination">
-      {% if page_obj.has_previous %}
-        <li><a href="?{% url_replace request 'page' page_obj.previous_page_number %}">&laquo;</a></li>
-      {% else %}
-        <li class="disabled"><span>&laquo;</span></li>
-      {% endif %}
-      {% for i in pages %}
-        {% if page_obj.number == i %}
-          <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
-        {% else %}
-          <li><a href="?{% url_replace request 'page' i %}">{{ i }}</a></li>
-        {% endif %}
-      {% endfor %}
-      {% if page_obj.has_next %}
-        <li><a href="?{% url_replace request 'page' page_obj.next_page_number %}">&raquo;</a></li>
-      {% else %}
-        <li class="disabled"><span>&raquo;</span></li>
-      {% endif %}
-    </ul>
-  {% endif %}
+  {% render_table table %}
 
   <div class="">
     {# TODO - place a graphic up top summarzing number of entries in request.session.analyze_list #}

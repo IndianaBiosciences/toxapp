@@ -68,7 +68,7 @@ urlpatterns = [
     url(r'^cart_add/(?P<pk>\d+)/$', views.cart_add, name='cart-add'),
     url(r'^cart_del/(?P<pk>\d+)/$', views.cart_del, name='cart-del'),
 
-    # display list of module scores
+    # display overview of results for selected experiments
     url(r'^analysis_summary/$', views.analysis_summary, name='analysis-summary'),
 
     # display list of module scores
@@ -82,6 +82,9 @@ urlpatterns = [
 
     # display list of fold-change results at gene level
     url(r'^similar_experiments/$', views.SimilarExperimentsSingleTableView.as_view(), name='similar-exps'),
+
+    # display list of toxicology results (clinchem, histo)
+    url(r'^toxicology_results/$', views.ToxicologyResultsSingleTableView.as_view(), name='toxicology-results'),
 
     # export to excel handler
     url(r'^export_results/(?P<restype>\w+)$', views.export_result_xls, name='export-result'),

@@ -13,7 +13,6 @@ body {
 .container {
     margin-left: 10px;
     margin-right: 10px;
-    background-color: #003f3f
 }
 
 .footer {
@@ -213,4 +212,11 @@ a.button_large {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+.table-nonfluid {
+   width: auto !important;
+   margin-right:auto;
+   margin-left:0px;
+   margin-bottom: 20px;
 }
