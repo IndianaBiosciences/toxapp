@@ -213,6 +213,7 @@ def experiments_confirm(request):
         form.fields['experiments'].queryset = exps
 
     context = {'form': form}
+    logger.debug('Have %s', form.fields['experiments'].choices)
     return render(request, 'experiments_confirm.html', context)
 
 
@@ -813,9 +814,10 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
         # Get the initial dictionary from the superclass method
         initial = super(ExperimentCreate, self).get_initial()
 
+        # prepopulate experiment based on last one
         if self.request.session.get('last_exp_id', None) is not None:
             last_exp_id = self.request.session['last_exp_id']
-            logger.error('Retrieved prior experiment ID %s', last_exp_id)
+            logger.debug('Retrieved prior experiment ID %s', last_exp_id)
             last_exp = Experiment.objects.get(pk=last_exp_id)
             # TODO - remove experiment name assuming that this will be prepopulated by other meta data
             fields = ['experiment_name', 'tech', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue',

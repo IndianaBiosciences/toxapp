@@ -12,7 +12,7 @@
 {% endif %}
 
 <div class="alert alert-warning">
-  Review existing experiments associated with this study.
+  Reviedw existing experiments associated with this study.
   <strong>Any non-selected experiments will be deleted.</strong>
 </div>
 
@@ -21,9 +21,12 @@
   {% bootstrap_form_errors form type='non_fields' %}
 
   <table class="table table-striped custab table-nonfluid">
+  {# hack to get around constraints of modelMultipleChoiceField with showing links; JS created by seeing what #}
+  {# the standard {{ form }} produced and named inputs accordingly; the post side of standard view #}
+  {# is accepting the result and putting valid objects in cleaned data #}
   {% for id, name in form.experiments.field.choices %}
     <tr>
-      <td align="center"><input checked type="checkbox" value="{{ value }}"></td>
+      <td align="center"><input checked id="id_experiments_{{ forloop.counter0 }}" name="experiments", type="checkbox" value="{{ id }}"></td>
       <td>{{ name }}</td>
       <td align="center"><a href="{% url 'tp:experiment-update' pk=id %}" class="glyphicon glyphicon-edit" title="Edit experiment "> Edit</a></td>
     </tr>
