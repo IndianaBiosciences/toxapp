@@ -156,6 +156,8 @@ class IdentifierVsGeneMap(models.Model):
 
 
 class FoldChangeResult(models.Model):
+    #TODO - Need to have expression_ctl to be larger digits due to RNAseq counts
+    #TODO - p_bh probably needs to become p_adj as there may be different ways to adjust
 
     experiment = models.ForeignKey(Experiment)
     gene_identifier = models.ForeignKey(IdentifierVsGeneMap)
