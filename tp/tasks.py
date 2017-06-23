@@ -90,6 +90,13 @@ def process_user_files(tmpdir, config_file, email):
 
     new_exps = Experiment.objects.filter(id__in=list(fc_data.keys()))
 
+    # TODO -- moved ahead at the moment so it will show partial results in case of failing at later
+    # stages. Need to move this back to end when all debugged
+    # set status on experiments as ready for analysis
+    for exp in new_exps:
+        exp.results_ready = True
+        exp.save()
+
     # step 5 - calculate near neighbors based on vector of module scores or GSA scores
     logger.info('Step 5: evaluating pairwise similarity vs. experiments  using WGCNA and ARACNE')
     correl = compute.calc_exp_correl(new_exps, 'WGCNA')
@@ -123,11 +130,6 @@ def process_user_files(tmpdir, config_file, email):
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
     logger.info('Step 5d: experiment correl using ARACNE loaded to database')
-
-    # set status on experimens as ready for analysis
-    for exp in new_exps:
-        exp.results_ready = True
-        exp.save()
 
     message = 'Final: Uploaded expression data is ready for analysis'
     logger.info(message)
