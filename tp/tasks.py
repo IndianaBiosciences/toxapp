@@ -98,7 +98,7 @@ def process_user_files(tmpdir, config_file, email):
         exp.save()
 
     # step 5 - calculate near neighbors based on vector of module scores or GSA scores
-    logger.info('Step 5: evaluating pairwise similarity vs. experiments  using WGCNA and ARACNE')
+    logger.info('Step 5: evaluating pairwise similarity vs. experiments  using WGCNA and RegNet')
     correl = compute.calc_exp_correl(new_exps, 'WGCNA')
     if correl is None:
         message = 'Failed to calculate correlation to existing experiments using WGCNA; no further computations performed'
@@ -115,21 +115,21 @@ def process_user_files(tmpdir, config_file, email):
         return
     logger.info('Step 5b: experiment correl using WGCNA loaded to database')
 
-    correl = compute.calc_exp_correl(new_exps, 'ARACNE')
+    correl = compute.calc_exp_correl(new_exps, 'RegNet')
     if correl is None:
-        message = 'Failed to calculate correlation to existing experiments using ARACNE; no further computations performed'
+        message = 'Failed to calculate correlation to existing experiments using RegNet; no further computations performed'
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
-    logger.info('Step 5c: experiment correlation calculated using ARACNE and loaded to database')
+    logger.info('Step 5c: experiment correlation calculated using RegNet and loaded to database')
 
-    status = load_correl_results(compute, correl, 'ARACNE')
+    status = load_correl_results(compute, correl, 'RegNet')
     if status is None:
-        message = 'Failed to load experiment correlation for ARACNE; no further computations performed'
+        message = 'Failed to load experiment correlation for RegNet; no further computations performed'
         logger.error(message)
         send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
         return
-    logger.info('Step 5d: experiment correl using ARACNE loaded to database')
+    logger.info('Step 5d: experiment correl using RegNet loaded to database')
 
     message = 'Final: Uploaded expression data is ready for analysis'
     logger.info(message)
@@ -426,7 +426,7 @@ def load_gsa_scores(compute_obj, gsa_scores):
 
 def load_correl_results(compute, correl, source):
 
-    assert source in ['WGCNA', 'ARACNE']
+    assert source in ['WGCNA', 'RegNet']
 
     insert_count = 0
 

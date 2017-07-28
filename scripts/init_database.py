@@ -290,6 +290,6 @@ if __name__ == '__main__':
     correlw = compute.calc_exp_correl(created_exp_list, 'WGCNA')
     load_correl_results(compute, correlw, 'WGCNA')
 
-    correla = compute.calc_exp_correl(created_exp_list, 'ARACNE')
-    load_correl_results(compute, correla, 'ARACNE')
+    correla = compute.calc_exp_correl(created_exp_list, 'RegNet')
+    load_correl_results(compute, correla, 'RegNet')
 

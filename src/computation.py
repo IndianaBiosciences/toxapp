@@ -244,9 +244,9 @@ class Computation:
                     continue
 
                 source = 'MSigDB'
-                # DAS ARACNE networks included in this file - use a separate source for these, not MSigDB
-                if row['sub_category'] == 'ARACNE':
-                    source = 'ARACNE'
+                # DAS RegNet networks included in this file - use a separate source for these, not MSigDB
+                if row['sub_category'] == 'RegNet':
+                    source = 'RegNet'
 
                 gsa_genes[row['sig_name']][rat_entrez_gene] = 1
                 if not row['sig_name'] in gsa_info:
@@ -522,7 +522,7 @@ class Computation:
     def calc_exp_correl(self, qry_exps, source):
 
         assert isinstance(qry_exps[0], Experiment)
-        assert source in ['WGCNA', 'ARACNE']
+        assert source in ['WGCNA', 'RegNet']
 
         sets = GeneSets.objects.filter(source=source, core_set=True)
         logger.debug('Performing similarity analysis on method %s with %s gene sets', source, len(sets))
@@ -534,7 +534,7 @@ class Computation:
             for o in ref:
                 ref_scores[o.experiment_id][o.module_id] = float(o.score)
 
-        elif source == 'ARACNE':
+        elif source == 'RegNet':
             ref = GSAScores.objects.filter(geneset__in=sets)
             for o in ref:
                 ref_scores[o.experiment_id][o.geneset_id] = float(o.score)

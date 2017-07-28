@@ -48,5 +48,5 @@ with open('test_gsa.txt', 'w') as f:
 # must have module score data loaded in DB
 qry_exps = Experiment.objects.filter(id__in=[11])
 correl1 = compute.calc_exp_correl(qry_exps, 'WGCNA')
-correl2 = compute.calc_exp_correl(qry_exps, 'ARACNE')
+correl2 = compute.calc_exp_correl(qry_exps, 'RegNet')
 

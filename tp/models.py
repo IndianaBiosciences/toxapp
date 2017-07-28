@@ -212,7 +212,7 @@ class ExperimentCorrelation(models.Model):
 
     SOURCE_TYPE = (
         ('WGCNA', 'WGCNA'),
-        ('ARACNE', 'ARACNE'),
+        ('RegNet', 'RegNet'),
     )
 
     experiment = models.ForeignKey(Experiment, related_name='qry_experiment')
