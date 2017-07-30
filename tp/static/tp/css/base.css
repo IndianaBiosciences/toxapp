@@ -15,16 +15,24 @@ body {
     margin-right: 10px;
 }
 
-.footer {
+.footer_base {
     position: fixed;
-    margin-right: 30px;
-    margin-left: 10px;
     bottom: 0;
     left: 0;
+    width: 100%;
+    line-height: 30px;
+    background-color: #e0e0e0;
+}
+
+.footer {
+    margin-right: 10px;
+    margin-left: 10px;
     width: 95%;
     height: 30px;
-    line-height: 30px;
-    background-color: #f5f5f5;
+}
+
+.footer a:link, a:visited {
+    color: #003f3f;
 }
 
 .fillWidth {

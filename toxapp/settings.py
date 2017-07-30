@@ -92,7 +92,7 @@ DATABASES = {
         },
         'NAME': 'ibri',  # name of the database
         'USER': 'django_user',
-        'PASSWORD': 'toxapp',
+        'PASSWORD': 'intranet',
         'HOST': '127.0.0.1',
         #'HOST': 'jeff-M4HM85P-00',
         'PORT': '5432',
@@ -192,7 +192,13 @@ LOGGING = {
 }
 
 # email backend for development purposes
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 25
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = 'CTox <drobertson@indianabiosciences.org>'
 
 # Computation Configurations
 COMPUTATION = {
