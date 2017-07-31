@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+
+{% block content %}
+
+<div>
+  <strong>Experiments in the analysis cart</strong>
+  <br><br>
+</div>
+
+<form method="post" action="">
+  {% csrf_token %}
+
+  {% buttons layout='horizontal' %}
+    <input id="checkButton" type="button" class="btn-sm" value="select all" />
+    <input id="uncheckButton" type="button" class="btn-sm" value="unselect all" />
+  {% endbuttons %}
+
+  {% bootstrap_form form layout="horizontal" %}
+
+  {% buttons layout='horizontal' %}
+    {% bootstrap_button "Save and get results" button_type="submit" name="_save" button_class="btn-primary" %}
+    {% bootstrap_button "Save and return to experiments" button_type="submit" name="_addanother" %}
+    {#  store a hidden value so that can return to previous filtered experiment list on post side of view #}
+    <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER }}">
+    <a class="btn btn-default" href="{{ request.META.HTTP_REFERER }}">Cancel</a>
+  {% endbuttons %}
+
+</form>
+
+{% endblock content %}

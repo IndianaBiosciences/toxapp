@@ -8,6 +8,7 @@ class ModuleScoreTable(tables.Table):
         model = ModuleScores
         fields = ['experiment', 'module', 'score']
         attrs = {'class': 'table table-striped custab'}
+        order_by = '-score'
 
 
 class GSAScoreTable(tables.Table):
@@ -15,6 +16,7 @@ class GSAScoreTable(tables.Table):
         model = GSAScores
         fields = ['experiment', 'geneset', 'score', 'p_bh']
         attrs = {'class': 'table table-striped custab'}
+        order_by = 'p_bh'
 
 
 class FoldChangeResultTable(tables.Table):
@@ -22,6 +24,7 @@ class FoldChangeResultTable(tables.Table):
         model = FoldChangeResult
         fields = ['experiment', 'gene_identifier.gene_identifier', 'gene_identifier.gene.rat_gene_symbol', 'log2_fc', 'p', 'p_bh']
         attrs = {'class': 'table table-striped custab'}
+        order_by = 'p_bh'
 
 
 class SimilarExperimentsTable(tables.Table):
@@ -29,6 +32,7 @@ class SimilarExperimentsTable(tables.Table):
         model = ExperimentCorrelation
         fields = ['experiment', 'experiment_ref', 'source', 'correl', 'rank']
         attrs = {'class': 'table table-striped custab'}
+        order_by = '-rank'
 
 
 class ToxicologyResultsTable(tables.Table):

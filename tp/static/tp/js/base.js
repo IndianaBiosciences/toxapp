@@ -8,6 +8,16 @@ $(function() {
     $('#uploadIcon').addClass('loader')
   });
 
+  // button to uncheck all boxes
+  $('#uncheckButton').on('click', function() {
+    $("input[type='checkbox']").prop("checked", false)
+  });
+
+  // button to check all boxes
+  $('#checkButton').on('click', function() {
+    $("input[type='checkbox']").prop("checked", true)
+  });
+
   // enable datepicker from JQuery UI on elements of that class
   $('.datepicker').datepicker();
 

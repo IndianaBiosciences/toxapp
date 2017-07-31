@@ -8,7 +8,20 @@
 
 <div class="container">
 
-  <form id="experimentsearchform" action="{% url 'tp:experiments' %}" method="get" accept-charset="utf-8">
+  {# TODO - place a graphic up top summarzing number of entries in request.session.analyze_list #}
+  {# TODO - use a button with javascript to enable/disable based on session.analyze content #}
+  <div class="panel panel-default">
+    <div class="panel-body">
+    {% if request.session.analyze_list %}
+    <a class="btn btn-primary" href="{% url 'tp:analysis-summary' %}">Analyze experiments in cart</a>
+    <a class="btn btn-default" href="{% url 'tp:cart-edit' %}">Edit analysis cart</a>
+    <a class="btn btn-default" href="{% url 'tp:cart-empty' %}">Empty analysis cart</a>
+    {% endif %}
+    <a class="btn btn-default" href="{% url 'tp:cart-add-all' %}">Add all experiments to cart</a>
+    </div>
+  </div>
+
+  <form class="form-group" id="experimentsearchform" action="{% url 'tp:experiments' %}" method="get" accept-charset="utf-8">
     <button class="searchbutton" type="submit">
       <span class="glyphicon glyphicon-refresh"></span>
     </button>
@@ -20,14 +33,6 @@
 
   <h4>Available Experiments</h4>
   {% render_table table %}
-
-  <div class="">
-    {# TODO - place a graphic up top summarzing number of entries in request.session.analyze_list #}
-    {# TODO - use a button with javascript to enable/disable based on session.analyze content #}
-    {% if request.session.analyze_list %}
-    <a class="btn btn-primary" href="{% url 'tp:analyze' %}">Analyze selected experiments</a>
-    {% endif %}
-  </div>
 
 </div>
 

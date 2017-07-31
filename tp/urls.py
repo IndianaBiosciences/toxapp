@@ -58,15 +58,17 @@ urlpatterns = [
     url(r'^tech_map_upload/$', views.UploadTechMapView.as_view(), name='techmap-upload'),
 
     # view the experiments in analysis 'cart'
-    url(r'^analyze/$', views.analyze, name='analyze'),
+    url(r'^cart_edit/$', views.cart_edit, name='cart-edit'),
     # add an experiment to the analysis 'cart'; not exposing this method on experiment list
-    url(r'^analyze/(?P<pk>\d+)/$', views.analyze, name='analyze'),
+    url(r'^cart_edit/(?P<pk>\d+)/$', views.cart_edit, name='cart-edit'),
 
     #TODO temporary handlers that will need to be replaced with some javascript functionality for clicking on exp list
     # and redirect to the experiments list; will want to avoid this to avoid refreshing page when filtering functionality
     # is built
     url(r'^cart_add/(?P<pk>\d+)/$', views.cart_add, name='cart-add'),
     url(r'^cart_del/(?P<pk>\d+)/$', views.cart_del, name='cart-del'),
+    url(r'^cart_empty/$', views.cart_empty, name='cart-empty'),
+    url(r'^cart_add_all/$', views.cart_add_all, name='cart-add-all'),
 
     # display overview of results for selected experiments
     url(r'^analysis_summary/$', views.analysis_summary, name='analysis-summary'),

@@ -106,7 +106,22 @@ def cart_del(request, pk):
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 
-def analyze(request, pk=None):
+def cart_empty(request):
+    """ remove all experiments from the analysis cart and return"""
+
+    request.session['analyze_list'] = []
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def cart_add_all(request):
+    """ add all experiments to the analysis cart and return"""
+
+    exps = Experiment.objects.all()
+    request.session['analyze_list'] = [e.pk for e in exps]
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def cart_edit(request, pk=None):
     """ create a list of experiments to analyze / display the list"""
 
     if request.method == 'POST':
@@ -119,7 +134,11 @@ def analyze(request, pk=None):
 
             logger.debug('Experiments for analysis being saved in session: %s', retained_ids)
             request.session['analyze_list'] = retained_ids
-            return HttpResponseRedirect(reverse('tp:analysis-summary'))
+
+            if request.POST.get('_addanother') is not None:
+                return HttpResponseRedirect(request.POST.get('referrer'))
+            else:
+                return HttpResponseRedirect(reverse('tp:analysis-summary'))
 
     else:
 
@@ -137,13 +156,18 @@ def analyze(request, pk=None):
             redirect_url = reverse('tp:experiments')
             context = {'message': message, 'redirect_url': redirect_url, 'error': True}
             return render(request, 'generic_message.html', context)
+        elif len(analyze_list) > 50:
+            message = 'Too many experiments in the cart to display; if analyzing all experiments do not try to edit the list. Either select analyze or empty cart'
+            redirect_url = reverse('tp:experiments')
+            context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            return render(request, 'generic_message.html', context)
         else:
             request.session['analyze_list'] = analyze_list
             # override the default queryset which is all samples
             form.fields['experiments'].queryset = Experiment.objects.filter(pk__in=analyze_list)
 
     context = {'form': form}
-    return render(request, 'analyze.html', context)
+    return render(request, 'cart_edit.html', context)
 
 
 def analysis_summary(request):
@@ -758,12 +782,32 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
         user_query = self.request.GET.get('query')
         only_mine = self.request.GET.get('onlymyexp')
         if user_query:
+
+            logger.debug('User query is %s', user_query)
+            terms = user_query.split()
+
+            # TODO - should be able to use the SearchRank method, but gives awful results when combining multiple terms
+            # like 'diazepam single'
+            # note that query must be something like SearchQuery('diazepam') & SearchQuery('single')
+            # exps = Experiment.objects.annotate(rank=SearchRank(vector, query)).order_by('-rank')
+            # instead running multiple searches, one per keyword and combining
+
             vector = SearchVector('experiment_name',
                                   'compound_name',
                                   'tissue',
                                   'organism',
                                   'strain')
-            exps = Experiment.objects.annotate(search=vector).filter(search=user_query)
+
+            first = terms.pop(0)
+            exps = Experiment.objects.annotate(search=vector).filter(search__contains=first)
+            logger.debug('First user term %s returned %s hits', first, len(exps))
+
+            while terms:
+                this = terms.pop(0)
+                logger.debug('Searching on term %s', this)
+                exps = exps.annotate(search=vector).filter(search__contains=this)
+                logger.debug('Subsequent user term %s reduced to %s hits', this, len(exps))
+
             logger.debug('User query returned %s', exps)
         else:
             exps = Experiment.objects.all()
@@ -1086,9 +1130,22 @@ class FilteredSingleTableView(SingleTableView):
             ref_exp_list = map(lambda x: x.experiment_ref.id, expcorrel_objs)
             data = data.filter(experiment__pk__in=ref_exp_list)
             used_simexp = True
-        elif exp_list:
+
+        # standard use where someone has a handful of experiments in cart - query the complete dataset
+        elif exp_list and len(exp_list) < 50:
             logger.debug('Filtering to subset of experiments in cart: %s', exp_list)
             data = data.filter(experiment__pk__in=exp_list)
+
+        # alternate use where perhaps all experiments are in cart; limit the results
+        # TODO - hack to limit the size of the dataset in the filtered views; per
+        # https://stackoverflow.com/questions/35206482/cannot-update-a-query-once-a-slice-has-been-taken-best-practices
+        # seems to be the best way of avoiding Django's error of can't filter a sliced queryset.  As long as the initial
+        # dataset is large enough, it should be unlikely that the slice doesn't have some gene or pathway defined within
+        # it. Alternative might be to explore https://docs.djangoproject.com/en/1.11/topics/db/managers/
+        elif exp_list:
+            logger.debug('Filtering to long experiment list')
+            data_limited = data.filter(experiment__pk__in=exp_list)
+            data = data.filter(id__in=data_limited)
 
         self.filter = self.filter_class(self.request.GET, queryset=data)
         results = self.filter.qs

@@ -3,12 +3,15 @@
 {% block content %}
 
 <div class="alert alert-info">
-  <strong>Experiments selected:</strong>
-  <ul>
-    {% for exp in experiments %}
-      <li>{{ exp.experiment_name }}</li>
-    {% endfor %}
-  </ul>
+  <strong>{{ experiments|length }} experiments selected</strong>
+  {% if experiments|length < 50 %}
+    :
+    <ul>
+      {% for exp in experiments %}
+        <li>{{ exp.experiment_name }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 </div>
 
 {# TODO more styling info with cards including images at https://v4-alpha.getbootstrap.com/components/card/ #}
