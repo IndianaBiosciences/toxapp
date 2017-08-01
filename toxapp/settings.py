@@ -188,6 +188,10 @@ LOGGING = {
             'level': 'WARN',
             'propagate': True,
         },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'WARN',
+        },
     },
 }
 

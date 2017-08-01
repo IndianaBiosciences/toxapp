@@ -3,6 +3,8 @@ from django.conf import settings
 from datetime import datetime
 from django.urls import reverse
 
+import logging
+logger = logging.getLogger(__name__)
 
 class Study(models.Model):
 
@@ -189,7 +191,7 @@ class ModuleScores(models.Model):
 
     experiment = models.ForeignKey(Experiment)
     module = models.ForeignKey(GeneSets)
-    score = models.DecimalField(max_digits = 5, decimal_places=2)
+    score = models.DecimalField(max_digits=5, decimal_places=2)
 
     def __str__(self):
         txt = "experiment {} vs module {}".format(self.experiment.id, self.module)

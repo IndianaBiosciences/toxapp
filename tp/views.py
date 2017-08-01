@@ -1132,20 +1132,9 @@ class FilteredSingleTableView(SingleTableView):
             used_simexp = True
 
         # standard use where someone has a handful of experiments in cart - query the complete dataset
-        elif exp_list and len(exp_list) < 50:
+        elif exp_list:
             logger.debug('Filtering to subset of experiments in cart: %s', exp_list)
             data = data.filter(experiment__pk__in=exp_list)
-
-        # alternate use where perhaps all experiments are in cart; limit the results
-        # TODO - hack to limit the size of the dataset in the filtered views; per
-        # https://stackoverflow.com/questions/35206482/cannot-update-a-query-once-a-slice-has-been-taken-best-practices
-        # seems to be the best way of avoiding Django's error of can't filter a sliced queryset.  As long as the initial
-        # dataset is large enough, it should be unlikely that the slice doesn't have some gene or pathway defined within
-        # it. Alternative might be to explore https://docs.djangoproject.com/en/1.11/topics/db/managers/
-        elif exp_list:
-            logger.debug('Filtering to long experiment list')
-            data_limited = data.filter(experiment__pk__in=exp_list)
-            data = data.filter(id__in=data_limited)
 
         self.filter = self.filter_class(self.request.GET, queryset=data)
         results = self.filter.qs
