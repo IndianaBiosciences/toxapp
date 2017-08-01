@@ -152,7 +152,7 @@ def cart_edit(request, pk=None):
             analyze_list.append(pk)
 
         if not analyze_list:
-            message = 'Potential bug; Please add experiments to analyze from the experiments list first'
+            message = 'Please add experiments to analyze from the experiments list first'
             redirect_url = reverse('tp:experiments')
             context = {'message': message, 'redirect_url': redirect_url, 'error': True}
             return render(request, 'generic_message.html', context)
@@ -777,6 +777,14 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
     table_class = tp.tables.ExperimentListTable
     table_pagination = True
 
+    def get_context_data(self, **kwargs):
+
+        context = super(ExperimentView, self).get_context_data(**kwargs)
+        analyze_list = self.request.session.get('analyze_list', [])
+        cart_items = len(analyze_list)
+        context['cart_items'] = cart_items
+        return context
+
     def get_queryset(self):
 
         user_query = self.request.GET.get('query')
@@ -1159,8 +1167,15 @@ class FilteredSingleTableView(SingleTableView):
         self.request.session['filtered_type'] = None
 
         # TODO - will generate an error if someone tries exporting a set with nothing in it
-        # better way to store in general way type of sub-classed view using this?
-        if len(self.filter.qs) > 0:
+        # if exporting from excel, need to know what kind of data (module, pathway, etc) was being examined.
+        # Is there a better way to store in general way type of sub-classed view using this?
+        # TODO - need to store a trigger than some set of results was filtered; will replace the Or False
+        # Why two part conditional statement? small list of experiments (typical user case, i.e. viewing results for my
+        # experiments), store either the full set of results or filtered set.  Full set meaning someone is viewing all
+        # module results, and they don't do any filtering.  They want to export all the results.  Other case is when
+        # viewing all experiments in cart.  Here, unless they actually filter to something first, don't allow export.
+        # Once they filtered to a gene or something reasonable, then run this block.  Otherwise, performance is very slow
+        if len(exp_list) < 100 and len(self.filter.qs) > 0 or False:
             self.request.session['filtered_type'] = results[0].__class__.__name__
 
             # no need to store long list of ids for viewed results if nothing was filtered (although maybe this is
