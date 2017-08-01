@@ -1132,9 +1132,16 @@ class FilteredSingleTableView(SingleTableView):
             used_simexp = True
 
         # standard use where someone has a handful of experiments in cart - query the complete dataset
-        elif exp_list:
+        elif exp_list and len(exp_list) < 100:
             logger.debug('Filtering to subset of experiments in cart: %s', exp_list)
             data = data.filter(experiment__pk__in=exp_list)
+        # very long list of experiments, most likely all experiments in the cart; filtering on exp list is performance
+        # killer
+        # TODO currently the experiment list is completely ignored, most likely fine as someone with 100 exps in the
+        # cart is looking at global trends
+        elif exp_list:
+            logger.debug('More than 100 items in cart; not filtering by experiment')
+            pass
 
         self.filter = self.filter_class(self.request.GET, queryset=data)
         results = self.filter.qs

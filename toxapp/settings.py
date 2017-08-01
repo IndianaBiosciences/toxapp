@@ -92,7 +92,7 @@ DATABASES = {
         },
         'NAME': 'ibri',  # name of the database
         'USER': 'django_user',
-        'PASSWORD': 'intranet',
+        'PASSWORD': 'toxapp',
         'HOST': '127.0.0.1',
         #'HOST': 'jeff-M4HM85P-00',
         'PORT': '5432',
