@@ -435,11 +435,18 @@ def filter_by_protein_coding(rna, map_file):
 
     mapping = read_rna_mapping_file(map_file)
 
+    g_missing = []
+
     for g in rna['genes']:
-        if mapping[g]['type'] == 'protein_coding':
-            rna_filtered['genes'].append(g)
-            for s in rna['samples']:
-                rna_filtered['values'][s][g] = rna['values'][s][g]
+        if g in mapping:
+            if mapping[g]['type'] == 'protein_coding':
+                rna_filtered['genes'].append(g)
+                for s in rna['samples']:
+                    rna_filtered['values'][s][g] = rna['values'][s][g]
+        else:
+            g_missing.append(g)
+    if (len(g_missing)):
+        logger.warning("Missing mappings for %s of %s genes", len(g_missing), len(rna['genes']))
 
     return rna_filtered
 
@@ -544,7 +551,7 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, sdir):
     rna = read_rna_seq_file(rnafile)
     rna_pc = filter_by_protein_coding(rna, os.path.join(sdir, "Rattus_norvegicus.Rnor_6.0.80.gene_info.csv"))
 
-    # filter by counts and normalize
+   # filter by counts and normalize
     # input file: gene_counts.txt
     # output file: ??
     write_rna_seq('gene_counts.txt', rna_pc)
@@ -585,7 +592,7 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, sdir):
                 txtfile.close()
 
             # write associated gene_counts.txt
-            write_rna_seq('gene_counts.txt', rna, samples_in_exp)
+            write_rna_seq('gene_counts.txt', rna_pc, samples_in_exp)
 
             r_DESeq_script = os.path.join(sdir, "DESeq.R")
             r_cmd = "R --vanilla <" + r_DESeq_script
