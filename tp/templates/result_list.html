@@ -13,7 +13,9 @@
 
 <div>
   <a href="{% url 'tp:analysis-summary' %}" class="btn btn-primary">Back to summary</a>
+  {% if request.session.allow_export %}
   <a href="{% url 'tp:export-filtered-result' %}" class="btn btn-default">Export to Excel</a>
+  {% endif %}
   {% if show_tox_result_link %}
   <a href="{% url 'tp:toxicology-results' %}" class="btn btn-default">Toxicology results for similar experiments</a>
   {% endif %}
@@ -27,7 +29,9 @@
       <a class="btn btn-default" href="{{ request.path }}">Clear</a>
       {% endbuttons %}
   </form>
+  <div id="uploadIcon"></div>
 </div>
+
 
 {% render_table table %}
 {% endblock content %}

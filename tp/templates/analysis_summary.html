@@ -4,7 +4,7 @@
 
 <div class="alert alert-info">
   <strong>{{ experiments|length }} experiments selected</strong>
-  {% if experiments|length < 50 %}
+  {% if experiments|length < 20 %}
     :
     <ul>
       {% for exp in experiments %}
@@ -21,21 +21,27 @@
     <div class="card-block">
       <h4 class="card-title">Gene-level analysis</h4>
       <a href="{% url 'tp:gene-foldchange' %}" class="btn btn-default">Results in browser</a>
+      {% if experiments|length < 50 %}
       <a href="{% url 'tp:export-result' restype='foldchangeresult' %}" class="btn btn-default">Export to Excel</a>
+      {% endif %}
     </div>
   </div>
   <div id="modulesection" class="card">
     <div class="card-block">
       <h4 class="card-title">WGCNA module analysis</h4>
       <a href="{% url 'tp:module-scores' %}" class="btn btn-default">Results in browser</a>
+      {% if experiments|length < 50 %}
       <a href="{% url 'tp:export-result' restype='modulescores' %}" class="btn btn-default">Export to Excel</a>
+      {% endif %}
     </div>
   </div>
   <div id="gsasection" class="card">
     <div class="card-block">
       <h4 class="card-title">Gene set enrichment analysis</h4>
       <a href="{% url 'tp:gsa-scores' %}" class="btn btn-default">Results in browser</a>
+      {% if experiments|length < 50 %}
       <a href="{% url 'tp:export-result' restype='gsascores' %}" class="btn btn-default">Export to Excel</a>
+      {% endif %}
     </div>
   </div>
   {# do not show the similarity-based analysis option if too many exps in cart #}
@@ -52,7 +58,9 @@
     <div class="card-block">
       <h4 class="card-title">Clinical chemistry and/or histology (if available)</h4>
       <a href="{% url 'tp:toxicology-results' %}" class="btn btn-default">Results in browser</a>
+      {% if experiments|length < 50 %}
       <a href="{% url 'tp:export-result' restype='toxicologyresult' %}" class="btn btn-default">Export to Excel</a>
+      {% endif %}
     </div>
   </div>
 </div>

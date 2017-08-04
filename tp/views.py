@@ -3,6 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 
 from django.shortcuts import render, get_object_or_404
+from django.db.models import Q
 from django.conf import settings
 from django.http import HttpResponseRedirect, HttpResponse
 from django.views.generic import ListView, DetailView, FormView
@@ -89,6 +90,20 @@ def cart_add(request, pk):
     analyze_list = request.session.get('analyze_list', [])
     if pk not in analyze_list:
         analyze_list.append(pk)
+    request.session['analyze_list'] = analyze_list
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def cart_add_filtered(request):
+    """ add filtered experiments to the analysis cart and return"""
+
+    filtered_exps = request.session.get('filtered_exps', [])
+    analyze_list = request.session.get('analyze_list', [])
+
+    for pk in filtered_exps:
+        if pk not in analyze_list:
+            analyze_list.append(pk)
     request.session['analyze_list'] = analyze_list
 
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
@@ -516,9 +531,7 @@ def confirm_experiment_sample_pair(request):
 def compute_fold_change(request):
     """ run computation script on meta data stored in session """
 
-    user = None
-    if request.user.is_authenticated():
-        user = request.user
+    user = request.user
 
     if request.method == 'POST':
         # once job is complete, clear all the session variables used in process
@@ -556,7 +569,7 @@ def compute_fold_change(request):
 def export_result_xls(request, restype=None):
     """ query module / GSA / gene fold change and return excel file """
     
-    rowlimit = 100000
+    rowlimit = 65000
     limit_breached = False
     response = HttpResponse(content_type='application/ms-excel')
     response['Content-Disposition'] = 'attachment; filename="analysis_results.xls"'
@@ -585,6 +598,7 @@ def export_result_xls(request, restype=None):
         restype = request.session['filtered_type']
         logging.info('Retrieving results from filtered view for result type %s and %s pre-filtered results', restype, len(subset))
 
+    # otherwise, exporting all results directly from the analysis summary without interactive view
     if restype.lower() == 'modulescores':
         colnames += ['module', 'type', 'description', 'score']
         rows = ModuleScores.objects.filter(experiment__pk__in=exp_list)
@@ -816,14 +830,22 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
                 exps = exps.annotate(search=vector).filter(search__contains=this)
                 logger.debug('Subsequent user term %s reduced to %s hits', this, len(exps))
 
-            logger.debug('User query returned %s', exps)
+            logger.debug('User query returned %s exps', len(exps))
         else:
             exps = Experiment.objects.all()
-            logger.debug('Standard query returned %s', exps)
+            logger.debug('Standard query returned %s exps', len(exps))
 
-        if only_mine and self.request.user.is_authenticated():
+        if only_mine:
             exps = exps.filter(study__owner=self.request.user)
-            logger.debug('Query after filtering on user returned %s', exps)
+            logger.debug('Query after filtering on user returned %s exps', len(exps))
+        else:
+            # only show public experiments or owned by user
+            exps = exps.filter(Q(study__permission='P') | Q(study__owner=self.request.user))
+
+        self.request.session['filtered_exps'] = None
+        if (only_mine or user_query) and len(exps) > 0:
+            self.request.session['filtered_exps'] = list(exps.values_list('id', flat=True))
+            logger.debug('Storing list of %s experiments', len(self.request.session['filtered_exps']))
 
         return exps
 
@@ -1165,27 +1187,30 @@ class FilteredSingleTableView(SingleTableView):
         # reset filtering session vars from any previous use
         self.request.session['filtered_list'] = []
         self.request.session['filtered_type'] = None
+        self.request.session['allow_export'] = False
 
-        # TODO - will generate an error if someone tries exporting a set with nothing in it
-        # if exporting from excel, need to know what kind of data (module, pathway, etc) was being examined.
-        # Is there a better way to store in general way type of sub-classed view using this?
-        # TODO - need to store a trigger than some set of results was filtered; will replace the Or False
-        # Why two part conditional statement? small list of experiments (typical user case, i.e. viewing results for my
-        # experiments), store either the full set of results or filtered set.  Full set meaning someone is viewing all
-        # module results, and they don't do any filtering.  They want to export all the results.  Other case is when
-        # viewing all experiments in cart.  Here, unless they actually filter to something first, don't allow export.
-        # Once they filtered to a gene or something reasonable, then run this block.  Otherwise, performance is very slow
-        if len(exp_list) < 100 and len(self.filter.qs) > 0 or False:
+        changed_fields = len(self.filter.form.changed_data)
+        logger.debug('Number of filtered fields set by user: %s', changed_fields)
+
+        # if viewing results for a limited list of experiments, (typical user case) and they didn't do any filtering,
+        # no problem - they can export full result set to excel; 100 exps may be too large however ...
+        if len(exp_list) < 100 and changed_fields == 0:
+            logger.debug('Setting up export of full result set for limited exps set')
             self.request.session['filtered_type'] = results[0].__class__.__name__
-
-            # no need to store long list of ids for viewed results if nothing was filtered (although maybe this is
-            # harmless, didn't do any performance testing).
-            # However, force storage of selected IDs when working with ToxicologyResults through SimilarExperiments, so
-            # that subsequent excel export does not revert to using the experiments in analysis cart
-            if len(self.filter.qs) < len(data) or used_simexp:
-                ids = list(results.values_list('id', flat=True))
-                logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)
-                self.request.session['filtered_list'] = ids
+            self.request.session['allow_export'] = True
+        # 1) via used_simexp, force storage of selected IDs when working with ToxicologyResults through SimilarExperiments,
+        # so that subsequent excel export does not revert to using the experiments in analysis cart
+        # 2) if they filtered, store the filtered IDs
+        # TODO - evaluation on result length is necessary when working with full experiment set, yet it does trigger
+        # an actual sql query which slows things down.  i.e. if user filters inadequatly, it triggers another long wait
+        # for gene-level data.  Would be useful to put a limit into sql for everything via model manager perhaps ..
+        elif used_simexp or changed_fields and 0 < len(results) < 65000:
+            logger.debug('Setting up export of filtered result set')
+            self.request.session['filtered_type'] = results[0].__class__.__name__
+            self.request.session['allow_export'] = True
+            ids = list(results.values_list('id', flat=True))
+            logger.debug('Retrieved data of length %s being stored in session:  %s', len(results), ids)
+            self.request.session['filtered_list'] = ids
 
         return results
 

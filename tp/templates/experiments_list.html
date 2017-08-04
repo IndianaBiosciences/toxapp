@@ -8,7 +8,6 @@
 
 <div class="container">
 
-  {# TODO - place a graphic up top summarzing number of entries in request.session.analyze_list #}
   {# TODO - use a button with javascript to enable/disable based on session.analyze content #}
   <div class="panel panel-default">
     <div class="panel-body">
@@ -17,7 +16,10 @@
     <a class="btn btn-default" href="{% url 'tp:cart-empty' %}">Empty analysis cart</a>
     {% endif %}
     <a class="btn btn-default" href="{% url 'tp:cart-add-all' %}">Add all experiments to cart</a>
-    <a class="btn btn-default pull-right" href="{% url 'tp:cart-edit' %}">{{ cart_items }} Analysis cart</a>
+    {% if request.session.filtered_exps %}
+    <a class="btn btn-default" href="{% url 'tp:cart-add-filtered' %}">Add filtered experiments to cart</a>
+    {% endif %}
+    <a class="btn btn-default pull-right" href="{% url 'tp:cart-edit' %}">Analysis cart {{ cart_items }}</a>
     </div>
   </div>
 
