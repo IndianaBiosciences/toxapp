@@ -202,7 +202,7 @@ EMAIL_PORT = 25
 EMAIL_HOST_USER = ''
 EMAIL_HOST_PASSWORD = ''
 EMAIL_USE_TLS = False
-DEFAULT_FROM_EMAIL = 'CTox <drobertson@indianabiosciences.org>'
+FROM_EMAIL = 'CTox <dhrobertson@runbox.com>'
 
 # Computation Configurations
 COMPUTATION = {

@@ -22,7 +22,7 @@ def add(x, y):
 @shared_task
 def process_user_files(tmpdir, config_file, email):
 
-    from_email = 'CTox <dhrobertson@runbox.com>'  #TODO -- Move to Settings
+    from_email = settings.FROM_EMAIL
 
     # step1 - calculate group fold change and load data to the database
     logger.info('Step 1')
