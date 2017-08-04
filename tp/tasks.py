@@ -22,6 +22,8 @@ def add(x, y):
 @shared_task
 def process_user_files(tmpdir, config_file, email):
 
+    from_email = 'CTox <dhrobertson@runbox.com>'  #TODO -- Move to Settings
+
     # step1 - calculate group fold change and load data to the database
     logger.info('Step 1')
     compute = Computation(tmpdir)
@@ -30,7 +32,7 @@ def process_user_files(tmpdir, config_file, email):
     if groupfc_file is None or not os.path.isfile(groupfc_file):
         message = 'Computation script failed to calculate fold change data'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 1: gene-level fold change file created: %s', groupfc_file)
 
@@ -38,7 +40,7 @@ def process_user_files(tmpdir, config_file, email):
     if status is None:
         message = 'Failed to process and load gene-level fold change data; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 1: gene-level fold change data processed and loaded')
 
@@ -48,7 +50,7 @@ def process_user_files(tmpdir, config_file, email):
     if fc_data is None:
         message = 'Failed to map fold change data to rat entrez gene IDs; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 2: gene-level fold change data mapped to genes')
 
@@ -58,7 +60,7 @@ def process_user_files(tmpdir, config_file, email):
     if module_scores is None:
         message = 'Failed to score experiment results using WGCNA modules; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 3a: experiment scored using WGCNA models')
 
@@ -66,7 +68,7 @@ def process_user_files(tmpdir, config_file, email):
     if status is None:
         message = 'Failed to process and load WGCNA module data; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 3b: experiment scored using WGCNA models loaded to database')
 
@@ -76,7 +78,7 @@ def process_user_files(tmpdir, config_file, email):
     if gsa_scores is None:
         message = 'Failed to score experiment results using gene set analysis; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 4a: experiment scored using GSA')
 
@@ -84,7 +86,7 @@ def process_user_files(tmpdir, config_file, email):
     if status is None:
         message = 'Failed to process and load gene set analysis data; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 4b: experiment scored using GSA and loaded to database')
 
@@ -103,7 +105,7 @@ def process_user_files(tmpdir, config_file, email):
     if correl is None:
         message = 'Failed to calculate correlation to existing experiments using WGCNA; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 5a: experiment correlation calculated using WGCNA and loaded to database')
 
@@ -111,7 +113,7 @@ def process_user_files(tmpdir, config_file, email):
     if status is None:
         message = 'Failed to load experiment correlation for WGCNA; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 5b: experiment correl using WGCNA loaded to database')
 
@@ -119,7 +121,7 @@ def process_user_files(tmpdir, config_file, email):
     if correl is None:
         message = 'Failed to calculate correlation to existing experiments using RegNet; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 5c: experiment correlation calculated using RegNet and loaded to database')
 
@@ -127,13 +129,13 @@ def process_user_files(tmpdir, config_file, email):
     if status is None:
         message = 'Failed to load experiment correlation for RegNet; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, 'do_not_reply@indianabiosciences.org', [email])
+        send_mail('IBRI tox portal computation failed', message, from_email, [email])
         return
     logger.info('Step 5d: experiment correl using RegNet loaded to database')
 
     message = 'Final: Uploaded expression data is ready for analysis'
     logger.info(message)
-    send_mail('IBRI tox portal computation complete', message, 'do_not_reply@indianabiosciences.org', [email])
+    send_mail('IBRI tox portal computation complete', message, from_email, [email])
 
 
 def load_group_fold_change(compute, groupfc_file):
