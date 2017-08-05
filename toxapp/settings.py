@@ -29,6 +29,7 @@ ALLOWED_HOSTS = [
     '54.90.204.220',
     '127.0.0.1',
     '192.168.0.102',
+    'ctox.indianabiosciences.org',
 ]
 
 # Application definition
