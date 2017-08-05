@@ -1,0 +1,4 @@
+{%  load tp_extras %}
+{%  if record.id in qc_lookup %}
+    <a href="{{ qc_lookup|hash:record.id }}" target="_blank" class="glyphicon glyphicon-file" title="View QC File"></a>
+{%  endif %}

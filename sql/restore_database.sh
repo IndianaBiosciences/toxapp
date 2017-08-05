@@ -1,6 +1,6 @@
 #!/bin/bash
 
 export PGPASSWORD='dbadmin'
-psql -U dbadmin -d postgres < drop_db.sql
-psql -U dbadmin -d postgres < init_db.sql
-pg_restore -U dbadmin -d ibri $*
+psql -h 127.0.0.1 -U dbadmin -d postgres < drop_db.sql
+psql -h 127.0.0.1 -U dbadmin -d postgres < init_db.sql
+pg_restore -h 127.0.0.1 -U dbadmin -d ibri $*

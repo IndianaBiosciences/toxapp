@@ -19,6 +19,7 @@ from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesFo
 from .tasks import load_measurement_tech_gene_map, process_user_files
 import tp.filters
 import tp.tables
+import tp.utils
 
 import os
 import time
@@ -478,7 +479,10 @@ def confirm_experiment_sample_pair(request):
                         file_name=request.session.get('sample_file'),
                         file_type=request.session.get('sample_type'),
                         tmpdir=request.session.get('tmp_dir'),
-                        script_dir=computation_config["script_dir"])
+                        script_dir=computation_config["script_dir"],
+                        url_dir=computation_config["url_dir"],
+                        userid=request.user.id,
+                        username=request.user.username)
         file = os.path.join(tmpdir, 'computation_data.json')
         logger.debug('json job config file:  %s', file)
         with open(file, 'w') as outfile:
@@ -783,6 +787,9 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
         analyze_list = self.request.session.get('analyze_list', [])
         cart_items = len(analyze_list)
         context['cart_items'] = cart_items
+        request = self.request
+        context['qc_lookup'] = tp.utils.get_user_qc_urls(request.user.username)
+
         return context
 
     def get_queryset(self):

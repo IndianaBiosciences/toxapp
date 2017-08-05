@@ -528,7 +528,7 @@ def read_rna_seq_file(rnafile):
     return rna
 
 
-def compute_gfc_rnaseq(rnafile, experiments, outfile, sdir):
+def compute_gfc_rnaseq(rnafile, experiments, outfile, config):
     """ Compute the fold factors for RNAseq file via Dow AgroScience process
 
     Parameters
@@ -539,9 +539,15 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, sdir):
         definition of the experiments, samples, and sample type
     outfile : file
         output file with the results
-    sdir : str
-        the directory location for the R scriptsß
+    config : dict
+        full json configuration
 """
+    #
+    # Set up directories
+    #
+    sdir = config['script_dir']
+    udir = config['url_dir']
+    username = config['username']
 
     #
     # Create the necessary files referenced in DESeq.R
@@ -551,7 +557,7 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, sdir):
     rna = read_rna_seq_file(rnafile)
     rna_pc = filter_by_protein_coding(rna, os.path.join(sdir, "Rattus_norvegicus.Rnor_6.0.80.gene_info.csv"))
 
-   # filter by counts and normalize
+    # filter by counts and normalize
     # input file: gene_counts.txt
     # output file: ??
     write_rna_seq('gene_counts.txt', rna_pc)
@@ -637,6 +643,23 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, sdir):
                                 resultsfile, e['experiment']['exp_id'])
     otxtfile.close()
 
+    #
+    # move the pdf files to the appropriate location
+    #
+    files = os.listdir()
+
+    udir = os.path.join(udir, username)
+
+    if not os.path.isdir(udir):
+        os.mkdir(udir)
+
+    if os.path.isdir(udir):
+        for file in files:
+            if "Rplots_" in file:
+                shutil.copy(file, os.path.join(udir,file))
+            logging.debug("Copying file %s to directory %s", file, udir)
+
+
 
 def compute_gfc_CEL(infile, outfile, celdir, sdir):
     """ Compute the fold factors for CEL file via Lilly process
@@ -694,7 +717,7 @@ def compute_fold_factors(infile, outfile, celdir, sdir):
     if config['file_type'] == 'CEL':
         compute_gfc_CEL(infile, outfile, celdir, config['script_dir'])
     else:
-        compute_gfc_rnaseq(config['file_name'], config['experiments'], outfile, config['script_dir'])
+        compute_gfc_rnaseq(config['file_name'], config['experiments'], outfile, config)
 
 
 class MyTests(unittest.TestCase):

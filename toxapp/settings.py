@@ -207,4 +207,5 @@ FROM_EMAIL = 'CTox <dhrobertson@runbox.com>'
 # Computation Configurations
 COMPUTATION = {
     'script_dir': os.path.join(BASE_DIR, 'scripts'),
+    'url_dir' : '/var/www/toxapp'
 }
