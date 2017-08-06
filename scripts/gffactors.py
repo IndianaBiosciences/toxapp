@@ -158,7 +158,8 @@ def create_cel_list(cfile, celdir, experiments):
                 sfile = os.path.join(celdir, s + ".CEL")
                 logger.debug("Checking existence for sample: " + sfile)
                 if os.path.isfile(sfile):
-                    cell_files.append(sfile)
+                    if sfile not in cell_files:
+                        cell_files.append(sfile)
                 else:
                     logger.critical("Unable to locate CEL file for exp %s and file %s ", e, sfile)
                     exit(0)
