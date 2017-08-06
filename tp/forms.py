@@ -32,7 +32,7 @@ class ExperimentForm(ModelForm):
             'time': _('Time in days'),
         }
         help_texts = {
-            'experiment_name': _('Click on "Experiment name" label to autopopulate on other entries'),
+            'experiment_name': _('Click on button to autopopulate on other entries'),
         }
 
 

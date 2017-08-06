@@ -22,7 +22,7 @@ $(function() {
   $('.datepicker').datepicker();
 
   // clicking on experiment name in experiment_form.html causes auto-population of name
-  $('#id_experiment_name').select(function () {
+  $('#experiment_auto_btn').on('click', function () {
 
     var compound_name = $('#id_compound_name').val()
     var dose = $('#id_dose').val()
