@@ -32,7 +32,7 @@ def process_user_files(tmpdir, config_file, email):
     email_message = "Workflow status\n"
 
     if groupfc_file is None or not os.path.isfile(groupfc_file):
-        message += 'Step 1a Failed: Computation script failed to calculate fold change data'
+        message = 'Step 1a Failed: Computation script failed to calculate fold change data'
         logger.error(message)
         email_message += message
         send_mail('IBRI CTox Computation: Error at Step 1a', email_message, from_email, [email])
@@ -168,7 +168,7 @@ def process_user_files(tmpdir, config_file, email):
 
     email_message += "Step 5d Completed: Correlations to RegNet processed and loaded\n"
 
-    message += 'All computations sucessfully completed.\nUploaded expression data is ready for analysis'
+    message = 'All computations sucessfully completed.\nUploaded expression data is ready for analysis'
     logger.info(message)
     email_message += message
     send_mail('IBRI CTox Computation: Complete', email_message, from_email, [email])
