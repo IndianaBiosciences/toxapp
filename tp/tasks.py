@@ -29,66 +29,89 @@ def process_user_files(tmpdir, config_file, email):
     compute = Computation(tmpdir)
     groupfc_file = compute.calc_fold_change(config_file)
 
+    email_message = "Workflow status\n"
+
     if groupfc_file is None or not os.path.isfile(groupfc_file):
-        message = 'Computation script failed to calculate fold change data'
+        message += 'Step 1a Failed: Computation script failed to calculate fold change data'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 1a', email_message, from_email, [email])
         return
     logger.info('Step 1: gene-level fold change file created: %s', groupfc_file)
 
+    email_message += "Step 1a Completed: gene-fold change\n"
+
     status = load_group_fold_change(compute, groupfc_file)
     if status is None:
-        message = 'Failed to process and load gene-level fold change data; no further computations performed'
+        message = 'Step 1b Failed: Error processing and loading gene-level fold change data; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 1b', email_message, from_email, [email])
         return
     logger.info('Step 1: gene-level fold change data processed and loaded')
+
+    email_message += "Step 1b Completed: gene-fold change processed and loaded\n"
 
     # step 2 - map data for this measurement technology to rat entrez gene IDs
     logger.info('Step 2')
     fc_data = compute.map_fold_change_data(groupfc_file)
     if fc_data is None:
-        message = 'Failed to map fold change data to rat entrez gene IDs; no further computations performed'
+        message = 'Step 2 Failed: Error mapping fold change data to rat entrez gene IDs; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 2', email_message, from_email, [email])
         return
     logger.info('Step 2: gene-level fold change data mapped to genes')
+
+    email_message += "Step 2 Completed: gene-fold changes mapped to rat entrez gene IDs\n"
 
     # step 3 - score experiment data using WGCNA modules and load to database
     logger.info('Step 3')
     module_scores = compute.score_modules(fc_data)
     if module_scores is None:
-        message = 'Failed to score experiment results using WGCNA modules; no further computations performed'
+        message = 'Step 3a Failed: Error scoring experiment results using WGCNA modules; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 3a', email_message, from_email, [email])
         return
     logger.info('Step 3a: experiment scored using WGCNA models')
 
+    email_message += "Step 3a Completed: experiment scored using WGCNA models\n"
+
     status = load_module_scores(module_scores)
     if status is None:
-        message = 'Failed to process and load WGCNA module data; no further computations performed'
+        message = 'Step 3b Failed: Error processing and load WGCNA module data; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 3b', email_message, from_email, [email])
         return
     logger.info('Step 3b: experiment scored using WGCNA models loaded to database')
+
+    email_message += "Step 3b Completed: Processed and loaded of WGCNA modules data\n"
 
     # step 4 - score experiment data using GSA
     logger.info('Step 4')
     gsa_scores = compute.score_gsa(fc_data)
     if gsa_scores is None:
-        message = 'Failed to score experiment results using gene set analysis; no further computations performed'
+        message = 'Step 4a Failed: Error scoring experiment results using GAS; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 4a', email_message, from_email, [email])
         return
     logger.info('Step 4a: experiment scored using GSA')
 
+    email_message += "Step 4a Completed: Experiments scored using GSA\n"
+
     status = load_gsa_scores(compute, gsa_scores)
     if status is None:
-        message = 'Failed to process and load gene set analysis data; no further computations performed'
+        message = 'Step 4b Failed: Error processing and loading GSA data; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 4b', email_message, from_email, [email])
         return
     logger.info('Step 4b: experiment scored using GSA and loaded to database')
+
+    email_message += "Step 4b Completed: GSA results loaded to database\n"
 
     new_exps = Experiment.objects.filter(id__in=list(fc_data.keys()))
 
@@ -103,39 +126,52 @@ def process_user_files(tmpdir, config_file, email):
     logger.info('Step 5: evaluating pairwise similarity vs. experiments  using WGCNA and RegNet')
     correl = compute.calc_exp_correl(new_exps, 'WGCNA')
     if correl is None:
-        message = 'Failed to calculate correlation to existing experiments using WGCNA; no further computations performed'
+        message = 'Step 5a Failed: Error calculating correlation to existing experiments using WGCNA; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 5a', email_message, from_email, [email])
         return
     logger.info('Step 5a: experiment correlation calculated using WGCNA and loaded to database')
 
+    email_message += "Step 5a Completed: Correlations to WGCNA modules calculated\n"
+
     status = load_correl_results(compute, correl, 'WGCNA')
     if status is None:
-        message = 'Failed to load experiment correlation for WGCNA; no further computations performed'
+        message = 'Step 5b Failed: Error loading experiment correlation for WGCNA; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 5a', email_message, from_email, [email])
         return
     logger.info('Step 5b: experiment correl using WGCNA loaded to database')
+
+    email_message += "Step 5b Completed: Correlations to WGCNA processed and loaded\n"
 
     correl = compute.calc_exp_correl(new_exps, 'RegNet')
     if correl is None:
         message = 'Failed to calculate correlation to existing experiments using RegNet; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 5a', email_message, from_email, [email])
         return
     logger.info('Step 5c: experiment correlation calculated using RegNet and loaded to database')
+
+    email_message += "Step 5c Completed: Correlations to RegNet modules calculated\n"
 
     status = load_correl_results(compute, correl, 'RegNet')
     if status is None:
         message = 'Failed to load experiment correlation for RegNet; no further computations performed'
         logger.error(message)
-        send_mail('IBRI tox portal computation failed', message, from_email, [email])
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 5a', email_message, from_email, [email])
         return
     logger.info('Step 5d: experiment correl using RegNet loaded to database')
 
-    message = 'Final: Uploaded expression data is ready for analysis'
+    email_message += "Step 5d Completed: Correlations to RegNet processed and loaded\n"
+
+    message += 'All computations sucessfully completed.\nUploaded expression data is ready for analysis'
     logger.info(message)
-    send_mail('IBRI tox portal computation complete', message, from_email, [email])
+    email_message += message
+    send_mail('IBRI CTox Computation: Complete', email_message, from_email, [email])
 
 
 def load_group_fold_change(compute, groupfc_file):

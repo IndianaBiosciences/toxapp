@@ -29,6 +29,7 @@ ALLOWED_HOSTS = [
     '54.90.204.220',
     '127.0.0.1',
     '192.168.0.102',
+    'ctox.indianabiosciences.org',
 ]
 
 # Application definition
@@ -207,4 +208,5 @@ FROM_EMAIL = 'CTox <dhrobertson@runbox.com>'
 # Computation Configurations
 COMPUTATION = {
     'script_dir': os.path.join(BASE_DIR, 'scripts'),
+    'url_dir' : '/var/www/toxapp'
 }
