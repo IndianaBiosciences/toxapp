@@ -143,7 +143,7 @@ class Computation:
             for row in reader:
 
                 if any(row[i] == '' for i in req_attr_m):
-                    logger.error('File %s contains undefined values for one or more required attributes %s', module_file, ",".join(req_attr_m))
+                    logger.error('File %s contains undefined values for one or more required attributes %s on line %s', module_file, ",".join(req_attr_m), row)
                     return None
 
                 system = ":".join([row['tissue'], row['organism']])
@@ -162,7 +162,7 @@ class Computation:
             for row in reader:
 
                 if any(row[i] == '' for i in req_attr_g ):
-                    logger.error('File %s contains undefined values for one or more required attributes %s', genestats_file, ",".join(req_attr_g))
+                    logger.error('File %s contains undefined values for one or more required attributes %s on line %s', genestats_file, ",".join(req_attr_g), row)
                     return None
 
                 # if a gene doesn't have rat ortholog, skip for now as these are rat-centric modules
@@ -205,7 +205,7 @@ class Computation:
             for row in reader:
 
                 if any(row[i] == '' for i in req_attr_core):
-                    logger.error('File %s contains undefined values for one or more required attributes %s', core_list, ",".join(req_attr_core))
+                    logger.error('File %s contains undefined values for one or more required attributes %s on line %s', core_list, ",".join(req_attr_core), row)
                     return None
 
                 core_gene_sets[row['id']] = 1
@@ -218,7 +218,7 @@ class Computation:
             for row in reader:
 
                 if any(row[i] == '' for i in req_attr_go):
-                    logger.error('File %s contains undefined values for one or more required attributes %s', go_file, ",".join(req_attr_go))
+                    logger.error('File %s contains undefined values for one or more required attributes %s on line %s', go_file, ",".join(req_attr_go), row)
                     return None
 
                 rat_entrez_gene = int(row['entrez_gene_id'])
@@ -240,7 +240,7 @@ class Computation:
             for row in reader:
 
                 if any(row[i] == '' for i in req_attr_msigdb):
-                    logger.error('File %s contains undefined values for one or more required attributes %s', msigdb_file, ",".join(req_attr_msigdb))
+                    logger.error('File %s contains undefined values for one or more required attributes %s on line %s', msigdb_file, ",".join(req_attr_msigdb), row)
                     return None
 
                 rat_entrez_gene = int(row['rat_entrez_gene'])
@@ -326,7 +326,7 @@ class Computation:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
                 if any(row[i] == '' for i in req_attr):
-                    logger.error('File %s contains undefined values for one or more required attributes %s', fc_file, ",".join(req_attr))
+                    logger.error('File %s contains undefined values for one or more required attributes %s on line %s', fc_file, ",".join(req_attr), row)
                     return None
 
                 exp_id = int(row['experiment'])
