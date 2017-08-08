@@ -733,6 +733,14 @@ class StudyView(ResetSessionMixin, SingleTableView):
     table_class = tp.tables.StudyListTable
     table_pagination = True
 
+    def get_context_data(self, **kwargs):
+
+        context = super(StudyView, self).get_context_data(**kwargs)
+        request = self.request
+        context['qc_lookup'] = tp.utils.get_user_qc_urls(request.user.username)
+
+        return context
+
     def get_queryset(self):
         # to ensure that only a user's study are shown to him/her
         new_context = Study.objects.filter(owner_id=self.request.user.id)
@@ -801,8 +809,6 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
         analyze_list = self.request.session.get('analyze_list', [])
         cart_items = len(analyze_list)
         context['cart_items'] = cart_items
-        request = self.request
-        context['qc_lookup'] = tp.utils.get_user_qc_urls(request.user.username)
 
         return context
 
@@ -810,6 +816,8 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
 
         user_query = self.request.GET.get('query')
         only_mine = self.request.GET.get('onlymyexp')
+        by_study = self.kwargs.get('study', None)
+
         if user_query:
 
             logger.debug('User query is %s', user_query)
@@ -838,6 +846,8 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
                 logger.debug('Subsequent user term %s reduced to %s hits', this, len(exps))
 
             logger.debug('User query returned %s exps', len(exps))
+        elif by_study:
+            exps = Experiment.objects.filter(study=int(by_study))
         else:
             exps = Experiment.objects.all()
             logger.debug('Standard query returned %s exps', len(exps))
@@ -850,7 +860,7 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
             exps = exps.filter(Q(study__permission='P') | Q(study__owner=self.request.user))
 
         self.request.session['filtered_exps'] = None
-        if (only_mine or user_query) and len(exps) > 0:
+        if (only_mine or user_query or by_study) and len(exps) > 0:
             self.request.session['filtered_exps'] = list(exps.values_list('id', flat=True))
             logger.debug('Storing list of %s experiments', len(self.request.session['filtered_exps']))
 

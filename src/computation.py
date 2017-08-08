@@ -156,7 +156,7 @@ class Computation:
         setattr(self, 'module_file', module_file)
 
         gs = Vividict()
-        req_attr_g = ['tech', 'tech_detail', 'tissue', 'organism', 'source', 'identifier', 'mean_fc', 'stdev_fc']
+        req_attr_g = ['tech', 'tech_detail', 'tissue', 'organism', 'source', 'identifier', 'rat_entrez_gene_id', 'mean_fc', 'stdev_fc']
         with open(genestats_file) as f:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
@@ -166,7 +166,7 @@ class Computation:
                     return None
 
                 system = ":".join([row['tissue'], row['organism'], row['tech'], row['tech_detail']])
-                gs[system][row['identifier']] = {'mean_fc': float(row['mean_fc']), 'stdev_fc': float(row['stdev_fc']), 'source': row['source']}
+                gs[system][row['rat_entrez_gene_id']] = {'mean_fc': float(row['mean_fc']), 'stdev_fc': float(row['stdev_fc']), 'source': row['source'], 'identifier': row['identifier']}
 
         #logger.debug('Read following gene identifier stats from file %s: %s', genestats_file, pprint.pformat(gs, indent=4))
 
@@ -408,14 +408,13 @@ class Computation:
             # scale log2fc using gene identifiers's log2fc variability
             scaled_fc = dict()
             for gene in fc_data[exp_id].keys():
-                identifier = fc_data[exp_id][gene]['identifier']
-                if gs[systech].get(identifier, None) is None:
-                    if warned_scaling.get(identifier, None) is None:
-                        logger.warning('No scaling data for gene identifier %s for system %s; skipping', identifier, systech)
-                        warned_scaling[identifier] = 1
+                if gs[systech].get(gene, None) is None:
+                    if warned_scaling.get(gene, None) is None:
+                        logger.warning('No scaling data for gene identifier %s for system %s; skipping', gene, systech)
+                        warned_scaling[gene] = 1
                     continue
 
-                stdev_fc = gs[systech][identifier]['stdev_fc']
+                stdev_fc = gs[systech][gene]['stdev_fc']
                 fc_scaled = fc_data[exp_id][gene]['log2_fc']/stdev_fc
                 scaled_fc[gene] = fc_scaled
 

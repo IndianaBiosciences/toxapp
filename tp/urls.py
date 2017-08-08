@@ -16,6 +16,8 @@ urlpatterns = [
 
     # view all experiments
     url(r'^experiments/$', login_required(views.ExperimentView.as_view()), name='experiments'),
+    # view all experiments for a given study ID
+    url(r'^experiments/(?P<study>\d+)$', login_required(views.ExperimentView.as_view()), name='experiments-bystudy'),
 
     # view single experiment detail
     url(r'^experiments/(?P<pk>[0-9]+)$', login_required(views.ExperimentDetailView.as_view()), name='experiments-list'),
