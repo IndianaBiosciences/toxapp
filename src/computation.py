@@ -156,7 +156,7 @@ class Computation:
         setattr(self, 'module_file', module_file)
 
         gs = Vividict()
-        req_attr_g = ['tech', 'tech_detail', 'tissue', 'organism', 'source', 'identifier', 'rat_entrez_gene_id', 'mean_fc', 'stdev_fc']
+        req_attr_g = ['tech', 'tech_detail', 'tissue', 'organism', 'source', 'identifier', 'mean_fc', 'stdev_fc']
         with open(genestats_file) as f:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
@@ -165,8 +165,12 @@ class Computation:
                     logger.error('File %s contains undefined values for one or more required attributes %s', genestats_file, ",".join(req_attr_g))
                     return None
 
+                # if a gene doesn't have rat ortholog, skip for now as these are rat-centric modules
+                if row['rat_entrez_gene_id'] == '':
+                    continue
+
                 system = ":".join([row['tissue'], row['organism'], row['tech'], row['tech_detail']])
-                gs[system][row['rat_entrez_gene_id']] = {'mean_fc': float(row['mean_fc']), 'stdev_fc': float(row['stdev_fc']), 'source': row['source'], 'identifier': row['identifier']}
+                gs[system][int(row['rat_entrez_gene_id'])] = {'mean_fc': float(row['mean_fc']), 'stdev_fc': float(row['stdev_fc']), 'source': row['source'], 'identifier': row['identifier']}
 
         #logger.debug('Read following gene identifier stats from file %s: %s', genestats_file, pprint.pformat(gs, indent=4))
 
@@ -407,16 +411,28 @@ class Computation:
 
             # scale log2fc using gene identifiers's log2fc variability
             scaled_fc = dict()
+
             for gene in fc_data[exp_id].keys():
                 if gs[systech].get(gene, None) is None:
                     if warned_scaling.get(gene, None) is None:
-                        logger.warning('No scaling data for gene identifier %s for system %s; skipping', gene, systech)
+                        #logger.debug('No scaling data for gene identifier %s for system %s; skipping', gene, systech)
                         warned_scaling[gene] = 1
                     continue
 
                 stdev_fc = gs[systech][gene]['stdev_fc']
                 fc_scaled = fc_data[exp_id][gene]['log2_fc']/stdev_fc
                 scaled_fc[gene] = fc_scaled
+
+            n_fails = len(warned_scaling)
+            n_success = len(scaled_fc)
+
+            if n_success < 1000:
+                logging.error('Fewer than 1000 identifiers (%s) from fold change data were used for module scoring; likely mapping error', n_success)
+                return None
+            elif n_fails:
+                ids = list(warned_scaling.keys())[0:10]
+                id_str = ",".join(str(x) for x in ids)
+                logger.warning('A total of %s genes with fold change results were not used for module scoring due to missing scaling factors; the first 10 are: %s', n_fails, id_str)
 
             for m in md[system].keys():
                 modsum = 0
