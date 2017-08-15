@@ -1211,7 +1211,7 @@ class FilteredSingleTableView(SingleTableView):
 
         # if viewing results for a limited list of experiments, (typical user case) and they didn't do any filtering,
         # no problem - they can export full result set to excel; 100 exps may be too large however ...
-        if len(exp_list) < 100 and changed_fields == 0:
+        if len(exp_list) < 100 and changed_fields == 0 and len(results) >= 1:
             logger.debug('Setting up export of full result set for limited exps set')
             self.request.session['filtered_type'] = results[0].__class__.__name__
             self.request.session['allow_export'] = True
