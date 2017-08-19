@@ -117,8 +117,26 @@ def cart_add(request, pk):
 
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
+def cart_add_all(request):
+    """ add all filtered or all experiments to the analysis cart and return"""
+
+    filtered_exps = request.session.get('filtered_exps', [])
+    if filtered_exps:
+        analyze_list = request.session.get('analyze_list', [])
+
+        for pk in filtered_exps:
+            if pk not in analyze_list:
+                analyze_list.append(pk)
+        request.session['analyze_list'] = analyze_list
+    else:
+        exps = Experiment.objects.all()
+        request.session['analyze_list'] = [e.pk for e in exps]
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 def cart_add_filtered(request):
+    # TODO - remove as this should not now be used due to function added to
+    # do not want to refactor yet due to lack of time
     """ add filtered experiments to the analysis cart and return"""
 
     filtered_exps = request.session.get('filtered_exps', [])
@@ -148,14 +166,6 @@ def cart_empty(request):
     """ remove all experiments from the analysis cart and return"""
 
     request.session['analyze_list'] = []
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-
-def cart_add_all(request):
-    """ add all experiments to the analysis cart and return"""
-
-    exps = Experiment.objects.all()
-    request.session['analyze_list'] = [e.pk for e in exps]
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 

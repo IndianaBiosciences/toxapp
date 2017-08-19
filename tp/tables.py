@@ -32,7 +32,7 @@ class SimilarExperimentsTable(tables.Table):
         model = ExperimentCorrelation
         fields = ['experiment', 'experiment_ref', 'source', 'correl', 'rank']
         attrs = {'class': 'table table-striped custab'}
-        order_by = '-rank'
+        order_by = '-correl'
 
 
 class ToxicologyResultsTable(tables.Table):

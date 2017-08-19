@@ -4,7 +4,7 @@
 
 <div class="alert alert-info">
   <strong>{{ experiments|length }} experiments selected</strong>
-  {% if experiments|length < 20 %}
+  {% if experiments|length < 10 %}
     :
     <ul>
       {% for exp in experiments %}
@@ -16,53 +16,50 @@
 
 {# TODO more styling info with cards including images at https://v4-alpha.getbootstrap.com/components/card/ #}
 {# TODO - could use ajax / javascript to show download in process after clicking export to excel and stops spinning when done ... can be slow  #}
-<div class="card-container">
-  <div id="genesection" class="card">
-    <div class="card-block">
-      <h4 class="card-title">Gene-level analysis</h4>
-      <a href="{% url 'tp:gene-foldchange' %}" class="reslink btn btn-default">Results in browser</a>
-      {% if experiments|length < 50 %}
-      <a href="{% url 'tp:export-result' restype='foldchangeresult' %}" class="btn btn-default">Export to Excel</a>
-      {% endif %}
-    </div>
-  </div>
-  <div id="modulesection" class="card">
-    <div class="card-block">
-      <h4 class="card-title">WGCNA module analysis</h4>
-      <a href="{% url 'tp:module-scores' %}" class="reslink map_ok btn btn-default">Results in browser</a>
-      {% if experiments|length < 50 %}
-      <a href="{% url 'tp:export-result' restype='modulescores' %}" class="btn btn-default">Export to Excel</a>
-      {% endif %}
-    </div>
-  </div>
-  <div id="gsasection" class="card">
-    <div class="card-block">
-      <h4 class="card-title">Gene set enrichment analysis</h4>
-      <a href="{% url 'tp:gsa-scores' %}" class="reslink map_ok btn btn-default">Results in browser</a>
-      {% if experiments|length < 50 %}
-      <a href="{% url 'tp:export-result' restype='gsascores' %}" class="btn btn-default">Export to Excel</a>
-      {% endif %}
-    </div>
-  </div>
-  {# do not show the similarity-based analysis option if too many exps in cart #}
-  {% if experiments|length < 50 %}
-  <div id="similaritysection" class="card">
-    <div class="card-block">
-      <h4 class="card-title">Most similar experiments</h4>
-      <a href="{% url 'tp:similar-exps' %}" class="reslink btn btn-default">Results in browser</a>
-      <a href="{% url 'tp:export-result' restype='experimentcorrelation' %}" class="btn btn-default">Export to Excel</a>
-    </div>
-  </div>
-  {% endif %}
-  <div id="toxicologyresultssection" class="card">
-    <div class="card-block">
-      <h4 class="card-title">Clinical chemistry and/or histology (if available)</h4>
-      <a href="{% url 'tp:toxicology-results' %}" class="reslink btn btn-default">Results in browser</a>
-      {% if experiments|length < 50 %}
-      <a href="{% url 'tp:export-result' restype='toxicologyresult' %}" class="btn btn-default">Export to Excel</a>
-      {% endif %}
-    </div>
-  </div>
+<div class="results">
+    <table>
+        <tr><td colspan="2" bgcolor="#003f3f" align="center"><span style="color: white; font-weight:bold; ">Access or Export Results</span></td></tr>
+      <tr style="background-color:#ffffff;">
+          <th> Gene-level analysis </th>
+          <td> &nbsp; <a href="{% url 'tp:gene-foldchange' %}" class="btn btn-primary">Results in Browser</a>
+               {% if experiments|length < 50 %}
+               <a href="{% url 'tp:export-result' restype='foldchangeresult' %}" class="btn btn-default">Export to Excel</a>
+               {% endif %}
+          </td>
+      </tr>
+      <tr style="background-color:#c5dddd;">
+          <th> WGCNA module analysis </th>
+          <td> &nbsp; <a href="{% url 'tp:module-scores' %}" class="btn btn-primary">Results in Browser</a>
+               {% if experiments|length < 50 %}
+               <a href="{% url 'tp:export-result' restype='modulescores' %}" class="btn btn-default">Export to Excel</a>
+               {% endif %}
+          </td>
+      </tr>
+      <tr style="background-color:#ffffff;">
+          <th> Gene set enrichment analysis </th>
+          <td> &nbsp; <a href="{% url 'tp:gsa-scores' %}" class="btn btn-primary">Results in Browser</a>
+               {% if experiments|length < 50 %}
+               <a href="{% url 'tp:export-result' restype='gsascores' %}" class="btn btn-default">Export to Excel</a>
+               {% endif %}
+          </td>
+      </tr>
+      <tr style="background-color:#c5dddd;">
+   {% if experiments|length < 50 %}
+       <th> Most similar experiments </th>
+          <td> &nbsp; <a href="{% url 'tp:similar-exps' %}" class="btn btn-primary">Results in Browser</a>
+               <a href="{% url 'tp:export-result' restype='experimentcorrelation' %}" class="btn btn-default">Export to Excel</a>
+          </td>
+      </tr>
+      <tr style="background-color:#ffffff;">
+   {% endif %}
+          <th> Clinical chemistry and/or histology (if available) </th>
+          <td> &nbsp; <a href="{% url 'tp:toxicology-results' %}" class="btn btn-primary">Results in Browser</a>
+               {% if experiments|length < 50 %}
+               <a href="{% url 'tp:export-result' restype='toxicologyresult' %}" class="btn btn-default">Export to Excel</a>
+               {% endif %}
+          </td>
+      </tr>
+    </table>
 </div>
 
 {% endblock content %}
