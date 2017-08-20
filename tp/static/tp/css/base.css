@@ -3,7 +3,12 @@ body {
     padding-top: 60px;
     padding-left: 10px;
     padding-bottom: 30px;
-    background-color: #f9f9f9
+    background-image: url("/static/tp/images/ctox_background_image.jpg");
+    background-size: cover;
+}
+
+.content {
+    background-color: rgba(255,255,255,0.5);
 }
 
 .navbar-inverse {
@@ -13,6 +18,11 @@ body {
 .container {
     margin-left: 10px;
     margin-right: 10px;
+}
+
+.carousel-inner > .item > img {
+    margin: 0 auto;
+    width: 100%;
 }
 
 .footer_base {
