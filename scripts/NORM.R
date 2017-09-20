@@ -26,7 +26,7 @@ for (package in packages) {
 #
 suppressMessages(library(affy))
 library(rat2302rnentrezgcdf)
-
+#library(mouse4302mmentrezgcdf)
 
 myFile <- "cell_files.txt"
 if (!file.exists(myFile)) {
@@ -39,6 +39,8 @@ celList
 celList <- as.character(celList$V1)
     
 affydata <- ReadAffy(filenames=celList, cdfname="Rat2302_rn_ENTREZG")
+#affydata <- ReadAffy(filenames=celList, cdfname = "Mouse4302_Mm_ENTREZG")
+
 geset <- rma(affydata)
 write.exprs(geset, file="RMA.txt")
     
