@@ -98,4 +98,6 @@ urlpatterns = [
     # export to filtered results to excel
     url(r'^export_filtered_results/$', views.export_result_xls, name='export-filtered-result'),
 
+    # export to filtered results to json
+    url(r'^heatmap_json/$', views.export_heatmap_json, name='json-filtered-result'),
 ]

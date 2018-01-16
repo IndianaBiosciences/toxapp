@@ -229,3 +229,9 @@ a.button_large {
    margin-left:0px;
    margin-bottom: 20px;
 }
+
+.viz_container {
+    min-width: 310px;
+    height: 400px;
+    margin: 0 auto;
+}

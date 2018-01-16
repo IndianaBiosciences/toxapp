@@ -1,5 +1,16 @@
 {% extends "base.html" %}
 
+{% block extra_head_content %}
+  {{ block.super }}
+  <script src="http://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/modules/heatmap.js"></script>
+  <script src="https://code.highcharts.com/modules/exporting.js"></script>
+  <script src="https://code.highcharts.com/modules/data.js"></script>
+  <script src="https://code.highcharts.com/modules/boost-canvas.js"></script>
+  <script src="https://code.highcharts.com/modules/boost.js"></script>
+  <script src="/static/tp/js/charts.js"></script>
+{% endblock %}
+
 {% load render_table from django_tables2 %}
 {% load bootstrap3 %}
 
@@ -15,6 +26,7 @@
   <a href="{% url 'tp:analysis-summary' %}" class="btn btn-primary">Back to summary</a>
   {% if request.session.allow_export %}
   <a href="{% url 'tp:export-filtered-result' %}" class="btn btn-default">Export to Excel</a>
+  <button type="button" class="btn btn-default" id="show_viz">Show visualization</button>
   {% endif %}
   {% if show_tox_result_link %}
   <a href="{% url 'tp:toxicology-results' %}" class="btn btn-default">Toxicology results for similar experiments</a>
@@ -23,14 +35,17 @@
 
 <div class="filter-dialog">
   <form class="form" action="" method="get">
-      {% bootstrap_form filter.form layout='horizontal' %}
-      {% buttons %}
-      {% bootstrap_button "Update" button_type="submit" button_class="btn-primary" %}
-      <a class="btn btn-default" href="{{ request.path }}">Clear</a>
-      {% endbuttons %}
+    {% bootstrap_form filter.form layout='horizontal' %}
+    {% buttons %}
+    {% bootstrap_button "Update" button_type="submit" button_class="btn-primary" %}
+    <a class="btn btn-default" href="{{ request.path }}">Clear</a>
+    {% endbuttons %}
   </form>
   <div id="uploadIcon"></div>
 </div>
+
+<div id="viz_loading"></div>
+<div id="viz_container" class="viz_container" hidden></div>
 
 
 {% render_table table %}
