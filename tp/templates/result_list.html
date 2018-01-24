@@ -37,7 +37,7 @@
   <form class="form" action="" method="get">
     {% bootstrap_form filter.form layout='horizontal' %}
     {% buttons %}
-    {% bootstrap_button "Update" button_type="submit" button_class="btn-primary" %}
+    {% bootstrap_button "Update" button_type="submit" button_class="btn-primary" extra_classes="table_updater" %}
     <a class="btn btn-default" href="{{ request.path }}">Clear</a>
     {% endbuttons %}
   </form>
@@ -46,7 +46,7 @@
 
 <div id="viz_loading"></div>
 <div id="viz_container" class="viz_container" hidden></div>
-
+<div id="vizstatus"></div>
 
 {% render_table table %}
 {% endblock content %}
