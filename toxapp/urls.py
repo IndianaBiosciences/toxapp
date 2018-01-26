@@ -20,6 +20,8 @@ from . import views
 
 admin.site.site_header = "IBRI Toxicogenomics Platform | Admin"
 
+app_name = "toxapp"
+
 urlpatterns = [
     url(r'^$', views.index, name='index'),
 

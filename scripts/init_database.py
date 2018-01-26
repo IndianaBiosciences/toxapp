@@ -139,13 +139,19 @@ def load_tox_results():
 
 
 def load_fold_change_data():
+
+    pgbin = config['DEFAULT']['pgloader_exec']
+    if not os.path.isfile(pgbin):
+        logger.fatal('Configured file for pgloader not accessible %s', pgbin)
+        exit(1)
+
     fc_loc = os.path.join(settings.BASE_DIR, config['DEFAULT']['groupfc_file_location'])
     logger.info('Loading group fold change data from dir %s', fc_loc)
 
     pgloader_conf = os.path.join(settings.BASE_DIR, config['DEFAULT']['pgloader_groupfc_conf'])
-    cmd = '/usr/bin/pgloader ' + pgloader_conf
+    cmd = pgbin + ' ' + pgloader_conf
     outf = NamedTemporaryFile(delete=False, suffix='.txt', dir=tmpdir)
-    logger.debug('Temporary file for loading fold change data is %s', outf.name)
+    logger.info('Temporary file for loading fold change data is %s', outf.name)
     # set environment variable used by pgloader script
     os.environ['PG_LOADER_FILE'] = outf.name
 
@@ -284,6 +290,7 @@ if __name__ == '__main__':
     # commented out - temp for resuming loads
     #created_exp_list = Experiment.objects.all()
     #tech_obj = created_exp_list[0].tech
+
     score_experiments(created_exp_list)
 
     # step 7 - load the pairwise experiment similarities
@@ -292,4 +299,3 @@ if __name__ == '__main__':
 
     correla = compute.calc_exp_correl(created_exp_list, 'RegNet')
     load_correl_results(compute, correla, 'RegNet')
-

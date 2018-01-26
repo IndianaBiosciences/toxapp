@@ -26,7 +26,7 @@ class Study(models.Model):
     source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_CHOICES[0][0])
     date = models.DateField(blank=True, null=True)
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True, on_delete=models.CASCADE)
     permission = models.CharField(max_length=1, choices=PERMISSION_TYPE, default=PERMISSION_TYPE[0][0], null=True)
 
     def __str__(self):
@@ -83,8 +83,8 @@ class Experiment(models.Model):
     )
 
     experiment_name = models.CharField(max_length=200)
-    tech = models.ForeignKey(MeasurementTech)
-    study = models.ForeignKey(Study)
+    tech = models.ForeignKey(MeasurementTech, on_delete=models.CASCADE)
+    study = models.ForeignKey(Study, on_delete=models.CASCADE)
     compound_name = models.CharField(max_length=50)
     dose = models.DecimalField(max_digits=10, decimal_places=2)
     dose_unit = models.CharField(max_length=20)
@@ -108,7 +108,7 @@ class Experiment(models.Model):
 
 class Sample(models.Model):
 
-    study = models.ForeignKey(Study)
+    study = models.ForeignKey(Study, on_delete=models.CASCADE)
     sample_name = models.CharField(max_length=50)
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
 
@@ -123,8 +123,8 @@ class ExperimentSample(models.Model):
         ('C', 'control'),
     )
 
-    sample = models.ForeignKey(Sample)
-    experiment = models.ForeignKey(Experiment)
+    sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     group_type = models.CharField(max_length=1, choices=GROUP_TYPE, default=GROUP_TYPE[0][0])
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
 
@@ -148,9 +148,9 @@ class Gene(models.Model):
 
 class IdentifierVsGeneMap(models.Model):
 
-    tech = models.ForeignKey(MeasurementTech)
+    tech = models.ForeignKey(MeasurementTech, on_delete=models.CASCADE)
     gene_identifier = models.CharField(max_length=30)
-    gene = models.ForeignKey(Gene)
+    gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
 
     def __str__(self):
         txt = "{}-{}".format(self.tech, self.gene_identifier)
@@ -161,8 +161,8 @@ class FoldChangeResult(models.Model):
     #TODO - Need to have expression_ctl to be larger digits due to RNAseq counts
     #TODO - p_bh probably needs to become p_adj as there may be different ways to adjust
 
-    experiment = models.ForeignKey(Experiment)
-    gene_identifier = models.ForeignKey(IdentifierVsGeneMap)
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+    gene_identifier = models.ForeignKey(IdentifierVsGeneMap, on_delete=models.CASCADE)
     log2_fc = models.DecimalField(max_digits=5, decimal_places=2)
     n_trt = models.IntegerField()
     n_ctl = models.IntegerField()
@@ -189,8 +189,8 @@ class GeneSets(models.Model):
 
 class ModuleScores(models.Model):
 
-    experiment = models.ForeignKey(Experiment)
-    module = models.ForeignKey(GeneSets)
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+    module = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
 
     def __str__(self):
@@ -200,8 +200,8 @@ class ModuleScores(models.Model):
 
 class GSAScores(models.Model):
 
-    experiment = models.ForeignKey(Experiment)
-    geneset = models.ForeignKey(GeneSets)
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+    geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
     p_bh = models.FloatField()
 
@@ -217,8 +217,8 @@ class ExperimentCorrelation(models.Model):
         ('RegNet', 'RegNet'),
     )
 
-    experiment = models.ForeignKey(Experiment, related_name='qry_experiment')
-    experiment_ref = models.ForeignKey(Experiment, related_name='ref_experiment')
+    experiment = models.ForeignKey(Experiment, related_name='qry_experiment', on_delete=models.CASCADE)
+    experiment_ref = models.ForeignKey(Experiment, related_name='ref_experiment', on_delete=models.CASCADE)
     source = models.CharField(max_length=10, choices=SOURCE_TYPE)
     correl = models.DecimalField(max_digits=3, decimal_places=2)
     rank = models.IntegerField()
@@ -230,7 +230,7 @@ class ExperimentCorrelation(models.Model):
 
 class ToxicologyResult(models.Model):
 
-    experiment = models.ForeignKey(Experiment)
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     result_type = models.CharField(max_length=30)
     result_name = models.CharField(max_length=100)
     group_avg = models.DecimalField(max_digits=10, decimal_places=2)
