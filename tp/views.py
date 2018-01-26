@@ -592,10 +592,7 @@ def make_result_export(request, restype=None):
     # restype will be None when coming from interactive filtered views of results; get it out of the session
     if restype is None:
         if request.session.get('filtered_type', None) is None:
-            message = 'Potential bug: trying to export results from filtered view with no info on result type in session; did you try exporting an empty result set?'
-            context = {'message': message, 'error': True}
-            logger.error('Trying to export results from filtered view with no info on result type in session')
-            return render(request, 'generic_message.html', context)
+            return None
 
         # retrieve the subset of records to be included in the excel file
         subset = request.session.get('filtered_list', [])
@@ -699,6 +696,12 @@ def export_result_xls(request, restype=None):
 
     res = make_result_export(request, restype)
 
+    if res is None:
+        message = 'Potential bug: trying to export results from filtered view with no info on result type in session; did you try exporting an empty result set?'
+        context = {'message': message, 'error': True}
+        logger.error('Trying to export results from filtered view with no info on result type in session')
+        return render(request, 'generic_message.html', context)
+
     response = HttpResponse(content_type='application/ms-excel')
     response['Content-Disposition'] = 'attachment; filename="analysis_results.xls"'
     # warn user that output was limited ... avoid too-large excel spreadsheet
@@ -734,58 +737,66 @@ def export_result_xls(request, restype=None):
 def export_heatmap_json(request, restype=None):
     """ query module / GSA / gene fold change and return json data """
     res = make_result_export(request, restype)
+
     nres = dict()
 
-    restype = res['restype']
-    nres['restype'] = restype
-
-    if restype.lower() == 'modulescores':
-        viz_cols = {'x': 2, 'y': 1, 'val': 5, 'tooltip': [4]}
-        nres.update({'scale': 'WGCNA module score', 'scalemin':-5, 'scalemax': 5}) 
-    elif restype.lower() == 'gsascores':
-        viz_cols = {'x': 2, 'y': 1, 'val': 6, 'tooltip': [3,4,7]}
-        nres.update({'scale': 'GSA score', 'scalemin':-10, 'scalemax': 1}) 
-    elif restype.lower() == 'foldchangeresult':
-        viz_cols = {'x': 4, 'y': 1, 'val': 5, 'tooltip': [2,9]}
-        nres.update({'scale': 'log2 fold change', 'scalemin':-3, 'scalemax': 3}) 
-    elif restype.lower() == 'experimentcorrelation':
-        viz_cols = {'x': 3, 'y': 1, 'val': 5, 'tooltip': [4,6]}
-        nres.update({'scale': 'Pearson R', 'scalemin':-1, 'scalemax': 1}) 
-    elif restype.lower() == 'toxicologyresult':
-        viz_cols = {'x': 3, 'y': 1, 'val': 4, 'tooltip': [2,5]}
-        nres.update({'scale': 'tox score', 'scalemin':0, 'scalemax': 3}) 
+    if res is None:
+        # not an error when called here - as user filters data and there are no results avail, the
+        # chart will ask for revised dataset
+        logger.info('Empty dataset requested for visualization')
+        nres['empty_dataset'] = True
     else:
-        raise NotImplementedError ('Type not implemented:', restype)
 
-    # scan through results and get a sorted list of experiments and module/gene sets /genes
-    # index of experiment names stored in variable y - i.e. heatmap vertical axis
-    y_vals = list(set(sorted(map(lambda x: x[viz_cols['y']], res['data']))))
-    logger.info('Have vals here %s', y_vals)
-    # index of module/geneset/gene names for display stored in variable x - i.e. heatmap horizontal axis
-    x_vals = list(set(sorted(map(lambda x: x[viz_cols['x']], res['data']))))
+        restype = res['restype']
+        nres['restype'] = restype
 
-    ndata = list()
-    for r in res['data']:
+        if restype.lower() == 'modulescores':
+            viz_cols = {'x': 2, 'y': 1, 'val': 5, 'tooltip': [4]}
+            nres.update({'scale': 'WGCNA module score', 'scalemin':-5, 'scalemax': 5})
+        elif restype.lower() == 'gsascores':
+            viz_cols = {'x': 2, 'y': 1, 'val': 6, 'tooltip': [3,4,7]}
+            nres.update({'scale': 'GSA score', 'scalemin':-10, 'scalemax': 1})
+        elif restype.lower() == 'foldchangeresult':
+            viz_cols = {'x': 4, 'y': 1, 'val': 5, 'tooltip': [2,9]}
+            nres.update({'scale': 'log2 fold change', 'scalemin':-3, 'scalemax': 3})
+        elif restype.lower() == 'experimentcorrelation':
+            viz_cols = {'x': 3, 'y': 1, 'val': 5, 'tooltip': [4,6]}
+            nres.update({'scale': 'Pearson R', 'scalemin':-1, 'scalemax': 1})
+        elif restype.lower() == 'toxicologyresult':
+            viz_cols = {'x': 3, 'y': 1, 'val': 4, 'tooltip': [2,5]}
+            nres.update({'scale': 'tox score', 'scalemin':0, 'scalemax': 3})
+        else:
+            raise NotImplementedError ('Type not implemented:', restype)
 
-        ttiptxt = ''
-        for item in viz_cols['tooltip']:
-            name = res['colnames'][item]
-            val = str(r[item])
-            if ttiptxt:
-                ttiptxt += '; '
-            ttiptxt += name + '=' + val
+        # scan through results and get a sorted list of experiments and module/gene sets /genes
+        # index of experiment names stored in variable y - i.e. heatmap vertical axis
+        y_vals = list(set(sorted(map(lambda x: x[viz_cols['y']], res['data']))))
+        logger.info('Have vals here %s', y_vals)
+        # index of module/geneset/gene names for display stored in variable x - i.e. heatmap horizontal axis
+        x_vals = list(set(sorted(map(lambda x: x[viz_cols['x']], res['data']))))
 
-        # get the indices corresponding to the x/y axis categories
-        x_ind = x_vals.index(r[viz_cols['x']])
-        y_ind = y_vals.index(r[viz_cols['y']])
+        ndata = list()
+        for r in res['data']:
 
-        # without the explicit float call (because it's a decimal), json ends up with numeric value in string
-        nr = {'x': x_ind, 'y':y_ind, 'value':float(r[viz_cols['val']]), 'exp': r[viz_cols['y']], 'feat': r[viz_cols['x']], 'detail':ttiptxt}
-        ndata.append(nr)
+            ttiptxt = ''
+            for item in viz_cols['tooltip']:
+                name = res['colnames'][item]
+                val = str(r[item])
+                if ttiptxt:
+                    ttiptxt += '; '
+                ttiptxt += name + '=' + val
 
-    nres['data'] = ndata
-    nres['x_vals'] = x_vals
-    nres['y_vals'] = y_vals
+            # get the indices corresponding to the x/y axis categories
+            x_ind = x_vals.index(r[viz_cols['x']])
+            y_ind = y_vals.index(r[viz_cols['y']])
+
+            # without the explicit float call (because it's a decimal), json ends up with numeric value in string
+            nr = {'x': x_ind, 'y':y_ind, 'value':float(r[viz_cols['val']]), 'exp': r[viz_cols['y']], 'feat': r[viz_cols['x']], 'detail':ttiptxt}
+            ndata.append(nr)
+
+        nres['data'] = ndata
+        nres['x_vals'] = x_vals
+        nres['y_vals'] = y_vals
 
     return JsonResponse(nres)
 

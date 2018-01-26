@@ -27,6 +27,7 @@
   {% if request.session.allow_export %}
   <a href="{% url 'tp:export-filtered-result' %}" class="btn btn-default">Export to Excel</a>
   <button type="button" class="btn btn-default" id="show_viz">Show visualization</button>
+  <button type="button" class="btn btn-default hidden" id="hide_viz">Hide visualization</button>
   {% endif %}
   {% if show_tox_result_link %}
   <a href="{% url 'tp:toxicology-results' %}" class="btn btn-default">Toxicology results for similar experiments</a>
@@ -45,8 +46,8 @@
 </div>
 
 <div id="viz_loading"></div>
-<div id="viz_container" class="viz_container" hidden></div>
-<div id="vizstatus"></div>
+<div id="viz_error" class="alert alert-warning hidden"></div>
+<div id="viz_container" class="viz_container hidden"></div>
 
 {% render_table table %}
 {% endblock content %}
