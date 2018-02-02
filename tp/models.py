@@ -181,10 +181,25 @@ class GeneSets(models.Model):
     type = models.CharField(max_length=50)
     desc = models.CharField(max_length=500)
     source = models.CharField(max_length=10)
+    image = models.CharField(blank=True, null=True, max_length=50)  # could use imagefield but does not seem to support svg
+    x_coord = models.FloatField(blank=True, null=True)
+    y_coord = models.FloatField(blank=True, null=True)
     core_set = models.BooleanField()
+    members = models.ManyToManyField(Gene, through='GeneSetMember')
 
     def __str__(self):
         return self.name
+
+
+class GeneSetMember(models.Model):
+
+    geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
+    gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
+    weight = models.DecimalField(blank=True, null=True, max_digits=5, decimal_places=2)
+
+    def __str__(self):
+        txt = "{}-{}".format(self.geneset, self.gene)
+        return txt
 
 
 class ModuleScores(models.Model):

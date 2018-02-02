@@ -102,7 +102,7 @@ def process_user_files(tmpdir, config_file, email):
 
     email_message += "Step 4a Completed: Experiments scored using GSA\n"
 
-    status = load_gsa_scores(compute, gsa_scores)
+    status = load_gsa_scores(gsa_scores)
     if status is None:
         message = 'Step 4b Failed: Error processing and loading GSA data; no further computations performed'
         logger.error(message)
@@ -114,13 +114,6 @@ def process_user_files(tmpdir, config_file, email):
     email_message += "Step 4b Completed: GSA results loaded to database\n"
 
     new_exps = Experiment.objects.filter(id__in=list(fc_data.keys()))
-
-    # TODO -- moved ahead at the moment so it will show partial results in case of failing at later
-    # stages. Need to move this back to end when all debugged
-    # set status on experiments as ready for analysis
-    for exp in new_exps:
-        exp.results_ready = True
-        exp.save()
 
     # step 5 - calculate near neighbors based on vector of module scores or GSA scores
     logger.info('Step 5: evaluating pairwise similarity vs. experiments  using WGCNA and RegNet')
@@ -167,6 +160,10 @@ def process_user_files(tmpdir, config_file, email):
     logger.info('Step 5d: experiment correl using RegNet loaded to database')
 
     email_message += "Step 5d Completed: Correlations to RegNet processed and loaded\n"
+
+    for exp in new_exps:
+        exp.results_ready = True
+        exp.save()
 
     message = 'All computations sucessfully completed.\nUploaded expression data is ready for analysis'
     logger.info(message)
@@ -342,31 +339,28 @@ def load_module_scores(module_scores):
     logger.info('Loading computed module scores into database')
 
     insert_count_scores = 0
-    insert_count_modules = 0
 
-    # compile a list of all modules for which results will be loaded
+    # compile a list of all modules for which results will be loaded, and save in dict to keep
+    # retrieving the same one
     load_modules = dict()
     for r in module_scores:
         load_modules[r['module']] = None
 
     for s in load_modules:
-
         try:
             geneset_obj = GeneSets.objects.get(name=s)
         except:
-            geneset_obj = GeneSets.objects.create(
-                name=s,
-                type='liver_module',
-                desc='',
-                source='WGCNA',
-                core_set=True
-            )
-            insert_count_modules += 1
+            logger.error('No gene set defined in database for %s; skipping results load', s)
+            continue
 
         load_modules[s] = geneset_obj
 
     checked_exist = dict()
     for r in module_scores:
+
+        if load_modules.get(r['module'], None) is None:
+            # already warned above when failed to retrieve module by name
+            continue
 
         # query once for existence of results for this experiment and delete all if found
         if checked_exist.get(r['exp_id'], None) is None:
@@ -392,12 +386,10 @@ def load_module_scores(module_scores):
     return 1
 
 
-def load_gsa_scores(compute_obj, gsa_scores):
+def load_gsa_scores(gsa_scores):
 
     logger.info('Loading computed GSA scores into database')
-    assert isinstance(compute_obj, Computation)
 
-    insert_count_geneset = 0
     insert_count_scores = 0
 
     # compile a list of all gene sets for which results will be loaded
@@ -405,28 +397,12 @@ def load_gsa_scores(compute_obj, gsa_scores):
     for r in gsa_scores:
         load_gene_sets[r['geneset']] = None
 
-    info = compute_obj.gsa_info
-    if info is None:
-        logger.error('Did not receive a compute_obj on which init_gsa was called')
-        return None
-
     for s in load_gene_sets:
-
-        if info.get(s, None) is None:
-            logger.error('Have no meta data for gene set %s in compute obj; skipping', s)
-            continue
-
         try:
             geneset_obj = GeneSets.objects.get(name=s)
         except:
-            geneset_obj = GeneSets.objects.create(
-                name=s,
-                type=info[s]['type'],
-                desc=info[s]['desc'],
-                source=info[s]['source'],
-                core_set=info[s]['core_set']
-            )
-            insert_count_geneset += 1
+            logger.error('No gene set defined in database for %s; skipping results load', s)
+            continue
 
         load_gene_sets[s] = geneset_obj
 
@@ -434,7 +410,7 @@ def load_gsa_scores(compute_obj, gsa_scores):
     for r in gsa_scores:
 
         if load_gene_sets.get(r['geneset'], None) is None:
-            # already warned in creating geneset
+            # already warned above when failed to retrieve geneset by name
             continue
 
         # query once for existence of results for this experiment and delete all if found
@@ -458,7 +434,6 @@ def load_gsa_scores(compute_obj, gsa_scores):
         logging.error('Failed to insert any GSA scores into database')
         return None
 
-    logging.info('Inserted %s new gene set definitions and %s GSA scores', insert_count_geneset, insert_count_scores)
     return 1
 
 

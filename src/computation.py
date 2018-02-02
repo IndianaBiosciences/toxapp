@@ -1,4 +1,5 @@
-from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores, GSAScores
+from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores,\
+    GSAScores, Gene, GeneSetMember
 from django.conf import settings
 from tempfile import NamedTemporaryFile
 from scipy.stats.stats import pearsonr
@@ -35,12 +36,11 @@ class Computation:
         self.module_file = None
         self.gene_identifier_stats = None
         self.gene_identifier_stats_file = None
-        self.gsa_info = None
-        self.gsa_file = None
         self.gsa_gsc_obj = None
         self._experiment_tech_map = dict()
         self._expid_obj_map = dict()
         self._identifier_obj_map = dict()
+        self._gene_obj_map = dict()
 
     def map_fold_change_from_exp(self, exp_obj):
 
@@ -95,6 +95,22 @@ class Computation:
 
         return self._identifier_obj_map[barcode]
 
+    def get_gene_obj(self, rat_eg):
+        """ method to avoid repeatedly checking existence of object for rat entrez gene """
+
+        # record a None in map so that we don't repeatedly check for non-loaded exp; therefore use False as test here
+        if self._gene_obj_map.get(rat_eg, False) is False:
+
+            try:
+                #logger.debug('Querying object for rat entrez gene id %s', rat_eg)
+                gene_obj = Gene.objects.get(rat_entrez_gene=rat_eg)
+                self._gene_obj_map[rat_eg] = gene_obj
+            except:
+                #logger.debug('Failed to retrieve meta data for rat entrez gene id %s; must be loaded first', rat_eg)
+                self._gene_obj_map[rat_eg] = None
+
+        return self._gene_obj_map[rat_eg]
+
     def get_experiment_tech_map(self, exp_id):
 
         """ wrapper class to avoid repeatedly checking measurement tech for a given object """
@@ -122,11 +138,6 @@ class Computation:
         file = os.path.join(tmpdir, outfile)
         logger.info("command %s ", script_cmd)
         output = subprocess.getoutput(script_cmd)
-#        TODO remove once meeta script running
-#        file = self.tmpdir + '/groupFC.txt'
-#        src = settings.BASE_DIR + '/data/sample_fc_data_DM_gemfibrozil_1d_7d_100mg_700_mg.txt'
-#        shutil.copyfile(src, file)
-
         logger.info('calc_fold_change: Done fold change calculation; results in %s', file)
         return file
 
@@ -178,8 +189,20 @@ class Computation:
         setattr(self, 'gene_identifier_stats_file', genestats_file)
         return 1
 
-    def init_gsa(self, tech_obj):
-        """ method that must be called before running GSA """
+    def init_gsa(self, tech, gsa_file=None):
+        """ method that must be called before running GSA;  requires gmt file that R requires and loads in R;
+            gsa_file pameter used in testing to decouple gsa_file generation from R load """
+
+        if not gsa_file:
+            gsa_file = self.make_gsa_file(tech)
+
+        # load packages and the gmt file
+        importr('piano')
+        gsc = robjects.r('loadGSC("{}")'.format(gsa_file))
+        setattr(self, 'gsa_gsc_obj', gsc)
+        return 1
+
+    def make_gsa_file(self, tech_obj):
 
         assert isinstance(tech_obj, MeasurementTech)
 
@@ -193,113 +216,33 @@ class Computation:
         for r in identifiers:
             keep_rat_genes[r.gene.rat_entrez_gene] = 1
 
-        gsa_info = collections.defaultdict(dict)
-        gsa_genes = collections.defaultdict(dict)
-
-        # read in a list of core gene sets to be reported to database no matter the score
-        core_gene_sets = dict()
-        core_list = os.path.join(settings.BASE_DIR, 'data/core_gene_sets.txt')
-        req_attr_core = ['id', 'name']
-        with open(core_list) as f:
-            reader = csv.DictReader(f, delimiter='\t')
-            for row in reader:
-
-                if any(row[i] == '' for i in req_attr_core):
-                    logger.error('File %s contains undefined values for one or more required attributes %s on line %s', core_list, ",".join(req_attr_core), row)
-                    return None
-
-                core_gene_sets[row['id']] = 1
-
-        # read GO vs. gene pairs from flat file
-        go_file = os.path.join(settings.BASE_DIR, 'data/rgd_vs_GO_expansion.txt')
-        req_attr_go = ['entrez_gene_id', 'GO_id', 'GO_name', 'GO_type']
-        with open(go_file) as f:
-            reader = csv.DictReader(f, delimiter='\t')
-            for row in reader:
-
-                if any(row[i] == '' for i in req_attr_go):
-                    logger.error('File %s contains undefined values for one or more required attributes %s on line %s', go_file, ",".join(req_attr_go), row)
-                    return None
-
-                rat_entrez_gene = int(row['entrez_gene_id'])
-                if keep_rat_genes.get(rat_entrez_gene, None) is None:
-                    continue
-
-                gsa_genes[row['GO_id']][row['entrez_gene_id']] = 1
-
-                if not row['GO_id'] in gsa_info:
-                    core_set = True if core_gene_sets.get(row['GO_id'], None) is not None else False
-                    gsa_info[row['GO_id']] = {'desc': row['GO_name'], 'type': row['GO_type'],
-                                              'core_set': core_set, 'source': 'GO'}
-
-        # read MSigDB signature vs. gene pairs from flat file
-        msigdb_file = os.path.join(settings.BASE_DIR, 'data/MSigDB_and_TF_annotation.txt')
-        req_attr_msigdb = ['sig_name', 'rat_entrez_gene', 'sub_category', 'description']
-        with open(msigdb_file) as f:
-            reader = csv.DictReader(f, delimiter='\t')
-            for row in reader:
-
-                if any(row[i] == '' for i in req_attr_msigdb):
-                    logger.error('File %s contains undefined values for one or more required attributes %s on line %s', msigdb_file, ",".join(req_attr_msigdb), row)
-                    return None
-
-                rat_entrez_gene = int(row['rat_entrez_gene'])
-                if keep_rat_genes.get(rat_entrez_gene, None) is None:
-                    continue
-
-                source = 'MSigDB'
-                # DAS RegNet networks included in this file - use a separate source for these, not MSigDB
-                if row['sub_category'] == 'RegNet':
-                    source = 'RegNet'
-
-                gsa_genes[row['sig_name']][rat_entrez_gene] = 1
-                if not row['sig_name'] in gsa_info:
-                    core_set = True if core_gene_sets.get(row['sig_name'], None) is not None else False
-                    gsa_info[row['sig_name']] = {'desc': row['description'], 'type': row['sub_category'],
-                                                 'core_set': core_set, 'source': source}
-
-        # eliminate gene sets too small / too large
-        sigs_to_drop = list()
-        for sig in gsa_info.keys():
-            n_genes = len(gsa_genes[sig])
-            if n_genes < 3 or n_genes > 5000:
-                sigs_to_drop.append(sig)
-                continue
-
-        logger.debug('Eliminated %s gene sets based on size constraint', len(sigs_to_drop))
-        for s in sigs_to_drop:
-            gsa_info.pop(s)
-
-        #logger.debug('Read following gene set info from files %s and %s: %s', go_file, msigdb_file, pprint.pformat(gsa_info, indent=4))
-        setattr(self, 'gsa_info', gsa_info)
-
         # prepare file suitable for R GSA calc
+        # this needs to be generated at run time because each measurement tech will have a different subset of genes
         gmt = NamedTemporaryFile(delete=False, suffix='.gmt', dir=self.tmpdir)
         logger.debug('Have temporary GSA file %s', gmt.name)
         sig_count = 0
-        for sig in gsa_info.keys():
+        for s in GeneSets.objects.exclude(source='WGCNA').prefetch_related('members'):
             sig_count += 1
-            elements = [sig, 'no_link'] + [str(g) for g in gsa_genes[sig].keys()]
+
+            rat_egs = list()
+            # you can't use queryset filter without rerunning the query and defeating point of prefetch
+            # therefore iterate through members old style
+            rat_egs = list(filter(lambda x: keep_rat_genes.get(x, None) is not None, s.members.all().values_list('rat_entrez_gene',flat=True)))
+
+            if len(rat_egs) < 3:
+                if s.core_set:
+                    logger.warning('Fewer than 3 genes retrieved for core gene set %s on this platform; skipping', s.name)
+                continue
+
+            elements = [s.name, 'no_link'] + [str(g) for g in rat_egs]
             row = '\t'.join(elements) + '\n'
             row_as_bytes = str.encode(row)
             gmt.write(row_as_bytes)
-
-            # if sig_count > 100 and logger.isEnabledFor(logging.DEBUG):
-            #     logger.warning('Limited to 100 gene sets in DEBUG mode')
-            #     break
+            if sig_count%1000 == 0:
+                logger.debug('Done %s signatures', sig_count)
 
         gmt.close()
-
-        # on windows the \Users ends up being recognized as escape \U ... R on Win reads unix paths
-        altname = gmt.name.replace('\\', '/')
-        setattr(self, 'gsa_file', altname)
-
-        # load packages and the gmt file
-        importr('piano')
-        gsc = robjects.r('loadGSC("{}")'.format(self.gsa_file))
-        setattr(self, 'gsa_gsc_obj', gsc)
-
-        return 1
+        return gmt.name
 
     def map_fold_change_data(self, fc_file):
 
@@ -458,9 +401,10 @@ class Computation:
         #logger.debug('Have results from module scoring: %s', pprint.pformat(module_scores, indent=4))
         return module_scores
 
-    def score_gsa(self, fc_data, last_tech=None):
+    def score_gsa(self, fc_data, last_tech=None, gsa_file=None):
 
-        """ use data mapped to entrez gene for calculating module scores"""
+        """ use data mapped to entrez gene for calculating module scores; optional gsa_file parameter
+        used for decoupling gsa_file generation, R initialization and scoring in tests """
 
         # need to re-initiliaze gsa if measurement tech were to change during one set of experiment upload to
         # avoid having genes in R gsc object that are not defined in fold change data
@@ -476,9 +420,9 @@ class Computation:
             if last_tech is None or last_tech != this_tech:
 
                 logger.debug('Initializing GSA for measurement tech %s', this_tech)
-                success = self.init_gsa(this_tech)
+                success = self.init_gsa(this_tech, gsa_file=gsa_file)
                 if not success:
-                    logger.error('Failed to initiatize module calculation')
+                    logger.error('Failed to initiatize gsa calculation')
                     return None
 
             egs = list()
@@ -506,8 +450,10 @@ class Computation:
             for i in range(0, n_path):
 
                 sig = names[i]
-                if self.gsa_info.get(sig, None) is None:
-                    logger.error('No info on gene set %s; did R mangle name?', sig)
+                geneset = GeneSets.objects.get(name=sig)
+
+                if geneset is None:
+                    logger.error('Failed to find geneset %s in database; did R mangle name?', sig)
                     continue
 
                 score = scores[i]
@@ -515,7 +461,7 @@ class Computation:
                 p = p_adj_up[i] if score >=0 else p_adj_down[i]
 
                 # only store non-significant results for the core liver-relevant set
-                if p > 0.1 and not self.gsa_info[sig]['core_set']:
+                if p > 0.1 and not geneset.core_set:
                     continue
 
                 # p-values of 0 with large z-score are float issues in R ... very small p-value

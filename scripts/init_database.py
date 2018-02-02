@@ -14,7 +14,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "toxapp.settings")
 application = get_wsgi_application()
 
 from django.conf import settings
-from tp.models import MeasurementTech, IdentifierVsGeneMap, Gene, Study, Experiment, ToxicologyResult
+from tp.models import MeasurementTech, IdentifierVsGeneMap, Gene, Study, Experiment, ToxicologyResult, GeneSets,\
+    GeneSetMember
 from tp.tasks import load_measurement_tech_gene_map, load_module_scores, load_gsa_scores, load_correl_results
 from src.computation import Computation
 
@@ -138,6 +139,161 @@ def load_tox_results():
     logging.info('Number of Toxicology results created: %s; number read in file %s', createcount, rowcount)
 
 
+def load_genesets():
+
+    cf = os.path.join(settings.BASE_DIR, config['DEFAULT']['core_gene_sets'])
+    logger.info('Loading core gene sets from file %s', cf)
+    gsa_info = collections.defaultdict(dict)
+    gsa_genes = collections.defaultdict(dict)
+
+    with open(cf) as f:
+        reader = csv.DictReader(f, delimiter='\t')
+        for row in reader:
+            nm = row['name']
+            if gsa_info.get(nm, None) is not None:
+                logger.fatal('Conflicting names in %s; gene set names must be unique', cf)
+                raise RuntimeError()
+
+            gsa_info[nm] = row
+
+    # read module members - overlaps partially with init_modules in Computation class but we need the gene members
+    # in the database for drill down of visualizations
+    module_file = os.path.join(settings.BASE_DIR, 'data/WGCNA_modules.txt')
+    req_attr_m = ['module', 'rat_entrez_gene_id', 'loading']
+    with open(module_file) as f:
+        reader = csv.DictReader(f, delimiter='\t')
+        for row in reader:
+
+            if any(row[i] == '' for i in req_attr_m):
+                logger.fatal('File %s contains undefined values for one or more required attributes %s on line %s',
+                             module_file, ",".join(req_attr_m), row)
+                raise RuntimeError()
+
+            if not row['module'] in gsa_info:
+                logger.warning('Module %s is not defined in core_sets; unexpected and skipping', row['module'])
+                continue
+
+            gsa_genes[row['module']][int(row['rat_entrez_gene_id'])] = float(row['loading'])
+
+    # read GO vs. gene pairs from flat file
+    go_file = os.path.join(settings.BASE_DIR, 'data/rgd_vs_GO_expansion.txt')
+    req_attr_go = ['entrez_gene_id', 'GO_id', 'GO_name', 'GO_type']
+    with open(go_file) as f:
+        reader = csv.DictReader(f, delimiter='\t')
+        for row in reader:
+
+            if any(row[i] == '' for i in req_attr_go):
+                logger.fatal('File %s contains undefined values for one or more required attributes %s on line %s', go_file,
+                             ",".join(req_attr_go), row)
+                raise RuntimeError()
+
+            gsa_genes[row['GO_id']][int(row['entrez_gene_id'])] = 1
+
+            if not row['GO_id'] in gsa_info:
+                gsa_info[row['GO_id']] = {'name': row['GO_id'], 'desc': row['GO_name'], 'type': row['GO_type'],
+                                          'core_set': False, 'source': 'GO'}
+
+    # read MSigDB signature vs. gene pairs from flat file
+    msigdb_file = os.path.join(settings.BASE_DIR, 'data/MSigDB_and_TF_annotation.txt')
+    req_attr_msigdb = ['sig_name', 'rat_entrez_gene', 'sub_category', 'description']
+    with open(msigdb_file) as f:
+        reader = csv.DictReader(f, delimiter='\t')
+        for row in reader:
+
+            if any(row[i] == '' for i in req_attr_msigdb):
+                logger.fatal('File %s contains undefined values for one or more required attributes %s on line %s',
+                             msigdb_file, ",".join(req_attr_msigdb), row)
+                raise RuntimeError()
+
+            source = 'MSigDB'
+            # DAS RegNet networks included in this file - use a separate source for these, not MSigDB
+            if row['sub_category'] == 'RegNet':
+                source = 'RegNet'
+
+            gsa_genes[row['sig_name']][int(row['rat_entrez_gene'])] = 1
+            if not row['sig_name'] in gsa_info:
+                gsa_info[row['sig_name']] = {'name': row['sig_name'], 'desc': row['description'], 'type': row['sub_category'],
+                                             'core_set': False, 'source': source}
+
+    # eliminate gene sets too small / too large
+    sigs_to_drop = list()
+    for sig in gsa_info.keys():
+        if gsa_info[sig]['core_set']:
+            continue  # don't remove a core set ... shouldn't be any anyway that are too small/big
+
+        n_genes = len(list(filter(lambda x: compute.get_gene_obj(x) is not None, gsa_genes[sig])))
+        if n_genes < 3 or n_genes > 5000:
+            sigs_to_drop.append(sig)
+            continue
+
+    logger.debug('Eliminated %s gene sets based on size constraint', len(sigs_to_drop))
+    for s in sigs_to_drop:
+        gsa_info.pop(s)
+        gsa_genes.pop(s)
+
+    updatecount = 0
+    createcount = 0
+
+    for sig in gsa_info:
+
+        if sig not in gsa_genes:
+            logger.error('No genes defined for signature %s; deleting geneset', sig)
+            continue
+
+        row = gsa_info[sig]
+
+        # replace empty values with None - DB expects Null
+        for k in row:
+            row[k] = None if row[k] == '' else row[k]
+
+        geneset = GeneSets.objects.filter(name=row['name']).first()
+        if geneset:
+            for (key, value) in row.items():
+                setattr(geneset, key, value)
+            geneset.save()
+            updatecount += 1
+        else:
+            geneset = GeneSets.objects.create(**row)
+            createcount += 1
+
+        # delete any existing genes for the signature
+        geneset.members.clear()
+
+        genes_skipped = 0
+        genes_loaded = 0
+
+        for rat_eg in gsa_genes[sig]:
+            gene = compute.get_gene_obj(rat_eg)
+            # geneobj will be None for genes not loaded in the gene model, warn on total skipped only
+            if not gene:
+                genes_skipped += 1
+                continue
+            weight = gsa_genes[sig][rat_eg]
+            GeneSetMember.objects.create(geneset=geneset, gene=gene, weight=weight)
+            genes_loaded += 1
+
+        try:
+            faction_loaded = genes_loaded/(genes_loaded+genes_skipped)
+        except:
+            logger.error('Attempting division by zero; no genes in sig %s', sig)
+            continue
+
+        if genes_loaded == 0:
+            logger.error('No genes were added to geneset %s; deleting it', sig)
+            geneset.delete()
+            continue
+        elif faction_loaded < 0.7:
+            logger.warning('Fewer than 70 percent of genes in signature %s were in gene model and loaded: %s skipped and %s loaded',\
+                           sig, genes_skipped, genes_loaded)
+        elif genes_skipped > 0:
+            logger.debug('Somes genes in signature %s are not in the gene model and skipped: %s skipped and %s loaded',\
+                           sig, genes_skipped, genes_loaded)
+        else:
+            logger.debug('Number of genes loaded for signature %s: %s', sig, genes_loaded)
+
+    logging.info('Number of core gene sets created: %s, number updated: %s', createcount, updatecount)
+
+
 def load_fold_change_data():
 
     pgbin = config['DEFAULT']['pgloader_exec']
@@ -235,12 +391,12 @@ def score_experiments(created_exps):
                 continue
 
         logger.debug('Calculating GSA results')
-        gsa_scores = compute.score_gsa(fc_data, tech_obj)
+        gsa_scores = compute.score_gsa(fc_data, last_tech=tech_obj)
         if gsa_scores is None:
             failed_scoring['GSA_calc'].append(exp.experiment_name)
             continue
         else:
-            status = load_gsa_scores(compute, gsa_scores)
+            status = load_gsa_scores(gsa_scores)
             if status is None:
                 failed_scoring['GSA_load'].append(exp.experiment_name)
                 continue
@@ -283,14 +439,16 @@ if __name__ == '__main__':
     # step 4) load the toxicology results file
     load_tox_results()
 
-    # step 5) load the fold change data
+    # step 5a) load definition of core gene sets
+    load_genesets()
+
+    # step 6) load the fold change data
     load_fold_change_data()
 
-    # step 6 - iterate through newly added experiments and perform module / GSA scoring
+    # step 7 - iterate through newly added experiments and perform module / GSA scoring
     # commented out - temp for resuming loads
     #created_exp_list = Experiment.objects.all()
     #tech_obj = created_exp_list[0].tech
-
     score_experiments(created_exp_list)
 
     # step 7 - load the pairwise experiment similarities

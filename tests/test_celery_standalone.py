@@ -11,7 +11,7 @@ app = Celery('test_celery_standalone', backend='file:///tmp/celery/results', bro
 def add(x, y):
     return x + y
 
-if True:
+if False:
 
     res = add.delay(5,2)
     time.sleep(5)

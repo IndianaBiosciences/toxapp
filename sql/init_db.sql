@@ -1,5 +1,7 @@
 -- log in via psql -U dbadmin -d postgres
 create database ibri;
+\connect ibri;
+drop schema public;
 create role toxapp_user;
 create role toxapp_reader;
 create user django_user password 'toxapp';
