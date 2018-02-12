@@ -27,6 +27,7 @@ $(function () {
 
           chart: {
             type: 'heatmap',
+            zoomType: 'x',
             marginTop: 40,
             // need a large value to accomodate the long feature labels and color key
             // Jeff had lots of problems with bunched y-axis labels until forced container to
@@ -80,6 +81,12 @@ $(function () {
 
           series: [{
             data: response.data,
+            cursor: 'pointer',
+            events: {
+              click: function (ev) {
+               geneDrillDown(ev.point.feat);
+              }
+            },
             boostThreshold: 100,
             borderWidth: 0,
             nullColor: '#EFEFEF',
@@ -115,7 +122,8 @@ $(function () {
       } else if(response.not_applicable) {
 
         $('#hide_viz').addClass('hidden');
-        $('#viz_section').addClass('hidden');
+        //$('#viz_section').addClass('hidden');
+        sessionStorage.setItem('viz_type', 'heatmap');
         $('#viz_loading').removeClass('loader');
         $('#viz_error').text('map chart not supported for this data type');
         $('#viz_error').removeClass('hidden');
@@ -123,7 +131,7 @@ $(function () {
       } else if(!response.image) {
 
         $('#hide_viz').addClass('hidden');
-        $('#viz_section').addClass('hidden');
+        //$('#viz_section').addClass('hidden');
         $('#viz_loading').removeClass('loader');
         $('#viz_error').text('No image available for this result type');
         $('#viz_error').removeClass('hidden');
@@ -175,10 +183,18 @@ $(function () {
             bubble: {
               minSize: '0.1%', // percentage of the smallest of plot width or height
               maxSize: '5%'  // percentage of the smallest of plot width or height
+            },
+
+            series: {
+              cursor: 'pointer',
+              events: {
+                click: function (ev) {
+                  geneDrillDown(ev.point.geneset);
+                }
+              }
             }
           },
 
-          // TODO - get the color stuff working; may need to do it on server per http://jsfiddle.net/tqVF8/17/
           series: [{
             //colorByPoint: true,
             data: response.data
@@ -204,9 +220,11 @@ $(function () {
 
   var makePlot = function() {
 
+    $('#viz_error').addClass('hidden');
     $('#hide_viz').removeClass('hidden');
     $('#viz_section').removeClass('hidden');
     $('#viz_loading').addClass('loader');
+    $('#genedrilldown').addClass('hidden')
 
     sessionStorage.setItem('Ctox_viz_on', '1');
     if (!sessionStorage.getItem('viz_type')) {
@@ -224,6 +242,12 @@ $(function () {
     }
   };
 
+  var geneDrillDown = function(geneset) {
+    console.log(geneset)
+    $('#genedrilldown').removeClass('hidden')
+    $('#selected_geneset').text(geneset)
+  }
+
   $('#show_viz').on('click', function () {
     $('#viz_section').removeClass('hidden');
     // TODO - check whether there's a plot there already, and if so, don't remake it
@@ -232,6 +256,7 @@ $(function () {
 
   $('#hide_viz').on('click', function () {
     $('#viz_section').addClass('hidden');
+    $('#genedrilldown').addClass('hidden')
     sessionStorage.removeItem('Ctox_viz_on');
   });
 
@@ -256,6 +281,11 @@ $(function () {
   // used when refreshing the page on filtering criteria - don't keep hidding the graph
   if (sessionStorage.getItem('Ctox_viz_on')) {
     makePlot()
+  }
+
+  // show the mapchart button when appropriate
+  if (sessionStorage.getItem('map_ok')) {
+    $('#mapchart').removeClass('hidden')
   }
 
 });

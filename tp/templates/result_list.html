@@ -26,7 +26,7 @@
 
 <section id="control_section" class="panel panel-default">
   <div class="panel panel-body">
-    <a href="{% url 'tp:analysis-summary' %}" class="btn btn-primary">Back to summary</a>
+    <a id="res_summary_link" href="{% url 'tp:analysis-summary' %}" class="btn btn-primary">Back to summary</a>
     {% if request.session.allow_export %}
     <a href="{% url 'tp:export-filtered-result' %}" class="btn btn-default">Export to Excel</a>
     <button type="button" class="btn btn-default" id="show_viz">Show visualization</button>
@@ -55,7 +55,12 @@
 <section id="viz_section" class="panel panel-default hidden">
   <div id="type_buttons" class="panel-body">
     <button id="heatmap" class="btn btn-default">Heatmap</button>
-    <button id="mapchart" class="btn btn-default">Map chart</button>
+    <button id="waterfall" class="btn btn-default">Waterfall</button>
+    <button id="mapchart" class="btn btn-default hidden">Map chart</button>
+    <div id="genedrilldown" class="pull-right hidden">
+      <span id="selected_geneset"></span>
+      <button id="genefetch" class="btn btn-default">View genes</button>
+    </div>
   </div>
   <div class="parent" style="overflow: hidden; position: relative;">
     <div class="panzoom" style="transform: none; transform-origin: 50% 50% 0px;">

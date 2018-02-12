@@ -759,10 +759,10 @@ def export_heatmap_json(request, restype=None):
 
         if restype.lower() == 'modulescores':
             viz_cols = {'x': 'module.name', 'y': 'experiment.experiment_name', 'val': 'score', 'tooltip': ['module.name']}
-            nres.update({'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
+            nres.update({'drilldown_ok': True, 'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
         elif restype.lower() == 'gsascores':
             viz_cols = {'x': 'geneset.name', 'y': 'experiment.experiment_name', 'val': 'score', 'tooltip': ['geneset.type', 'geneset.desc', 'p_bh']}
-            nres.update({'scale': 'GSA score', 'scalemin': -10, 'scalemax': 10})
+            nres.update({'drilldown_ok': True, 'scale': 'GSA score', 'scalemin': -10, 'scalemax': 10})
         elif restype.lower() == 'foldchangeresult':
             viz_cols = {'x': 'gene_identifier.gene.rat_gene_symbol', 'y': 'experiment.experiment_name', 'val': 'log2_fc', 'tooltip': ['gene_identifier.gene_identifier', 'p_bh']}
             nres.update({'scale': 'log2 fold change', 'scalemin': -3, 'scalemax': 3})
@@ -829,10 +829,10 @@ def export_mapchart_json(request, restype=None):
         nres['image'] = None
 
         if restype.lower() == 'modulescores':
-            viz_cols = {'x': 'module.x_coord', 'y': 'module.y_coord', 'image': 'module.image', 'val': 'score', 'tooltip': ['module.name']}
+            viz_cols = {'geneset': 'module.name', 'x': 'module.x_coord', 'y': 'module.y_coord', 'image': 'module.image', 'val': 'score', 'tooltip': ['module.name']}
             nres.update({'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
         elif restype.lower() == 'gsascores':
-            viz_cols = {'x': 'geneset.x_coord', 'y': 'geneset.y_coord','image': 'geneset.image', 'val': 'score', 'tooltip': ['geneset.name', 'geneset.desc', 'p_bh']}
+            viz_cols = {'geneset': 'geneset.name', 'x': 'geneset.x_coord', 'y': 'geneset.y_coord','image': 'geneset.image', 'val': 'score', 'tooltip': ['geneset.name', 'geneset.desc', 'p_bh']}
             nres.update({'scale': 'GSA score', 'scalemin': -10, 'scalemax': 10})
         else:
             nres['not_applicable'] = True
@@ -862,7 +862,7 @@ def export_mapchart_json(request, restype=None):
             y = operator.attrgetter(viz_cols['y'])(r)
             trellis = operator.attrgetter('experiment.experiment_name')(r)
             val = float(operator.attrgetter(viz_cols['val'])(r))
-
+            geneset = operator.attrgetter(viz_cols['geneset'])(r)
 
             if val < nres['scalemin']:
                 z = abs(nres['scalemin'])
@@ -886,7 +886,7 @@ def export_mapchart_json(request, restype=None):
                 ttiptxt += item + '=' + s
 
             # without the explicit float call (because it's a decimal), json ends up with numeric value in string
-            nr = {'x': x, 'y': y, 'z': z, 'val': val, 'color': color, 'trellis': trellis, 'detail': ttiptxt}
+            nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'color': color, 'trellis': trellis, 'detail': ttiptxt}
             ndata.append(nr)
 
         nres['data'] = ndata

@@ -56,4 +56,14 @@ $(function() {
     sessionStorage.removeItem('Ctox_viz_on');
   });
 
+  // determine whether to show the mapchart option - for modules / genesets only
+  $('.map_ok').on('click', function () {
+    sessionStorage.setItem('map_ok', '1');
+  });
+
+  // if coming back to the result summary page from a results page, reset the mapchart status
+  $('#res_summary_link').on('click', function () {
+    sessionStorage.removeItem('map_ok');
+  });
+
 });

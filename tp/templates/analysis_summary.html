@@ -29,7 +29,7 @@
   <div id="modulesection" class="card">
     <div class="card-block">
       <h4 class="card-title">WGCNA module analysis</h4>
-      <a href="{% url 'tp:module-scores' %}" class="reslink btn btn-default">Results in browser</a>
+      <a href="{% url 'tp:module-scores' %}" class="reslink map_ok btn btn-default">Results in browser</a>
       {% if experiments|length < 50 %}
       <a href="{% url 'tp:export-result' restype='modulescores' %}" class="btn btn-default">Export to Excel</a>
       {% endif %}
@@ -38,7 +38,7 @@
   <div id="gsasection" class="card">
     <div class="card-block">
       <h4 class="card-title">Gene set enrichment analysis</h4>
-      <a href="{% url 'tp:gsa-scores' %}" class="reslink btn btn-default">Results in browser</a>
+      <a href="{% url 'tp:gsa-scores' %}" class="reslink map_ok btn btn-default">Results in browser</a>
       {% if experiments|length < 50 %}
       <a href="{% url 'tp:export-result' restype='gsascores' %}" class="btn btn-default">Export to Excel</a>
       {% endif %}
