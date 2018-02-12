@@ -245,6 +245,10 @@ def load_genesets():
         # replace empty values with None - DB expects Null
         for k in row:
             row[k] = None if row[k] == '' else row[k]
+            if row[k] == 'TRUE':
+                row[k] = True
+            if row[k] == 'FALSE':
+                row[k] = False
 
         geneset = GeneSets.objects.filter(name=row['name']).first()
         if geneset:

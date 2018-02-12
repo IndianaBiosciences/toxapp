@@ -6,7 +6,7 @@ from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult
 class ModuleScoreTable(tables.Table):
     class Meta:
         model = ModuleScores
-        fields = ['experiment', 'module', 'score']
+        fields = ['experiment', 'module', 'score', 'module.desc']
         attrs = {'class': 'table table-striped custab'}
         order_by = '-score'
 

@@ -858,10 +858,8 @@ def export_mapchart_json(request, restype=None):
             elif nres['image'] != image:
                 raise Exception('Multiple images retrieved for the current result set')
 
-            oldx = operator.attrgetter(viz_cols['x'])(r)
-            oldy = operator.attrgetter(viz_cols['y'])(r)
-            x = 0.2755*oldx-0.0281
-            y = -0.1207*oldy-0.0094
+            x = operator.attrgetter(viz_cols['x'])(r)
+            y = operator.attrgetter(viz_cols['y'])(r)
             trellis = operator.attrgetter('experiment.experiment_name')(r)
             val = float(operator.attrgetter(viz_cols['val'])(r))
 

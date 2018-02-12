@@ -3,3 +3,4 @@ logfile/toxapp.log
 .idea/
 __pycache__
 *.pyc
+.DS_Store

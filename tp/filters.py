@@ -9,6 +9,7 @@ class ModuleScoreFilter(django_filters.FilterSet):
         model = ModuleScores
         fields = collections.OrderedDict()
         fields['module__name'] = ['icontains']
+        fields['module__desc'] = ['icontains']
         fields['score'] = ['lte', 'gte']
 
 
