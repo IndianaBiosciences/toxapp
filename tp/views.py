@@ -29,6 +29,8 @@ import logging
 import csv
 import pprint, json
 import xlwt
+import operator
+import colour
 
 logger = logging.getLogger(__name__)
 
@@ -574,9 +576,6 @@ def compute_fold_change(request):
 def make_result_export(request, restype=None):
     """ query module / GSA / gene fold change and prepare dataset for export to excel or json """
     
-    rowlimit = 65000
-    limit_breached = False
-
     # if session contains experiment IDs from cart selection, filter to them
     exp_list = request.session.get('analyze_list', [])
     if not exp_list:
@@ -584,9 +583,6 @@ def make_result_export(request, restype=None):
         context = {'message': message, 'error': True}
         return render(request, 'generic_message.html', context)
 
-    colnames = ['experiment id', 'experiment name']
-    viz_cols = dict()  # the indices in the list for elements to show in Highchart plot
-    data = list()
     subset = list()
 
     # restype will be None when coming from interactive filtered views of results; get it out of the session
@@ -601,14 +597,60 @@ def make_result_export(request, restype=None):
 
     # otherwise, exporting all results directly from the analysis summary without interactive view
     if restype.lower() == 'modulescores':
-        colnames += ['module', 'type', 'description', 'score']
-        viz_cols = {'x': 2, 'y': 1, 'val': 5, 'tooltip': [4]}
         rows = ModuleScores.objects.filter(experiment__pk__in=exp_list)
         if subset:
             rows = rows.filter(pk__in=subset)
 
+    elif restype.lower() == 'gsascores':
+        rows = GSAScores.objects.filter(experiment__pk__in=exp_list)
+        if subset:
+            rows = rows.filter(pk__in=subset)
+
+    elif restype.lower() == 'foldchangeresult':
+        rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
+        if subset:
+            rows = rows.filter(pk__in=subset)
+
+    elif restype.lower() == 'experimentcorrelation':
+        rows = ExperimentCorrelation.objects.filter(experiment__pk__in=exp_list)
+        if subset:
+            rows = rows.filter(pk__in=subset)
+
+    elif restype.lower() == 'toxicologyresult':
+        # diff patern here compared to other result types; for toxicologyresult the filtered result IDs may not involve
+        # the experiments in the cart when results are for the ref_exp_ids in SimilarExperiments view
+        if subset:
+            rows = ToxicologyResult.objects.filter(pk__in=subset)
+        else:
+            rows = ToxicologyResult.objects.filter(experiment__pk__in=exp_list)
+
+    else:
+        raise NotImplementedError ('Type not implemented:', restype)
+
+    res = {'restype': restype, 'data': rows}
+    return res
+
+
+def export_result_xls(request, restype=None):
+    """ query module / GSA / gene fold change and return excel file """
+
+    res = make_result_export(request, restype)
+    if res is None:
+        message = 'Potential bug: trying to export results from filtered view with no info on result type in session; did you try exporting an empty result set?'
+        context = {'message': message, 'error': True}
+        logger.error('Trying to export results from filtered view with no info on result type in session')
+        return render(request, 'generic_message.html', context)
+
+    rowlimit = 65000
+    limit_breached = False
+    colnames = ['experiment id', 'experiment name']
+    data = list()
+    restype = res['restype']
+
+    if restype.lower() == 'modulescores':
+        colnames += ['module', 'type', 'description', 'score']
         rowcount = 0
-        for r in rows:
+        for r in res['data']:
             nr = [r.experiment_id, r.experiment.experiment_name, r.module.name, r.module.type, r.module.desc, r.score]
             data.append(nr)
             rowcount += 1
@@ -618,13 +660,8 @@ def make_result_export(request, restype=None):
 
     elif restype.lower() == 'gsascores':
         colnames += ['gene set', 'type', 'description', 'source', 'score', 'p-adj']
-        viz_cols = {'x': 2, 'y': 1, 'val': 6, 'tooltip': [3,4,7]}
-        rows = GSAScores.objects.filter(experiment__pk__in=exp_list)
-        if subset:
-            rows = rows.filter(pk__in=subset)
-
         rowcount = 0
-        for r in rows:
+        for r in res['data']:
             nr = [r.experiment_id, r.experiment.experiment_name, r.geneset.name, r.geneset.type, r.geneset.desc, r.geneset.source, r.score, r.p_bh]
             data.append(nr)
             rowcount += 1
@@ -634,13 +671,8 @@ def make_result_export(request, restype=None):
 
     elif restype.lower() == 'foldchangeresult':
         colnames += ['gene_identifier', 'rat entrez gene ID', 'rat gene symbol', 'log2 fold change', 'treatment samples', 'control samples', 'expression avg controls', 'p', 'p-adj']
-        viz_cols = {'x': 4, 'y': 1, 'val': 5, 'tooltip': [2,9]}
-        rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
-        if subset:
-            rows = rows.filter(pk__in=subset)
-
         rowcount = 0
-        for r in rows:
+        for r in res['data']:
             nr = [r.experiment_id, r.experiment.experiment_name, r.gene_identifier.gene_identifier, r.gene_identifier.gene.rat_entrez_gene, r.gene_identifier.gene.rat_gene_symbol, r.log2_fc, r.n_trt, r.n_ctl, r.expression_ctl, r.p, r.p_bh]
             data.append(nr)
             rowcount += 1
@@ -650,13 +682,8 @@ def make_result_export(request, restype=None):
 
     elif restype.lower() == 'experimentcorrelation':
         colnames += ['experiment_ref_id', 'experiment_ref_name', 'method', 'Pearson R', 'rank']
-        viz_cols = {'x': 3, 'y': 1, 'val': 5, 'tooltip': [4,6]}
-        rows = ExperimentCorrelation.objects.filter(experiment__pk__in=exp_list)
-        if subset:
-            rows = rows.filter(pk__in=subset)
-
         rowcount = 0
-        for r in rows:
+        for r in res['data']:
             nr = [r.experiment_id, r.experiment.experiment_name, r.experiment_ref_id, r.experiment_ref.experiment_name, r.source, r.correl, r.rank]
             data.append(nr)
             rowcount += 1
@@ -665,18 +692,11 @@ def make_result_export(request, restype=None):
                 break
 
     elif restype.lower() == 'toxicologyresult':
-
         colnames += ['result type', 'result name', 'group average', 'animal details']
-        viz_cols = {'x': 3, 'y': 1, 'val': 4, 'tooltip': [2,5]}
         # diff patern here compared to other result types; for toxicologyresult the filtered result IDs may not involve
         # the experiments in the cart when results are for the ref_exp_ids in SimilarExperiments view
-        if subset:
-            rows = ToxicologyResult.objects.filter(pk__in=subset)
-        else:
-            rows = ToxicologyResult.objects.filter(experiment__pk__in=exp_list)
-
         rowcount = 0
-        for r in rows:
+        for r in res['data']:
             nr = [r.experiment_id, r.experiment.experiment_name, r.result_type, r.result_name, r.group_avg, r.animal_details]
             data.append(nr)
             rowcount += 1
@@ -687,29 +707,9 @@ def make_result_export(request, restype=None):
     else:
         raise NotImplementedError ('Type not implemented:', restype)
 
-    res = {'restype': restype, 'limit_breached': limit_breached, 'data': data, 'colnames': colnames, 'viz_cols': viz_cols}
-    return res
-
-
-def export_result_xls(request, restype=None):
-    """ query module / GSA / gene fold change and return excel file """
-
-    res = make_result_export(request, restype)
-
-    if res is None:
-        message = 'Potential bug: trying to export results from filtered view with no info on result type in session; did you try exporting an empty result set?'
-        context = {'message': message, 'error': True}
-        logger.error('Trying to export results from filtered view with no info on result type in session')
-        return render(request, 'generic_message.html', context)
-
     response = HttpResponse(content_type='application/ms-excel')
     response['Content-Disposition'] = 'attachment; filename="analysis_results.xls"'
     # warn user that output was limited ... avoid too-large excel spreadsheet
-    if res['limit_breached']:
-        logger.info('Excel output was truncated')
-        nr = ['output truncated'] * len(res['colnames'])
-        res['data'].append(nr)
-
     wb = xlwt.Workbook(encoding='utf-8')
     ws = wb.add_sheet(res['restype'])
 
@@ -719,16 +719,21 @@ def export_result_xls(request, restype=None):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    for col_num in range(len(res['colnames'])):
-        ws.write(row_num, col_num, res['colnames'][col_num], font_style)
+    for col_num in range(len(colnames)):
+        ws.write(row_num, col_num, colnames[col_num], font_style)
 
     # Sheet body, remaining rows
     font_style = xlwt.XFStyle()
 
-    for row in res['data']:
+    for row in data:
         row_num += 1
         for col_num in range(len(row)):
             ws.write(row_num, col_num, row[col_num], font_style)
+
+    if limit_breached:
+        logger.info('Excel output was truncated')
+        nr = ['output truncated'] * len(res['colnames'])
+        data.append(nr)
 
     wb.save(response)
     return response
@@ -745,58 +750,148 @@ def export_heatmap_json(request, restype=None):
         # chart will ask for revised dataset
         logger.info('Empty dataset requested for visualization')
         nres['empty_dataset'] = True
+        return JsonResponse(nres)
+
     else:
 
         restype = res['restype']
         nres['restype'] = restype
 
         if restype.lower() == 'modulescores':
-            viz_cols = {'x': 2, 'y': 1, 'val': 5, 'tooltip': [4]}
-            nres.update({'scale': 'WGCNA module score', 'scalemin':-5, 'scalemax': 5})
+            viz_cols = {'x': 'module.name', 'y': 'experiment.experiment_name', 'val': 'score', 'tooltip': ['module.name']}
+            nres.update({'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
         elif restype.lower() == 'gsascores':
-            viz_cols = {'x': 2, 'y': 1, 'val': 6, 'tooltip': [3,4,7]}
-            nres.update({'scale': 'GSA score', 'scalemin':-10, 'scalemax': 1})
+            viz_cols = {'x': 'geneset.name', 'y': 'experiment.experiment_name', 'val': 'score', 'tooltip': ['geneset.type', 'geneset.desc', 'p_bh']}
+            nres.update({'scale': 'GSA score', 'scalemin': -10, 'scalemax': 10})
         elif restype.lower() == 'foldchangeresult':
-            viz_cols = {'x': 4, 'y': 1, 'val': 5, 'tooltip': [2,9]}
-            nres.update({'scale': 'log2 fold change', 'scalemin':-3, 'scalemax': 3})
+            viz_cols = {'x': 'gene_identifier.gene.rat_gene_symbol', 'y': 'experiment.experiment_name', 'val': 'log2_fc', 'tooltip': ['gene_identifier.gene_identifier', 'p_bh']}
+            nres.update({'scale': 'log2 fold change', 'scalemin': -3, 'scalemax': 3})
         elif restype.lower() == 'experimentcorrelation':
-            viz_cols = {'x': 3, 'y': 1, 'val': 5, 'tooltip': [4,6]}
-            nres.update({'scale': 'Pearson R', 'scalemin':-1, 'scalemax': 1})
+            viz_cols = {'x': 'experiment_ref.experiment_name', 'y': 'experiment.experiment_name', 'val': 'correl', 'tooltip': ['source', 'rank']}
+            nres.update({'scale': 'Pearson R', 'scalemin': -1, 'scalemax': 1})
         elif restype.lower() == 'toxicologyresult':
-            viz_cols = {'x': 3, 'y': 1, 'val': 4, 'tooltip': [2,5]}
-            nres.update({'scale': 'tox score', 'scalemin':0, 'scalemax': 3})
+            viz_cols = {'x': 'result_name', 'y': 'experiment.experiment_name', 'val': 'group_avg', 'tooltip': ['result_type','animal_details']}
+            nres.update({'scale': 'tox score', 'scalemin': 0, 'scalemax': 3})
         else:
-            raise NotImplementedError ('Type not implemented:', restype)
+            raise NotImplementedError('Type not implemented:', restype)
 
         # scan through results and get a sorted list of experiments and module/gene sets /genes
         # index of experiment names stored in variable y - i.e. heatmap vertical axis
-        y_vals = list(set(sorted(map(lambda x: x[viz_cols['y']], res['data']))))
-        logger.info('Have vals here %s', y_vals)
+        y_vals = list(sorted(set(map(lambda x: operator.attrgetter(viz_cols['y'])(x), res['data']))))
         # index of module/geneset/gene names for display stored in variable x - i.e. heatmap horizontal axis
-        x_vals = list(set(sorted(map(lambda x: x[viz_cols['x']], res['data']))))
+        x_vals = list(sorted(set(map(lambda x: operator.attrgetter(viz_cols['x'])(x), res['data']))))
 
         ndata = list()
         for r in res['data']:
 
+            exp = operator.attrgetter(viz_cols['y'])(r)
+            feat = operator.attrgetter(viz_cols['x'])(r)
+            # without the explicit float call (because it's a decimal), json ends up with numeric value in string
+            value = float(operator.attrgetter(viz_cols['val'])(r))
+            # get the indices corresponding to the x/y axis categories
+            y_ind = y_vals.index(exp)
+            x_ind = x_vals.index(feat)
+
             ttiptxt = ''
             for item in viz_cols['tooltip']:
-                name = res['colnames'][item]
-                val = str(r[item])
+                val = str(operator.attrgetter(item)(r))
                 if ttiptxt:
                     ttiptxt += '; '
-                ttiptxt += name + '=' + val
+                ttiptxt += item + '=' + val
 
-            # get the indices corresponding to the x/y axis categories
-            x_ind = x_vals.index(r[viz_cols['x']])
-            y_ind = y_vals.index(r[viz_cols['y']])
-
-            # without the explicit float call (because it's a decimal), json ends up with numeric value in string
-            nr = {'x': x_ind, 'y':y_ind, 'value':float(r[viz_cols['val']]), 'exp': r[viz_cols['y']], 'feat': r[viz_cols['x']], 'detail':ttiptxt}
+            nr = {'x': x_ind, 'y': y_ind, 'value': value, 'exp': exp, 'feat': feat, 'detail': ttiptxt}
             ndata.append(nr)
 
         nres['data'] = ndata
         nres['x_vals'] = x_vals
         nres['y_vals'] = y_vals
+
+    return JsonResponse(nres)
+
+
+def export_mapchart_json(request, restype=None):
+    """ query module / GSA / gene fold change and return json data """
+    res = make_result_export(request, restype)
+
+    nres = dict()
+
+    if res is None:
+        # not an error when called here - as user filters data and there are no results avail, the
+        # chart will ask for revised dataset
+        logger.info('Empty dataset requested for visualization')
+        nres['empty_dataset'] = True
+        return JsonResponse(nres)
+
+    else:
+
+        restype = res['restype']
+        nres['restype'] = restype
+        nres['image'] = None
+
+        if restype.lower() == 'modulescores':
+            viz_cols = {'x': 'module.x_coord', 'y': 'module.y_coord', 'image': 'module.image', 'val': 'score', 'tooltip': ['module.name']}
+            nres.update({'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
+        elif restype.lower() == 'gsascores':
+            viz_cols = {'x': 'geneset.x_coord', 'y': 'geneset.y_coord','image': 'geneset.image', 'val': 'score', 'tooltip': ['geneset.name', 'geneset.desc', 'p_bh']}
+            nres.update({'scale': 'GSA score', 'scalemin': -10, 'scalemax': 10})
+        else:
+            nres['not_applicable'] = True
+            return JsonResponse(nres)
+
+        # TODO - not really working, as the range_to for blue to white goes through green and yellow, i.e .rainbow
+        # some ideas here - https://bsou.io/posts/color-gradients-with-python
+        blue = colour.Color('blue')
+        white = colour.Color('white')
+        red = colour.Color('red')
+        blues = list(blue.range_to(white, 50))
+        reds = list(white.range_to(red, 50))
+        both = blues + reds
+
+        ndata = list()
+        for r in res['data']:
+
+            image = operator.attrgetter(viz_cols['image'])(r)
+            if image is None:
+                continue
+            if nres.get('image', None) is None:
+                nres['image'] = image
+            elif nres['image'] != image:
+                raise Exception('Multiple images retrieved for the current result set')
+
+            oldx = operator.attrgetter(viz_cols['x'])(r)
+            oldy = operator.attrgetter(viz_cols['y'])(r)
+            x = 0.2755*oldx-0.0281
+            y = -0.1207*oldy-0.0094
+            trellis = operator.attrgetter('experiment.experiment_name')(r)
+            val = float(operator.attrgetter(viz_cols['val'])(r))
+
+
+            if val < nres['scalemin']:
+                z = abs(nres['scalemin'])
+                color = blues[0].get_hex()
+            elif val > nres['scalemax']:
+                z = nres['scalemax']
+                color = reds[-1].get_hex()
+            else:
+                # would not work if scale not symetric
+                z = abs(val) / nres['scalemax']
+                # calc the distance from scale min to scale max for the current value and pick the nearest color
+                # from set of 100
+                color_index = int((val - nres['scalemin'])/(nres['scalemax'] - nres['scalemin'])*100)
+                color = both[color_index].get_hex()
+
+            ttiptxt = ''
+            for item in viz_cols['tooltip']:
+                s = str(operator.attrgetter(item)(r))
+                if ttiptxt:
+                    ttiptxt += '; '
+                ttiptxt += item + '=' + s
+
+            # without the explicit float call (because it's a decimal), json ends up with numeric value in string
+            nr = {'x': x, 'y': y, 'z': z, 'val': val, 'color': color, 'trellis': trellis, 'detail': ttiptxt}
+            ndata.append(nr)
+
+        nres['data'] = ndata
 
     return JsonResponse(nres)
 

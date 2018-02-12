@@ -102,4 +102,7 @@ urlpatterns = [
 
     # export to filtered results to json
     url(r'^heatmap_json/$', views.export_heatmap_json, name='json-filtered-result'),
+
+    # export to filtered results to json
+    url(r'^mapchart_json/$', views.export_mapchart_json, name='json-filtered-result'),
 ]

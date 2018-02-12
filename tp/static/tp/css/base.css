@@ -231,7 +231,7 @@ a.button_large {
 }
 
 .viz_container {
-    min-width: 310px;
-    height: 400px;
+    min-width: 350px;
+    min-height: 350px;
     margin: 0 auto;
 }

@@ -51,4 +51,9 @@ $(function() {
     $('#id_experiment_name').val(expname)
   });
 
+  // when accessing results from the summary page, make sure that the visualization is initially hidden
+  $('.reslink').on('click', function () {
+    sessionStorage.removeItem('Ctox_viz_on');
+  });
+
 });
