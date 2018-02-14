@@ -39,6 +39,12 @@
 
   <div class="filter-dialog panel-body">
     <form class="form" action="" method="get">
+      {% if request.session.use_saved_features %}
+      <div class="form-group">
+        <span>Limited to {{ request.session.use_saved_features }}</span>
+        <a href="{% url 'tp:manage-sesion' %}?use_saved_features=" class="btn btn-default">Clear filter</a>
+      </div>
+      {% endif %}
       {% bootstrap_form filter.form layout='horizontal' %}
       {% buttons %}
       {% bootstrap_button "Update" button_type="submit" button_class="btn-primary" extra_classes="table_updater" %}
@@ -59,7 +65,7 @@
     <button id="mapchart" class="btn btn-default hidden">Map chart</button>
     <div id="genedrilldown" class="pull-right hidden">
       <span id="selected_geneset"></span>
-      <button id="genefetch" class="btn btn-default">View genes</button>
+      <a id="genefetch" href="{% url 'tp:get-feature-subset' geneset_id=geneset_drilldown_id %}" class="btn btn-default">View genes</a>
     </div>
   </div>
   <div class="parent" style="overflow: hidden; position: relative;">

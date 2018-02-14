@@ -1,7 +1,9 @@
 import django_filters
 import collections
+import logging
 from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult
 
+logger = logging.getLogger(__name__)
 
 class ModuleScoreFilter(django_filters.FilterSet):
 

@@ -105,4 +105,8 @@ urlpatterns = [
 
     # export to filtered results to json
     url(r'^mapchart_json/$', views.export_mapchart_json, name='json-filtered-result'),
+
+    url(r'^get_feature_subset/(?P<geneset_id>\d+)$', views.get_feature_subset, name='get-feature-subset'),
+
+    url(r'^manage_session/$', views.manage_session, name='manage-sesion'),
 ]

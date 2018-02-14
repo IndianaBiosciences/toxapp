@@ -16,7 +16,7 @@ from django_tables2 import SingleTableView
 
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation, ToxicologyResult
+                    ExperimentCorrelation, ToxicologyResult, GeneSets
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm
 from .tasks import load_measurement_tech_gene_map, process_user_files
@@ -59,11 +59,30 @@ def reset_session(session):
     logger.debug('Resetting session info for tracking metadata across handlers')
     # TODO - delete the existing tmp_dir first
     # delete and not set to None due to manner in which they are created as lists
-    for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
+    for attr in ['saved_features', 'tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
         try:
             del session[attr]
         except KeyError:
             pass
+
+
+def manage_session(request):
+    """ manage the session via url?key1=val1&key2=val2 type calls and return to referrer """
+
+    params = request.GET
+
+    # TODO - maybe - validate against allowed session variables? doesn't seem like a security risk to Jeff
+    for p in params:
+        val = params.__getitem__(p) # getter for the last value if multiple given for same parameter
+        logger.debug('Have value %s for key %s', val, p)
+        request.session[p] = val
+
+    logger.info('Session updated from content %s', params)
+    url = request.META.get('HTTP_REFERER')
+    if url is None:
+        url = reverse('tp:experiments')
+
+    return HttpResponseRedirect(url)
 
 
 def get_temp_dir(obj):
@@ -535,6 +554,61 @@ def confirm_experiment_sample_pair(request):
         return render(request, 'experiment_vs_sample_confirm.html', {'data': data})
 
 
+def filter_vs_feature_subset(request, data):
+    """ filter results vs. a saved list of feature (Genes, modules, genesets) in the session """
+
+    # TODO - session should store them under different types so that someone could have their favorite genes, modules
+    # and gene sets stored under prefs.  Or manage 'current list', with dialog to switch to a selected list from
+    # many stored favorites
+
+    change = None
+    # no subset of features for filtering; nothing to do
+    features = request.session.get('saved_features', {})
+    if not features:
+        logger.debug('No features saved in session; no filtering')
+        return data, change
+    if data.model == ModuleScores and features.get('modules', None) is not None:
+        logger.debug('Filtering for type ModuleScore')
+        #data = data.filter(module__pk__in=features['modules'])
+        #change = True
+        raise NotImplemented
+    elif data.model == GSAScores and features.get('genesets', None) is not None:
+        logger.debug('Filtering for type GSAScore')
+        #data = data.filter(geneset__pk__in=features['genesets'])
+        #change = True
+        raise NotImplemented
+    elif data.model == FoldChangeResult and features.get('genes', None) is not None:
+        logger.debug('Filtering for type FoldChangeResult')
+        data = data.filter(gene_identifier__gene__pk__in=features['genes'])
+        change = True
+    else:
+        logger.debug('No filtering performed on results of class %s', data.model)
+
+    return data, change
+
+
+def get_feature_subset(request, geneset_id):
+    """ store a list of genes for the geneset within the session """
+
+    # TODO - turn this into a typical form allowing someone to create a list of
+    # favorite genes, etc.  For now purely intended for getting a list of genes into session from module/geneset view
+    try:
+        geneset = GeneSets.objects.get(id=geneset_id)
+    except:
+        message = 'Did not retrieve a geneset object from id {}'.format(geneset_id)
+        logger.error(message)
+        context = {'message': message, 'error': True}
+        return render(request, 'generic_message.html', context)
+
+    members = list(geneset.members.values_list('id', flat=True))
+    d = {'genes': members}
+    request.session['saved_features'] = d
+    request.session['use_saved_features'] = 'geneset: ' + geneset.name
+    logger.debug('Enabled filtering to %s', request.session['use_saved_features'])
+    url = reverse('tp:gene-foldchange')
+    return HttpResponseRedirect(url)
+
+
 def compute_fold_change(request):
     """ run computation script on meta data stored in session """
 
@@ -758,10 +832,10 @@ def export_heatmap_json(request, restype=None):
         nres['restype'] = restype
 
         if restype.lower() == 'modulescores':
-            viz_cols = {'x': 'module.name', 'y': 'experiment.experiment_name', 'val': 'score', 'tooltip': ['module.name']}
+            viz_cols = {'feat_id': 'module.id', 'x': 'module.name', 'y': 'experiment.experiment_name', 'val': 'score', 'tooltip': ['module.name']}
             nres.update({'drilldown_ok': True, 'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
         elif restype.lower() == 'gsascores':
-            viz_cols = {'x': 'geneset.name', 'y': 'experiment.experiment_name', 'val': 'score', 'tooltip': ['geneset.type', 'geneset.desc', 'p_bh']}
+            viz_cols = {'feat_id': 'geneset.id', 'x': 'geneset.name', 'y': 'experiment.experiment_name', 'val': 'score', 'tooltip': ['geneset.type', 'geneset.desc', 'p_bh']}
             nres.update({'drilldown_ok': True, 'scale': 'GSA score', 'scalemin': -10, 'scalemax': 10})
         elif restype.lower() == 'foldchangeresult':
             viz_cols = {'x': 'gene_identifier.gene.rat_gene_symbol', 'y': 'experiment.experiment_name', 'val': 'log2_fc', 'tooltip': ['gene_identifier.gene_identifier', 'p_bh']}
@@ -786,6 +860,8 @@ def export_heatmap_json(request, restype=None):
 
             exp = operator.attrgetter(viz_cols['y'])(r)
             feat = operator.attrgetter(viz_cols['x'])(r)
+            feat_id = None
+
             # without the explicit float call (because it's a decimal), json ends up with numeric value in string
             value = float(operator.attrgetter(viz_cols['val'])(r))
             # get the indices corresponding to the x/y axis categories
@@ -800,6 +876,10 @@ def export_heatmap_json(request, restype=None):
                 ttiptxt += item + '=' + val
 
             nr = {'x': x_ind, 'y': y_ind, 'value': value, 'exp': exp, 'feat': feat, 'detail': ttiptxt}
+            if nres.get('drilldown_ok', None) is not None:
+                feat_id = operator.attrgetter(viz_cols['feat_id'])(r)
+                nr['feat_id'] = feat_id
+
             ndata.append(nr)
 
         nres['data'] = ndata
@@ -829,10 +909,10 @@ def export_mapchart_json(request, restype=None):
         nres['image'] = None
 
         if restype.lower() == 'modulescores':
-            viz_cols = {'geneset': 'module.name', 'x': 'module.x_coord', 'y': 'module.y_coord', 'image': 'module.image', 'val': 'score', 'tooltip': ['module.name']}
+            viz_cols = {'geneset_id': 'module.id', 'geneset': 'module.name', 'x': 'module.x_coord', 'y': 'module.y_coord', 'image': 'module.image', 'val': 'score', 'tooltip': ['module.name']}
             nres.update({'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
         elif restype.lower() == 'gsascores':
-            viz_cols = {'geneset': 'geneset.name', 'x': 'geneset.x_coord', 'y': 'geneset.y_coord','image': 'geneset.image', 'val': 'score', 'tooltip': ['geneset.name', 'geneset.desc', 'p_bh']}
+            viz_cols = {'geneset_id': 'geneset.id', 'geneset': 'geneset.name', 'x': 'geneset.x_coord', 'y': 'geneset.y_coord','image': 'geneset.image', 'val': 'score', 'tooltip': ['geneset.name', 'geneset.desc', 'p_bh']}
             nres.update({'scale': 'GSA score', 'scalemin': -10, 'scalemax': 10})
         else:
             nres['not_applicable'] = True
@@ -863,6 +943,7 @@ def export_mapchart_json(request, restype=None):
             trellis = operator.attrgetter('experiment.experiment_name')(r)
             val = float(operator.attrgetter(viz_cols['val'])(r))
             geneset = operator.attrgetter(viz_cols['geneset'])(r)
+            geneset_id = operator.attrgetter(viz_cols['geneset_id'])(r)
 
             if val < nres['scalemin']:
                 z = abs(nres['scalemin'])
@@ -886,7 +967,7 @@ def export_mapchart_json(request, restype=None):
                 ttiptxt += item + '=' + s
 
             # without the explicit float call (because it's a decimal), json ends up with numeric value in string
-            nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'color': color, 'trellis': trellis, 'detail': ttiptxt}
+            nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'geneset_id': geneset_id, 'color': color, 'trellis': trellis, 'detail': ttiptxt}
             ndata.append(nr)
 
         nres['data'] = ndata
@@ -1369,6 +1450,19 @@ class FilteredSingleTableView(SingleTableView):
             logger.debug('More than 100 items in cart; not filtering by experiment')
             pass
 
+        changed_feat = None
+        if self.request.session.get('use_saved_features', None):
+            logger.debug('Filtering to saved features enabled in session')
+            data, changed_feat = filter_vs_feature_subset(self.request, data)
+
+            # the last-used feature type may not be for the current result types - if no filtering
+            # took place, then we don't want to show the 'Limited' message
+            # TODO - as done currently it would mean that returning to say gene-level results later
+            # would mean there is no filtering applied.  Only an issue if/when we implement ability to
+            # save a favorite gene selection
+            if not changed_feat:
+               self.request.session['use_saved_features'] = None
+
         self.filter = self.filter_class(self.request.GET, queryset=data)
         results = self.filter.qs
 
@@ -1390,7 +1484,7 @@ class FilteredSingleTableView(SingleTableView):
 
         # if viewing results for a limited list of experiments, (typical user case) and they didn't do any filtering,
         # no problem - they can export full result set to excel; 100 exps may be too large however ...
-        if len(exp_list) < 100 and changed_fields == 0 and len(results) >= 1:
+        if len(exp_list) < 100 and changed_fields == 0 and not changed_feat and len(results) >= 1:
             logger.debug('Setting up export of full result set for limited exps set')
             self.request.session['filtered_type'] = results[0].__class__.__name__
             self.request.session['allow_export'] = True
@@ -1400,7 +1494,7 @@ class FilteredSingleTableView(SingleTableView):
         # TODO - evaluation on result length is necessary when working with full experiment set, yet it does trigger
         # an actual sql query which slows things down.  i.e. if user filters inadequatly, it triggers another long wait
         # for gene-level data.  Would be useful to put a limit into sql for everything via model manager perhaps ..
-        elif used_simexp or changed_fields and 0 < len(results) < 65000:
+        elif (used_simexp or changed_fields or changed_feat) and 0 < len(results) < 65000:
             logger.debug('Setting up export of filtered result set')
             self.request.session['filtered_type'] = results[0].__class__.__name__
             self.request.session['allow_export'] = True
@@ -1414,6 +1508,9 @@ class FilteredSingleTableView(SingleTableView):
 
         context = super(FilteredSingleTableView, self).get_context_data(**kwargs)
         context['filter'] = self.filter
+        # provide a place in template to populate a geneset id to be used for the gene-level drilldown
+        context['geneset_drilldown_id'] = 999999
+
         if type(self).__name__ == 'SimilarExperimentsSingleTableView':
             context['show_tox_result_link'] = True
         return context

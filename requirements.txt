@@ -8,3 +8,4 @@ django-tables2
 django-filter
 xlwt
 scipy
+colour

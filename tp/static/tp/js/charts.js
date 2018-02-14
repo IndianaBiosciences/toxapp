@@ -82,11 +82,6 @@ $(function () {
           series: [{
             data: response.data,
             cursor: 'pointer',
-            events: {
-              click: function (ev) {
-               geneDrillDown(ev.point.feat);
-              }
-            },
             boostThreshold: 100,
             borderWidth: 0,
             nullColor: '#EFEFEF',
@@ -97,6 +92,15 @@ $(function () {
             turboThreshold: Number.MAX_VALUE
           }]
         };
+
+        if (response.drilldown_ok) {
+          options.series[0].events = {
+            click: function (ev) {
+              geneDrillDown(ev.point.feat, ev.point.feat_id);
+            }
+          }
+        }
+
         var chart = new Highcharts.chart('viz_container', options);
         $('#viz_loading').removeClass('loader');
       }
@@ -189,7 +193,7 @@ $(function () {
               cursor: 'pointer',
               events: {
                 click: function (ev) {
-                  geneDrillDown(ev.point.geneset);
+                  geneDrillDown(ev.point.geneset, ev.point.geneset_id);
                 }
               }
             }
@@ -221,12 +225,9 @@ $(function () {
   var makePlot = function() {
 
     $('#viz_error').addClass('hidden');
-    $('#hide_viz').removeClass('hidden');
-    $('#viz_section').removeClass('hidden');
     $('#viz_loading').addClass('loader');
     $('#genedrilldown').addClass('hidden')
 
-    sessionStorage.setItem('Ctox_viz_on', '1');
     if (!sessionStorage.getItem('viz_type')) {
       // default to heatmap
       sessionStorage.setItem('viz_type', 'heatmap');
@@ -242,20 +243,37 @@ $(function () {
     }
   };
 
-  var geneDrillDown = function(geneset) {
-    console.log(geneset)
+  // show currently selected geneset and button for retrieving gene level view
+  var geneDrillDown = function(geneset, id) {
     $('#genedrilldown').removeClass('hidden')
     $('#selected_geneset').text(geneset)
+    var url = $('#genefetch').attr('href');
+    url = url.replace('999999', id)
+    $('#genefetch').attr('href', url)
   }
 
+  $('#genefetch').on('click', function (e) {
+    console.log('clicked')
+    $('#mapchart').addClass('hidden')
+    sessionStorage.setItem('viz_type', 'heatmap');
+    // going to a heatmap and not navigating through results summary; explicitly disable
+    sessionStorage.removeItem('map_ok');
+    //e.preventDefault()
+  });
+
   $('#show_viz').on('click', function () {
+    $(this).addClass('hidden')
     $('#viz_section').removeClass('hidden');
+    $('#hide_viz').removeClass('hidden');
     // TODO - check whether there's a plot there already, and if so, don't remake it
+    sessionStorage.setItem('Ctox_viz_on', '1');
     makePlot()
   });
 
   $('#hide_viz').on('click', function () {
+    $(this).addClass('hidden')
     $('#viz_section').addClass('hidden');
+    $('#show_viz').removeClass('hidden');
     $('#genedrilldown').addClass('hidden')
     sessionStorage.removeItem('Ctox_viz_on');
   });
@@ -280,12 +298,20 @@ $(function () {
 
   // used when refreshing the page on filtering criteria - don't keep hidding the graph
   if (sessionStorage.getItem('Ctox_viz_on')) {
+    $('#show_viz').addClass('hidden')
+    $('#viz_section').removeClass('hidden');
+    $('#hide_viz').removeClass('hidden');
     makePlot()
   }
 
-  // show the mapchart button when appropriate
+
   if (sessionStorage.getItem('map_ok')) {
+    // show the mapchart button when appropriate
     $('#mapchart').removeClass('hidden')
+  } else {
+    // after viewing a mapchart and going to other types, set the selected type
+    // to something valid
+    sessionStorage.setItem('viz_type', 'heatmap');
   }
 
 });
