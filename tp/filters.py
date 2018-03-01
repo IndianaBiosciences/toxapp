@@ -5,6 +5,31 @@ from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrela
 
 logger = logging.getLogger(__name__)
 
+
+class DynamicChoiceMixin(object):
+
+    @property
+    def field(self):
+        queryset = self.parent.queryset
+        field = super(DynamicChoiceMixin, self).field
+
+        choices = list()
+        have = list()
+        # iterate through the queryset and pull out the values for the field name
+        for item in queryset:
+            name = getattr(item, self.field_name)
+            if name in have:
+                continue
+            have.append(name)
+            choices.append((name, name))
+        field.choices.choices = choices
+        return field
+
+
+class DynamicChoiceFilter(DynamicChoiceMixin, django_filters.ChoiceFilter):
+    pass
+
+
 class ModuleScoreFilter(django_filters.FilterSet):
 
     class Meta:
@@ -62,18 +87,10 @@ class SimilarExperimentsFilter(django_filters.FilterSet):
 
 class ToxicologyResultsFilter(django_filters.FilterSet):
 
-    # TODO - of course this shouldn't be hard-coded, JS just gave up trying to get the filters set up dynamically from
-    # model.  Useful tips for future efforts 1) django-filter just uses form filters, so lookup standard dynamic form
-    # drop downs; 2) should be easy if refactoring to fully-normalized norm per
-    # https://stackoverflow.com/questions/42121694/django-filter-dropdown-menu
-    # See also the method argument per http://django-filter.readthedocs.io/en/develop/ref/filters.html#filter-method
-    # Also currently not dynamic; selecting histopath doesn't give you just the subset of result_name
-    # corresponding to that type
-
-    RESULT_TYPE = (
-        ('Histopath', 'Histopath'),
-        ('Clinpath', 'Clinpath'),
-    )
+    # TODO - of course this shouldn't be hard-coded.
+    # You could just use result_type = DynamicChoiceFilter(...) but you get intermixed. Or take result types
+    # out and put them as foreign key, with order in the ToxResultType model (best solution).
+    # And then you could just use a django_filter.modelChoiceFilter
 
     RESULT_NAME = (
         ('Apoptosis/SingleCellNecrosis:Hepatocellular', 'Apoptosis/SingleCellNecrosis:Hepatocellular'),
@@ -100,7 +117,7 @@ class ToxicologyResultsFilter(django_filters.FilterSet):
         ('Trig.%', 'Trig.%'),
     )
 
-    result_type = django_filters.ChoiceFilter(choices=RESULT_TYPE, name='result_type', label='Result type')
+    result_type = DynamicChoiceFilter(name='result_type', label='Result type')
     result_name = django_filters.ChoiceFilter(choices=RESULT_NAME, name='result_name', label='Result name')
     group_avg_gt = django_filters.NumberFilter(name='group_avg', lookup_expr='gte', label='Group avg greater/equal than')
     group_avg_lt = django_filters.NumberFilter(name='group_avg', lookup_expr='lte', label='Group avg less/equal than')
