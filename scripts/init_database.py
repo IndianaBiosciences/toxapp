@@ -15,7 +15,7 @@ application = get_wsgi_application()
 
 from django.conf import settings
 from tp.models import MeasurementTech, IdentifierVsGeneMap, Gene, Study, Experiment, ToxicologyResult, GeneSets,\
-    GeneSetMember
+    GeneSetMember, GeneSetTox, ToxPhenotype
 from tp.tasks import load_measurement_tech_gene_map, load_module_scores, load_gsa_scores, load_correl_results
 from src.computation import Computation
 
@@ -137,6 +137,37 @@ def load_tox_results():
             createcount += 1
 
     logging.info('Number of Toxicology results created: %s; number read in file %s', createcount, rowcount)
+
+
+def load_geneset_vs_tox_associations():
+
+    tf = os.path.join(settings.BASE_DIR, config['DEFAULT']['tox_association_file'])
+    logger.info('Loading geneset vs toxicology results from file %s', tf)
+    createcount = 0
+    rowcount = 0
+    # delete existing data if any
+    GeneSetTox.objects.all().delete()
+
+    with open(tf) as f:
+        reader = csv.DictReader(f, delimiter='\t')
+        for row in reader:
+            rowcount += 1
+
+            phenotype, _ = ToxPhenotype.objects.get_or_create(name=row['tox'])
+            row['tox'] = phenotype
+
+            try:
+                geneset = GeneSets.objects.get(name=row['geneset'])
+            except GeneSets.DoesNotExist:
+                logger.warning('Geneset %s does not exist in database; skipping', row['geneset'])
+                continue
+
+            row['geneset'] = geneset
+
+            GeneSetTox.objects.create(**row)
+            createcount += 1
+
+    logging.info('Number of geneset vs tox results created: %s; number read in file %s', createcount, rowcount)
 
 
 def load_genesets():
@@ -443,19 +474,22 @@ if __name__ == '__main__':
     # step 4) load the toxicology results file
     load_tox_results()
 
-    # step 5a) load definition of core gene sets
+    # step 5) load the toxicology results file
+    load_geneset_vs_tox_associations()
+
+    # step 6) load definition of core gene sets
     load_genesets()
 
-    # step 6) load the fold change data
+    # step 7) load the fold change data
     load_fold_change_data()
 
-    # step 7 - iterate through newly added experiments and perform module / GSA scoring
+    # step 8 - iterate through newly added experiments and perform module / GSA scoring
     # commented out - temp for resuming loads
     #created_exp_list = Experiment.objects.all()
     #tech_obj = created_exp_list[0].tech
     score_experiments(created_exp_list)
 
-    # step 7 - load the pairwise experiment similarities
+    # step 9 - load the pairwise experiment similarities
     correlw = compute.calc_exp_correl(created_exp_list, 'WGCNA')
     load_correl_results(compute, correlw, 'WGCNA')
 

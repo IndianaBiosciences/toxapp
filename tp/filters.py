@@ -1,7 +1,8 @@
 import django_filters
 import collections
 import logging
-from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult
+from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult, GeneSetTox, \
+                    ToxPhenotype
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +33,15 @@ class DynamicChoiceFilter(DynamicChoiceMixin, django_filters.ChoiceFilter):
 
 class ModuleScoreFilter(django_filters.FilterSet):
 
+    module = django_filters.CharFilter(name='module__name', lookup_expr='icontains', label='Module name')
+    score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='module score greater/equal than')
+    score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='module score less/equal than')
+    desc = django_filters.CharFilter(name='module__desc', lookup_expr='icontains', label='Module description')
+
     class Meta:
         model = ModuleScores
-        fields = collections.OrderedDict()
-        fields['module__name'] = ['icontains']
-        fields['module__desc'] = ['icontains']
-        fields['score'] = ['lte', 'gte']
+        fields = ['module', 'score_gt', 'score_lt', 'desc']
+
 
 
 class GSAScoreFilter(django_filters.FilterSet):
@@ -125,3 +129,19 @@ class ToxicologyResultsFilter(django_filters.FilterSet):
     class Meta:
         model = ToxicologyResult
         fields = ['result_type', 'result_name', 'group_avg_gt', 'group_avg_lt']
+
+
+class ToxAssociationFilter(django_filters.FilterSet):
+
+    tox = django_filters.ModelMultipleChoiceFilter(label='Tox phenotype',
+                                                   queryset=ToxPhenotype.objects.all())
+    time = DynamicChoiceFilter(name='time', label='Sample collection time')
+    n_pos = django_filters.NumberFilter(name='n_pos', lookup_expr='gte', label='Number of positives for tox greater/equal than')
+    effect_size = django_filters.NumberFilter(name='effect_size', lookup_expr='gte', label='Effect size greater/equal than')
+    p_adj = django_filters.NumberFilter(name='p_adj', lookup_expr='lte', label='p-adj less/equal than')
+    q_adj = django_filters.NumberFilter(name='q_adj', lookup_expr='lte', label='q-adj less/equal than')
+    rank = django_filters.NumberFilter(name='rank', lookup_expr='lte', label='rank for tox-time combo less/equal than')
+
+    class Meta:
+        model = GeneSetTox
+        fields = ['tox', 'time', 'n_pos', 'effect_size', 'p_adj', 'q_adj', 'rank']

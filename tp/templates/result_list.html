@@ -45,15 +45,18 @@
       {% if request.session.use_saved_features %}
       <div class="form-group">
         <span>Limited to {{ request.session.use_saved_features }}</span>
-        <a href="{% url 'tp:manage-sesion' %}?use_saved_features=" class="btn btn-default">Clear filter</a>
+        <a href="{% url 'tp:manage-session' %}?use_saved_features=" class="btn btn-default">Clear filter</a>
       </div>
       {% endif %}
       {% bootstrap_form filter.form layout='horizontal' %}
-      {% buttons %}
-      {% bootstrap_button "Update" button_type="submit" button_class="btn-primary" extra_classes="table_updater" %}
-      <a class="btn btn-default" href="{{ request.path }}">Clear</a>
-      <div class="btn btn-static">{{ filter.qs.count }} results</div>
-      {% endbuttons %}
+      <div class="button-section" style="">
+        {% bootstrap_button "Update" button_type="submit" button_class="btn-primary" extra_classes="table_updater" %}
+        <a class="btn btn-default" href="{{ request.path }}">Clear</a>
+        {% if show_saved_features and not request.session.use_saved_features %}
+        <a class="btn btn-default" href="{% url 'tp:manage-session' %}?use_saved_features=saved modules">Limit to saved {{ view.feature_type }}</a>
+        {% endif %}
+        <div class="btn btn-static">{{ filter.qs.count }} results</div>
+      </div>
     </form>
     <div id="uploadIcon"></div>
   </div>
@@ -65,7 +68,7 @@
 <section id="viz_section" class="panel panel-default hidden">
   <div id="type_buttons" class="panel-body">
     <button id="heatmap" class="btn btn-default">Heatmap</button>
-    <button id="waterfall" class="btn btn-default">Waterfall</button>
+    <button id="barchart" class="btn btn-default">Barchart</button>
     <button id="mapchart" class="btn btn-default hidden">Map chart</button>
     <div id="genedrilldown" class="pull-right hidden">
       <span id="selected_geneset"></span>

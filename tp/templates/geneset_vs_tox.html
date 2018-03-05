@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% load render_table from django_tables2 %}
+{% load bootstrap3 %}
+
+{% block content %}
+
+<div class="container">
+
+  {% if request.session.saved_features.modules or request.session.filtered_feats %}
+  <div class="panel panel-default">
+    <div class="panel-body">
+    {# TODO - currently specific to modules, generalize later #}
+    {% if request.session.saved_features.modules %}
+    <a class="btn btn-default" href="{% url 'tp:feature-empty' ftype='modules' %}">Clear saved modules</a>
+    {% endif %}
+    {% if request.session.filtered_feats %}
+    <a class="btn btn-default" href="{% url 'tp:feature-add-filtered' ftype='modules' %}">Save all filtered modules</a>
+    {% endif %}
+    <a class="btn btn-default pull-right" href="{% url 'tp:manage-features' ftype='modules' %}">View saved modules {{ request.session.saved_features.modules|length }}</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="filter-dialog panel-body">
+    <form class="form" action="" method="get">
+      {% bootstrap_form filter.form layout='horizontal' %}
+      <div class="button-section">
+        {% bootstrap_button "Update" button_type="submit" button_class="btn-primary margin_top" extra_classes="table_updater" %}
+        <a class="btn btn-default margin_top" href="{{ request.path }}">Clear</a>
+        <div class="btn btn-static margin_top">{{ filter.qs.count }} results</div>
+      </div>
+    </form>
+    <div id="uploadIcon"></div>
+  </div>
+
+  <h4>Module vs. toxicity associations</h4>
+  {% render_table table %}
+</div>
+
+{% endblock content %}

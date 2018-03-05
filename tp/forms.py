@@ -1,7 +1,7 @@
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.forms import ModelForm, modelformset_factory
-from .models import Study, Experiment, Sample
+from .models import Study, Experiment, Sample, Gene, GeneSets
 import logging
 
 logger = logging.getLogger(__name__)
@@ -90,3 +90,33 @@ class MapFileForm(forms.Form):
 # since this is being used with sample names supplied as initial values, don't present the delete option
 # i.e. they are not objects that need to be deleted; will use javascript to remove rows as needed
 SampleFormSet = modelformset_factory(Sample, form=SampleForm, extra=3, can_delete=False)
+
+
+class FeatureConfirmForm(forms.Form):
+    """ checkbox form to identify which of existing experiments will be retained """
+    features = forms.ModelMultipleChoiceField(required=False,
+                                              queryset=None, widget=forms.CheckboxSelectMultiple(attrs={'checked': ''}))
+
+    def __init__(self, *args, **kwargs):
+
+        try:
+            ftype = kwargs.pop('ftype')
+        except KeyError:
+            logger.error('Need to supply argument ftype')
+            return None
+
+        flist = list()
+        try:
+            flist = kwargs.pop('flist')
+        except KeyError:
+            pass
+
+        if ftype == 'modules' or ftype == 'genesets':
+            features = GeneSets.objects.filter(pk__in=flist) if flist else GeneSets.objects.all()
+        elif flist == 'genes':
+            features = Gene.objects.filter(pk__in=flist) if flist else Gene.objects.all()
+        else:
+            raise NotImplemented('type {} not implemented'.format(ftype))
+
+        super(FeatureConfirmForm, self).__init__(*args, **kwargs)
+        self.fields['features'].queryset = features

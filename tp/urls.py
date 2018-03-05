@@ -67,14 +67,18 @@ urlpatterns = [
     # add an experiment to the analysis 'cart'; not exposing this method on experiment list
     url(r'^cart_edit/(?P<pk>\d+)/$', views.cart_edit, name='cart-edit'),
 
-    #TODO temporary handlers that will need to be replaced with some javascript functionality for clicking on exp list
-    # and redirect to the experiments list; will want to avoid this to avoid refreshing page when filtering functionality
-    # is built
     url(r'^cart_add/(?P<pk>\d+)/$', views.cart_add, name='cart-add'),
     url(r'^cart_del/(?P<pk>\d+)/$', views.cart_del, name='cart-del'),
     url(r'^cart_empty/$', views.cart_empty, name='cart-empty'),
     url(r'^cart_add_all/$', views.cart_add_all, name='cart-add-all'),
     url(r'^cart_add_filtered/$', views.cart_add_filtered, name='cart-add-filtered'),
+
+    # here, a feature means a gene expression 'feature' - module, geneset, gene
+    url(r'^feature_add/(?P<pk>\d+)/(?P<ftype>\w+)/$', views.feature_add, name='feature-add'),
+    url(r'^feature_del/(?P<pk>\d+)/(?P<ftype>\w+)/$', views.feature_del, name='feature-del'),
+    url(r'^feature_empty/(?P<ftype>\w+)/$', views.feature_empty, name='feature-empty'),
+    url(r'^feature_add_filtered/(?P<ftype>\w+)/$', views.feature_add_filtered, name='feature-add-filtered'),
+    url(r'^manage_features/(?P<ftype>\w+)/$', views.manage_features, name='manage-features'),
 
     # display overview of results for selected experiments
     url(r'^analysis_summary/$', login_required(views.analysis_summary), name='analysis-summary'),
@@ -101,12 +105,17 @@ urlpatterns = [
     url(r'^export_filtered_results/$', views.export_result_xls, name='export-filtered-result'),
 
     # export to filtered results to json
-    url(r'^heatmap_json/$', views.export_heatmap_json, name='json-filtered-result'),
+    url(r'^heatmap_json/$', views.export_heatmap_json, name='heatmap-json'),
 
     # export to filtered results to json
-    url(r'^mapchart_json/$', views.export_mapchart_json, name='json-filtered-result'),
+    url(r'^mapchart_json/$', views.export_mapchart_json, name='mapchart-json'),
+
+    # export to filtered results to json
+    url(r'^barchart_json/$', views.export_barchart_json, name='barchart-json'),
+
+    url(r'^get_tox_assoc/$', login_required(views.ToxAssociation.as_view()), name='get-tox-assoc'),
 
     url(r'^get_feature_subset/(?P<geneset_id>\d+)$', views.get_feature_subset, name='get-feature-subset'),
 
-    url(r'^manage_session/$', views.manage_session, name='manage-sesion'),
+    url(r'^manage_session/$', views.manage_session, name='manage-session'),
 ]

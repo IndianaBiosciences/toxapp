@@ -107,6 +107,79 @@ $(function () {
         });
     };
 
+    var makeBarChart = function() {
+
+        $.getJSON('/barchart_json', function (response) {
+
+            if(response.empty_dataset) {
+
+                // not changing the sessionStorage status, so next refresh with data will put the chart back
+                $('#hide_viz').addClass('hidden');
+                $('#viz_error').text('No data, nothing to show');
+                $('#viz_error').removeClass('hidden');
+                $('#viz_section').addClass('hidden');
+                $('#viz_loading').removeClass('loader');
+
+            } else {
+
+                var options = {
+
+                    chart: {
+                        type: 'column',
+                        zoomType: 'x',
+                    },
+
+                    title: {
+                        text: response.restype + ' barchart',
+                        align: 'left'
+                    },
+
+                    xAxis: {
+                        categories: response.categories,
+                        labels: {
+                            rotation: -45,
+                            style: {
+                                fontSize: '13px',
+                                fontFamily: 'Verdana, sans-serif'
+                            }
+                        }
+                    },
+
+                    yAxis: {
+                        title: {
+                            text: response.scale
+                        }
+                    },
+
+                    plotOptions: {
+                        series: {
+                            stacking: 'normal'
+                        }
+                    },
+
+                    tooltip: {
+                        headerFormat: '{response.restype}<br/>',
+                        pointFormat: '{point.feat} <b>{point.y}</b> {point.detail}'
+                    },
+
+                    series: response.series
+                };
+
+                if (response.drilldown_ok) {
+                    options.series[0].events = {
+                        click: function (ev) {
+                            geneDrillDown(ev.point.feat, ev.point.feat_id);
+                        }
+                    }
+                }
+
+                var chart = new Highcharts.chart('viz_container', options);
+                $('#viz_loading').removeClass('loader');
+            }
+        });
+    };
+
+
     var makeMapChart = function() {
 
         // current Txg map doesn't need to be any bigger and looks too big otherwise
@@ -238,6 +311,8 @@ $(function () {
             makeHeatmap();
         } else if (type == 'mapchart') {
             makeMapChart();
+        } else if (type == 'barchart') {
+            makeBarChart();
         } else {
             console.log('Chart of type ' + type.toString() + ' not supported');
         }
@@ -294,6 +369,15 @@ $(function () {
         sessionStorage.setItem('viz_type', 'mapchart');
         // no need to make the plot if already on the selected type
         if (!current_type || current_type != 'mapchart') {
+            makePlot()
+        }
+    });
+
+    $('#barchart').on('click', function () {
+        var current_type = sessionStorage.getItem('viz_type');
+        sessionStorage.setItem('viz_type', 'barchart');
+        // no need to make the plot if already on the selected type
+        if (!current_type || current_type != 'barchart') {
             makePlot()
         }
     });

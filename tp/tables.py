@@ -1,6 +1,7 @@
 import django_tables2 as tables
 from django_tables2.utils import A
-from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult
+from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation,\
+                    ToxicologyResult, GeneSetTox
 
 
 class ModuleScoreTable(tables.Table):
@@ -39,6 +40,19 @@ class ToxicologyResultsTable(tables.Table):
     class Meta:
         model = ToxicologyResult
         fields = ['experiment', 'result_type', 'result_name', 'group_avg', 'animal_details']
+        attrs = {'class': 'table table-striped custab'}
+
+
+class GenesetToxAssocTable(tables.Table):
+
+    add_feature = tables.TemplateColumn(template_name='manage_features.html', orderable=False,
+                                    attrs={
+                                        'td': {'align': 'center'},
+                                    })
+
+    class Meta:
+        model = GeneSetTox
+        fields = ['add_feature', 'geneset', 'tox', 'time', 'n_pos', 'effect_size', 'coef', 'p_adj', 'q_adj', 'rank']
         attrs = {'class': 'table table-striped custab'}
 
 
@@ -89,3 +103,4 @@ class StudyListTable(tables.Table):
         fields = ['study_name', 'source', 'date_created', 'owner', 'permission']
         sequence = ('get_exps', 'edit', 'qc', 'study_name', 'source', 'date_created', 'owner', 'permission')
         attrs = {'class': 'table table-striped custab'}
+

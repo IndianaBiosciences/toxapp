@@ -16,9 +16,9 @@ from django_tables2 import SingleTableView
 
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation, ToxicologyResult, GeneSets
+                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
-                   ExperimentConfirmForm, SampleConfirmForm, MapFileForm
+                   ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
 from .tasks import load_measurement_tech_gene_map, process_user_files
 import tp.filters
 import tp.tables
@@ -31,6 +31,7 @@ import pprint, json
 import xlwt
 import operator
 import colour
+import collections
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def reset_session(session):
     logger.debug('Resetting session info for tracking metadata across handlers')
     # TODO - delete the existing tmp_dir first
     # delete and not set to None due to manner in which they are created as lists
-    for attr in ['saved_features', 'tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
+    for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
         try:
             del session[attr]
         except KeyError:
@@ -206,6 +207,95 @@ def cart_edit(request, pk=None):
 
     context = {'form': form}
     return render(request, 'cart_edit.html', context)
+
+
+def feature_add(request, pk, ftype):
+    pk = int(pk)
+    if request.session.get('saved_features', None) is None:
+        request.session['saved_features'] = {}
+
+    flist = request.session['saved_features'].get(ftype, [])
+
+    if pk not in flist:
+        flist.append(pk)
+    request.session['saved_features'][ftype] = flist
+    # major PITA - see https://docs.djangoproject.com/en/2.0/topics/http/sessions/, 'when sessions are saved'
+    # it does not trigger a save to DB if keys below session are modified
+    request.session.modified = True
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def feature_add_filtered(request, ftype):
+    filtered_features = request.session.get('filtered_features', [])
+    if request.session.get('saved_features', None) is None:
+        request.session['saved_features'] = {}
+
+    flist = request.session['saved_features'].get(ftype, [])
+
+    for pk in filtered_features:
+        if pk not in flist:
+            flist.append(pk)
+
+    request.session['saved_features'][ftype] = flist
+    request.session.modified = True
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def feature_del(request, pk, ftype):
+    pk = int(pk)
+    saved_features = request.session.get('saved_features', {})
+    flist = saved_features.get(ftype, [])
+
+    if flist and pk in flist:
+        flist.remove(pk)
+    request.session['saved_features'][ftype] = flist
+    request.session.modified = True
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def feature_empty(request, ftype):
+
+    if request.session.get('saved_features', None) and request.session['saved_features'].get(ftype, None):
+        request.session['saved_features'][ftype] = []
+        request.session.modified = True
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def manage_features(request, ftype):
+
+    if request.method == 'POST':
+        form = FeatureConfirmForm(request.POST, ftype=ftype)
+        if form.is_valid():
+
+            retained_ids = []
+            for f in form.cleaned_data['features']:
+                retained_ids.append(f.pk)
+
+            logger.debug('Features being saved in session: %s', retained_ids)
+            request.session['saved_features'][ftype] = retained_ids
+            request.session.modified = True
+
+            if request.POST.get('referrer'):
+                return HttpResponseRedirect(request.POST.get('referrer'))
+            else:
+                return HttpResponseRedirect(reverse('tp:experiments'))
+
+    else:
+
+        saved_features = request.session.get('saved_features', {})
+        flist = saved_features.get(ftype, [])
+
+        if not flist:
+            message = 'Please add genes/modules/genesets first'
+            redirect_url = reverse('tp:get-tox-assoc')
+            context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            return render(request, 'generic_message.html', context)
+
+        form = FeatureConfirmForm(ftype=ftype, flist=flist)
+
+    context = {'form': form}
+    return render(request, 'feature_edit.html', context)
 
 
 def analysis_summary(request):
@@ -569,9 +659,8 @@ def filter_vs_feature_subset(request, data):
         return data, change
     if data.model == ModuleScores and features.get('modules', None) is not None:
         logger.debug('Filtering for type ModuleScore')
-        #data = data.filter(module__pk__in=features['modules'])
-        #change = True
-        raise NotImplemented
+        data = data.filter(module__pk__in=features['modules'])
+        change = True
     elif data.model == GSAScores and features.get('genesets', None) is not None:
         logger.debug('Filtering for type GSAScore')
         #data = data.filter(geneset__pk__in=features['genesets'])
@@ -601,8 +690,8 @@ def get_feature_subset(request, geneset_id):
         return render(request, 'generic_message.html', context)
 
     members = list(geneset.members.values_list('id', flat=True))
-    d = {'genes': members}
-    request.session['saved_features'] = d
+    request.session['saved_features']['genes'] = members
+    request.session.modified = True
     request.session['use_saved_features'] = 'geneset: ' + geneset.name
     logger.debug('Enabled filtering to %s', request.session['use_saved_features'])
     url = reverse('tp:gene-foldchange')
@@ -886,6 +975,9 @@ def export_heatmap_json(request, restype=None):
         nres['x_vals'] = x_vals
         nres['y_vals'] = y_vals
 
+    #formatted = json.dumps(nres, indent=4, sort_keys=True)
+    #logger.debug(formatted)
+
     return JsonResponse(nres)
 
 
@@ -913,7 +1005,7 @@ def export_mapchart_json(request, restype=None):
             nres.update({'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
         elif restype.lower() == 'gsascores':
             viz_cols = {'geneset_id': 'geneset.id', 'geneset': 'geneset.name', 'x': 'geneset.x_coord', 'y': 'geneset.y_coord','image': 'geneset.image', 'val': 'score', 'tooltip': ['geneset.name', 'geneset.desc', 'p_bh']}
-            nres.update({'scale': 'GSA score', 'scalemin': -10, 'scalemax': 10})
+            nres.update({'scale': 'GSA score', 'scalemin': -15, 'scalemax': 15})
         else:
             nres['not_applicable'] = True
             return JsonResponse(nres)
@@ -971,6 +1063,93 @@ def export_mapchart_json(request, restype=None):
             ndata.append(nr)
 
         nres['data'] = ndata
+
+    return JsonResponse(nres)
+
+
+def export_barchart_json(request, restype=None):
+    """ query module / GSA / gene fold change and return json data """
+    res = make_result_export(request, restype)
+
+    nres = dict()
+
+    if res is None:
+        # not an error when called here - as user filters data and there are no results avail, the
+        # chart will ask for revised dataset
+        logger.info('Empty dataset requested for visualization')
+        nres['empty_dataset'] = True
+        return JsonResponse(nres)
+
+    else:
+
+        restype = res['restype']
+        nres['restype'] = restype
+
+        if restype.lower() == 'modulescores':
+            viz_cols = {'feat_id': 'module.id', 'x': 'module.name', 'y': 'score', 'tooltip': ['module.name']}
+            nres.update({'drilldown_ok': True, 'scale': 'WGCNA module score'})
+        elif restype.lower() == 'gsascores':
+            viz_cols = {'feat_id': 'geneset.id', 'x': 'geneset.name', 'y': 'score', 'tooltip': ['geneset.type', 'geneset.desc', 'p_bh']}
+            nres.update({'drilldown_ok': True, 'scale': 'GSA score'})
+        elif restype.lower() == 'foldchangeresult':
+            viz_cols = {'x': 'gene_identifier.gene.rat_gene_symbol', 'y': 'log2_fc', 'tooltip': ['gene_identifier.gene_identifier', 'p_bh']}
+            nres.update({'scale': 'log2 fold change'})
+        elif restype.lower() == 'experimentcorrelation':
+            viz_cols = {'x': 'experiment_ref.experiment_name', 'y': 'correl', 'tooltip': ['source', 'rank']}
+            nres.update({'scale': 'Pearson R'})
+        elif restype.lower() == 'toxicologyresult':
+            viz_cols = {'x': 'result_name', 'y': 'group_avg', 'tooltip': ['result_type','animal_details']}
+            nres.update({'scale': 'tox score'})
+        else:
+            raise NotImplementedError('Type not implemented:', restype)
+
+        # determine order of features by summing across all experiments
+        feature_total = dict()
+        for r in res['data']:
+            feat = operator.attrgetter(viz_cols['x'])(r)
+            val = operator.attrgetter(viz_cols['y'])(r)
+            feature_total[feat] = feature_total.get(feat, 0) + val
+
+        x_vals = sorted(feature_total, key=feature_total.get, reverse=True)
+        nres['categories'] = x_vals
+
+        # index of module/geneset/gene names for display stored in variable x - i.e. heatmap horizontal axis
+        ndata = collections.defaultdict(list)
+        for r in res['data']:
+
+            exp = operator.attrgetter('experiment.experiment_name')(r)
+            feat = operator.attrgetter(viz_cols['x'])(r)
+            feat_id = None
+
+            # without the explicit float call (because it's a decimal), json ends up with numeric value in string
+            y = float(operator.attrgetter(viz_cols['y'])(r))
+            # get the indices corresponding to the x/y axis categories
+            x_ind = x_vals.index(feat)
+
+            ttiptxt = ''
+            for item in viz_cols['tooltip']:
+                val = str(operator.attrgetter(item)(r))
+                if ttiptxt:
+                    ttiptxt += '; '
+                ttiptxt += item + '=' + val
+
+            nr = {'x': x_ind, 'y': y, 'feat': feat, 'detail': ttiptxt}
+            if nres.get('drilldown_ok', None) is not None:
+                feat_id = operator.attrgetter(viz_cols['feat_id'])(r)
+                nr['feat_id'] = feat_id
+
+            ndata[exp].append(nr)
+
+        series = list()
+        for exp in sorted(ndata):
+            # highcharts complains if not sorted by the category index
+            rows = sorted(ndata[exp], key=lambda x: x['x'])
+            s = {'name': exp, 'data': rows}
+            series.append(s)
+
+    nres['series'] = series
+    #formatted = json.dumps(nres, indent=4, sort_keys=True)
+    #logger.debug(formatted)
 
     return JsonResponse(nres)
 
@@ -1460,11 +1639,14 @@ class FilteredSingleTableView(SingleTableView):
             # TODO - as done currently it would mean that returning to say gene-level results later
             # would mean there is no filtering applied.  Only an issue if/when we implement ability to
             # save a favorite gene selection
-            if not changed_feat:
-               self.request.session['use_saved_features'] = None
+            #if not changed_feat:
+            #   self.request.session['use_saved_features'] = None
 
         self.filter = self.filter_class(self.request.GET, queryset=data)
         results = self.filter.qs
+        # TODO - to update the drop-downs only to the current result set, scan the results, put the
+        # unique result types in the session, and use javascript to read the types out of session
+        # and update the dropdowns
 
         # if the current result list is from SimilarExperiments, store the result IDs so that ref experiments can be
         # accessed in subsequent ToxicologyResults view
@@ -1511,6 +1693,11 @@ class FilteredSingleTableView(SingleTableView):
         # provide a place in template to populate a geneset id to be used for the gene-level drilldown
         context['geneset_drilldown_id'] = 999999
 
+        if getattr(self, 'feature_type', None) and self.request.session['saved_features'] and \
+                self.request.session['saved_features'].get(self.feature_type, None) and \
+                self.feature_type == 'modules':  # TODO - drop limit to modules later
+            context['show_saved_features'] = True
+
         if type(self).__name__ == 'SimilarExperimentsSingleTableView':
             context['show_tox_result_link'] = True
         return context
@@ -1518,6 +1705,7 @@ class FilteredSingleTableView(SingleTableView):
 
 class ModuleFilteredSingleTableView(FilteredSingleTableView):
     model = ModuleScores
+    feature_type = 'modules'
     template_name = 'result_list.html'
     table_class = tp.tables.ModuleScoreTable
     table_pagination = True
@@ -1526,6 +1714,7 @@ class ModuleFilteredSingleTableView(FilteredSingleTableView):
 
 class GSAFilteredSingleTableView(FilteredSingleTableView):
     model = GSAScores
+    feature_type = 'genesets'
     template_name = 'result_list.html'
     table_class = tp.tables.GSAScoreTable
     table_pagination = True
@@ -1534,6 +1723,7 @@ class GSAFilteredSingleTableView(FilteredSingleTableView):
 
 class FoldChangeSingleTableView(FilteredSingleTableView):
     model = FoldChangeResult
+    feature_type = 'genes'
     template_name = 'result_list.html'
     table_class = tp.tables.FoldChangeResultTable
     table_pagination = True
@@ -1555,3 +1745,20 @@ class ToxicologyResultsSingleTableView(FilteredSingleTableView):
     table_pagination = True
     filter_class = tp.filters.ToxicologyResultsFilter
 
+
+class ToxAssociation(SingleTableView):
+    model = GeneSetTox
+    template_name = 'geneset_vs_tox.html'
+    table_class = tp.tables.GenesetToxAssocTable
+    table_pagination = True
+    filter_class = tp.filters.ToxAssociationFilter
+
+    def get_table_data(self):
+        data = super(ToxAssociation, self).get_table_data()
+        self.filter = self.filter_class(self.request.GET, queryset=data)
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super(ToxAssociation, self).get_context_data(**kwargs)
+        context['filter'] = self.filter
+        return context

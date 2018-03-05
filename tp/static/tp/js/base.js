@@ -62,8 +62,10 @@ $(function() {
     });
 
     // if coming back to the result summary page from a results page, reset the mapchart status
+    // also, reset status on showing of saved features - don't filter
     $('#res_summary_link').on('click', function () {
         sessionStorage.removeItem('map_ok');
+        $.get("/manage_session/?use_saved_features=")
     });
     
 });

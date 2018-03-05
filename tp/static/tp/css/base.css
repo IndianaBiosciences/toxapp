@@ -235,3 +235,16 @@ a.button_large {
     min-height: 350px;
     margin: 0 auto;
 }
+/* prevent django-bootstrap3 horizontal forms with the django-filter module from showing some inline, some horizontal
+when screen around a transition where it switches from having labels inline vs. above
+ */
+.control-label {
+    clear: both;
+}
+/* the buttons are sometimes to the right of the form; same issue as above; and the buttons can touch the bottom
+of form created with django-filter
+ */
+.button-section {
+    clear: both;
+    padding-top: 10px;
+}

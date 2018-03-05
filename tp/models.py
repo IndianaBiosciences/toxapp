@@ -254,3 +254,29 @@ class ToxicologyResult(models.Model):
     def __str__(self):
         txt = "experiment {} vs result {}".format(self.experiment.id, self.result_name)
         return txt
+
+
+class ToxPhenotype(models.Model):
+
+    name = models.CharField(max_length=200)
+    desc = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+
+class GeneSetTox(models.Model):
+
+    geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
+    tox = models.ForeignKey(ToxPhenotype, on_delete=models.CASCADE)
+    time = models.CharField(max_length=10)
+    n_pos = models.IntegerField()
+    effect_size = models.DecimalField(max_digits=5, decimal_places=2)
+    coef = models.DecimalField(max_digits=5, decimal_places=2)
+    p_adj = models.FloatField()
+    q_adj = models.FloatField()
+    rank = models.IntegerField()
+
+    def __str__(self):
+        txt = "geneset {} vs tox {}".format(self.geneset.name, self.tox.name)
+        return txt
