@@ -1693,7 +1693,7 @@ class FilteredSingleTableView(SingleTableView):
         # provide a place in template to populate a geneset id to be used for the gene-level drilldown
         context['geneset_drilldown_id'] = 999999
 
-        if getattr(self, 'feature_type', None) and self.request.session['saved_features'] and \
+        if getattr(self, 'feature_type', None) and self.request.session.get('saved_features', None) and \
                 self.request.session['saved_features'].get(self.feature_type, None) and \
                 self.feature_type == 'modules':  # TODO - drop limit to modules later
             context['show_saved_features'] = True
@@ -1761,4 +1761,11 @@ class ToxAssociation(SingleTableView):
     def get_context_data(self, **kwargs):
         context = super(ToxAssociation, self).get_context_data(**kwargs)
         context['filter'] = self.filter
+
+        changed_fields = len(self.filter.form.changed_data)
+        if changed_fields > 0:
+            geneset_ids = list(sorted(set(map(lambda x: x.geneset.id, self.filter.qs))))
+            self.request.session['filtered_features'] = geneset_ids
+            context['filtered_features'] = True
+
         return context

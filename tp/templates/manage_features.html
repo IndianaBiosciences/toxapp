@@ -1,5 +1,5 @@
 {% if record.id in request.session.saved_features.modules %}
-<a href="{% url 'tp:feature-del'  pk=record.pk ftype='modules' %}" class="glyphicon glyphicon-remove-sign" title="Remove from saved modules"></a>
+<a href="{% url 'tp:feature-del'  pk=record.geneset.pk ftype='modules' %}" class="glyphicon glyphicon-remove-sign" title="Remove from saved modules"></a>
 {% else %}
-<a href="{% url 'tp:feature-add' pk=record.pk ftype='modules' %}" class="glyphicon glyphicon-plus" title="Add to saved modules"></a>
+<a href="{% url 'tp:feature-add' pk=record.geneset.pk ftype='modules' %}" class="glyphicon glyphicon-plus" title="Add to saved modules"></a>
 {% endif %}

@@ -7,14 +7,14 @@
 
 <div class="container">
 
-  {% if request.session.saved_features.modules or request.session.filtered_feats %}
+  {% if request.session.saved_features.modules or filtered_features %}
   <div class="panel panel-default">
     <div class="panel-body">
     {# TODO - currently specific to modules, generalize later #}
     {% if request.session.saved_features.modules %}
     <a class="btn btn-default" href="{% url 'tp:feature-empty' ftype='modules' %}">Clear saved modules</a>
     {% endif %}
-    {% if request.session.filtered_feats %}
+    {% if filtered_features %}
     <a class="btn btn-default" href="{% url 'tp:feature-add-filtered' ftype='modules' %}">Save all filtered modules</a>
     {% endif %}
     <a class="btn btn-default pull-right" href="{% url 'tp:manage-features' ftype='modules' %}">View saved modules {{ request.session.saved_features.modules|length }}</a>
