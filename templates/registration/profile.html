@@ -12,19 +12,24 @@
         <div class="card card-container">
             <!-- <img class="profile-img-card" src="//lh3.googleusercontent.com/-6V8xOA6M7BA/AAAAAAAAAAI/AAAAAAAAAAA/rzlHcD0KYwo/photo.jpg?sz=120" alt="" /> -->
             <!--<img id="profile-img" class="profile-img-card" src="//ssl.gstatic.com/accounts/ui/avatar_2x.png" /> -->
+            {% if error %}
+                <p style="color:red;" class="profile-name-card">*{{ error }}</p>
+            {% endif %}
             <p id="profile-name" class="profile-name-card">Update User Profile<br></p>
             <form method="post" action="{% url 'profile' %}">
             {% csrf_token %}
+            <label class="label-profile">Username:</label>
+                <input type="text" name="username" id="username" value="{{ request.user.username }}" class="form-control">
             <label class="label-profile">First name:</label>
-                <input type="text" id="first_name" value="{{ request.user.first_name }}" class="form-control">
+                <input type="text" name="first_name" id="first_name" value="{{ request.user.first_name }}" class="form-control">
             <label class="label-profile">Last name:</label>
-                <input type="text" id="last_name"  value="{{ request.user.last_name }}" class="form-control">
+                <input type="text" name="last_name" id="last_name"  value="{{ request.user.last_name }}" class="form-control">
             <label class="label-profile">Email:</label>
-                <input type="text" id="email"      value="{{ request.user.email }}" class="form-control">
+                <input type="text" id="email"  name="email"    value="{{ request.user.email }}" class="form-control">
             <p></p>
             <button class="btn btn-lg btn-success btn-block btn-signin" type="submit">Update Profile</button>
             </form>
-            <a href="/change_password" class="forgot-password">Change Password</a>
+            <a href="/password_reset" class="forgot-password">Reset Password</a>
        </div>
     </div>
 

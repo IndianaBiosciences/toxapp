@@ -17,7 +17,6 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
     <script src="/static/tp/js/base.js"></script>
     <link rel="stylesheet" href="/static/tp/css/base.css">
-    {% block extra_head_content %}{% endblock %}
 </head>
 
 {# Display django.contrib.messages as Bootstrap alerts #}
@@ -50,10 +49,6 @@
                     <li><a href="{% url "profile" %}">User: {{ user }}</a></li>
                     <li><a href="{% url "tp:studies" %}">Studies</a></li>
                     <li><a href="{% url "tp:experiments" %}">Experiments</a></li>
-                    {% if request.session.analyze_list %}
-                      <li><a href="{% url "tp:analysis-summary" %}">Results</a></li>
-                    {% endif %}
-                    <li><a href="{% url "tp:get-tox-assoc" %}">Toxicity prediction</a></li>
                     <li><a href="{% url "logout" %}">Log Out</a></li>
                 {%  endif %}
         </ul>
@@ -63,10 +58,8 @@
 </header>
 
 
-<div id="content">
-
+<div id="content" style="padding: 10px; background-color: rgb(255,255,255);">
       {% block content %}{% endblock %}
-
 </div>
 
 <!-- Sticky Footer -->
