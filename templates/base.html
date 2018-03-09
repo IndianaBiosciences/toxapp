@@ -49,6 +49,10 @@
                     <li><a href="{% url "profile" %}">User: {{ user }}</a></li>
                     <li><a href="{% url "tp:studies" %}">Studies</a></li>
                     <li><a href="{% url "tp:experiments" %}">Experiments</a></li>
+                    {% if request.session.analyze_list %}
+                      <li><a href="{% url "tp:analysis-summary" %}">Results</a></li>
+                    {% endif %}
+                    <li><a href="{% url "tp:get-tox-assoc" %}">Toxicity prediction</a></li>
                     <li><a href="{% url "logout" %}">Log Out</a></li>
                 {%  endif %}
         </ul>
