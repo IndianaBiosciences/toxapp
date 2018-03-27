@@ -1,6 +1,11 @@
 /**
  * Javascript components for toxapp
  */
+// per https://stackoverflow.com/questions/40035436/how-to-retain-scroll-position-after-reloading-the-web-page-too?rq=1
+$(window).scroll(function() {
+  sessionStorage.scrollTop = $(this).scrollTop();
+});
+
 $(function() {
 
     // add class loader to div set up to show progress on upload form
@@ -67,5 +72,9 @@ $(function() {
         sessionStorage.removeItem('map_ok');
         $.get("/manage_session/?use_saved_features=")
     });
-    
+
+    // for views like experiment list, return to the position of last 'add to cart' upon refresh
+    if (sessionStorage.scrollTop != "undefined") {
+        $(window).scrollTop(sessionStorage.scrollTop);
+    }
 });
