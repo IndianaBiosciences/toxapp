@@ -118,4 +118,6 @@ urlpatterns = [
     url(r'^get_feature_subset/(?P<geneset_id>\d+)$', views.get_feature_subset, name='get-feature-subset'),
 
     url(r'^manage_session/$', views.manage_session, name='manage-session'),
+
+    url(r'^gene_detail/(?P<gene_id>\d+)$', views.gene_detail, name='gene-detail'),
 ]

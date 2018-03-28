@@ -1154,6 +1154,12 @@ def export_barchart_json(request, restype=None):
     return JsonResponse(nres)
 
 
+def gene_detail(request, gene_id):
+
+    link = 'https://www.ncbi.nlm.nih.gov/gene/' + str(gene_id)
+    return HttpResponseRedirect(link)
+
+
 class ResetSessionMixin(object):
 
     # TODO - better way to call an arbitary function (reset_session) on CBV lisview?
