@@ -46,6 +46,21 @@ class ModuleScoreFilter(django_filters.FilterSet):
 
 class GSAScoreFilter(django_filters.FilterSet):
 
+    GENESET_TYPE = (
+        ('molecular_function', 'GO molecular function'),
+        ('biological_process', 'GO biological process'),
+        ('cellular_component', 'GO cellular component'),
+        ('CP:REACTOME', 'REACTOME pathways'),
+        ('CP:KEGG', 'KEGG pathways'),
+        ('CP:BIOCARTA', 'Biocarta pathways'),
+        ('RegNet', 'Dow AgroSciences regulator networks'),
+        ('TF-target annotation', 'Curated transcription factor targets'),
+        ('MIR', 'MSigDB MIR targets'),
+        ('TFT', 'MSigDB Transcription factor targets'),
+        ('CGP', 'MSigDB chemical/genetic perturbations'),
+    )
+
+    type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, name='geneset__type', label='Geneset type')
     geneset = django_filters.CharFilter(name='geneset__name', lookup_expr='icontains', label='Gene set name')
     score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='GSA score greater/equal than')
     score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='GSA score less/equal than')
@@ -53,7 +68,7 @@ class GSAScoreFilter(django_filters.FilterSet):
 
     class Meta:
         model = GSAScores
-        fields = ['geneset', 'score_gt', 'score_lt', 'p_bh']
+        fields = ['type', 'geneset', 'score_gt', 'score_lt', 'p_bh']
 
 
 class FoldChangeResultFilter(django_filters.FilterSet):

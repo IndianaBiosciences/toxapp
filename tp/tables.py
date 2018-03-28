@@ -4,6 +4,14 @@ from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult
                     ToxicologyResult, GeneSetTox
 
 
+class TruncateColumn(tables.Column):
+
+    def render(self, value):
+        if len(value) > 30:
+            value = value[:30] + '..'
+        return value
+
+
 class ModuleScoreTable(tables.Table):
     class Meta:
         model = ModuleScores
@@ -13,9 +21,13 @@ class ModuleScoreTable(tables.Table):
 
 
 class GSAScoreTable(tables.Table):
+
+    geneset_desc = TruncateColumn(verbose_name='Geneset description', accessor='geneset.desc',
+                                  attrs = {'td': {'title': lambda record: record.geneset.desc}})
+
     class Meta:
         model = GSAScores
-        fields = ['experiment', 'geneset', 'score', 'p_bh']
+        fields = ['experiment', 'geneset.name', 'geneset_desc', 'score', 'p_bh']
         attrs = {'class': 'table table-striped custab'}
         order_by = 'p_bh'
 
