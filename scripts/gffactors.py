@@ -174,15 +174,19 @@ def create_cel_list(cfile, celdir, experiments):
     return len(cell_files)
 
 
-def normalize_cel_expression(celdir, sdir, experiments):
+def normalize_cel_expression(celdir, sdir, array_type, experiments):
     """ Normalize the expression from the cell files
 
     Parameters
     --------------
     celdir : directory with cell files
     sdir : directory containing the scripts
+    array_type : which Affay array was used: RG230-2, MG430-2 or HGU133-2
     experiments: experiments data structure
     """
+
+    assert array_type in ('RG230-2', 'MG430-2', 'HGU133-2')
+
     clistfile = "cell_files.txt"
     if os.path.exists(clistfile):
         os.remove(clistfile)
@@ -194,7 +198,7 @@ def normalize_cel_expression(celdir, sdir, experiments):
     # everything appears to be in order
     # prepare for R code to do the normalization and create the RMA.txt file
     r_norm_script = os.path.join(sdir, "NORM.R")
-    r_cmd = "R --vanilla <" + r_norm_script
+    r_cmd = "Rscript --vanilla " + r_norm_script + " " + array_type
     logger.info("Normalizing data using cmd:" + r_cmd)
     output = subprocess.getoutput(r_cmd)
     logger.debug(pp.pformat(output))
@@ -661,8 +665,7 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, config):
             logging.debug("Copying file %s to directory %s", file, udir)
 
 
-
-def compute_gfc_CEL(infile, outfile, celdir, sdir):
+def compute_gfc_CEL(infile, outfile, celdir, sdir, array_type):
     """ Compute the fold factors for CEL file via Lilly process
 
     Parameters
@@ -685,7 +688,7 @@ def compute_gfc_CEL(infile, outfile, celdir, sdir):
         logger.critical("Does not appear to have either csv or json file")
         exit(0)
 
-    rma = normalize_cel_expression(celdir, sdir, experiments)
+    rma = normalize_cel_expression(celdir, sdir, array_type, experiments)
     results = compute_limma_results(sdir, experiments, rma)
     write_results(outfile, experiments, results)
 
@@ -716,7 +719,7 @@ def compute_fold_factors(infile, outfile, celdir, sdir):
 
     # run different workflows
     if config['file_type'] == 'CEL':
-        compute_gfc_CEL(infile, outfile, celdir, config['script_dir'])
+        compute_gfc_CEL(infile, outfile, celdir, config['script_dir'], config['measurement_tech'])
     else:
         compute_gfc_rnaseq(config['file_name'], config['experiments'], outfile, config)
 
