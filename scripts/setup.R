@@ -13,6 +13,7 @@ biocLite('DESeq2')
 biocLite('affy')
 biocLite('limma')
 biocLite('piano')
+biocLite('png')
 
 #
 # need to install rat2302rnentrezgcdf
