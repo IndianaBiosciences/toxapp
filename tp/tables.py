@@ -2,6 +2,13 @@ import django_tables2 as tables
 from django_tables2.utils import A
 from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation,\
                     ToxicologyResult, GeneSetTox
+from decimal import Decimal
+
+
+class SciNotationColumn(tables.Column):
+
+    def render(self, value):
+        return '%.2E' % Decimal(value)
 
 
 class TruncateColumn(tables.Column):
@@ -23,7 +30,8 @@ class ModuleScoreTable(tables.Table):
 class GSAScoreTable(tables.Table):
 
     geneset_desc = TruncateColumn(verbose_name='Geneset description', accessor='geneset.desc',
-                                  attrs = {'td': {'title': lambda record: record.geneset.desc}})
+                                  attrs={'td': {'title': lambda record: record.geneset.desc}})
+    p_bh = SciNotationColumn(verbose_name='ajusted P-value', accessor='p_bh')
 
     class Meta:
         model = GSAScores
@@ -35,6 +43,8 @@ class GSAScoreTable(tables.Table):
 class FoldChangeResultTable(tables.Table):
 
     gene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.rat_gene_symbol, args=[A('gene_identifier.gene.rat_entrez_gene')])
+    p = SciNotationColumn(verbose_name='P-value', accessor='p')
+    p_bh = SciNotationColumn(verbose_name='ajusted P-value', accessor='p_bh')
 
     class Meta:
         model = FoldChangeResult
