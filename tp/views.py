@@ -19,7 +19,7 @@ from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResul
                     ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
-from .tasks import load_measurement_tech_gene_map, process_user_files
+from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
 import tp.filters
 import tp.tables
 import tp.utils
@@ -32,6 +32,7 @@ import xlwt
 import operator
 import colour
 import collections
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ def reset_session(session):
     logger.debug('Resetting session info for tracking metadata across handlers')
     # TODO - delete the existing tmp_dir first
     # delete and not set to None due to manner in which they are created as lists
-    for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
+    for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'measurement_tech', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
         try:
             del session[attr]
         except KeyError:
@@ -310,6 +311,13 @@ def analysis_summary(request):
 
     exps = Experiment.objects.filter(pk__in=analyze_list)
     context = {'experiments': exps}
+
+    # if these are primary heps, allow link-out to leiden
+    for e in exps:
+        if e.tissue == 'primary_heps':
+            context['show_leiden'] = 1
+            break
+
     return render(request, 'analysis_summary.html', context)
 
 
@@ -533,6 +541,19 @@ def create_experiment_sample_pair(request, reset=None):
             computation_recs = request.session.get('computation_recs', [])
             computation_recs.append(process_rec)
             request.session['computation_recs'] = computation_recs
+
+            # store the measurement tech to determine in R NORM.R script which type of array this is (no effect for RNAseq)
+            measurement_tech = request.session.get('measurement_tech', None)
+            this_tech = exp.tech.tech_detail
+            if measurement_tech is None or this_tech == measurement_tech:
+                request.session['measurement_tech'] = this_tech
+            else:
+                message = 'Currently not set up to process experiments using different measurement technologies in one study; please process as separate studies'
+                redirect_url = reverse('tp:studies')
+                errcontext = {'message': message, 'redirect_url': redirect_url, 'error': True}
+                logger.error('Experiments using different measurement technologies encountered')
+                return render(request, 'generic_message.html', errcontext)
+
             # keep sending back to the same form until all newly-added experiments have sample associations
             return HttpResponseRedirect(reverse('tp:experiment-sample-add'))
     else:
@@ -605,6 +626,7 @@ def confirm_experiment_sample_pair(request):
         json_cfg = dict(experiments=request.session.get('computation_recs'),
                         file_name=request.session.get('sample_file'),
                         file_type=request.session.get('sample_type'),
+                        measurement_tech=request.session.get('measurement_tech'),
                         tmpdir=request.session.get('tmp_dir'),
                         script_dir=computation_config["script_dir"],
                         url_dir=computation_config["url_dir"],
@@ -736,9 +758,9 @@ def compute_fold_change(request):
         return render(request, 'compute_fold_change.html', context)
 
 
-def make_result_export(request, restype=None):
+def make_result_export(request, restype=None, incl_all=None):
     """ query module / GSA / gene fold change and prepare dataset for export to excel or json """
-    
+
     # if session contains experiment IDs from cart selection, filter to them
     exp_list = request.session.get('analyze_list', [])
     if not exp_list:
@@ -762,17 +784,24 @@ def make_result_export(request, restype=None):
     if restype.lower() == 'modulescores':
         rows = ModuleScores.objects.filter(experiment__pk__in=exp_list)
         if subset:
-            rows = rows.filter(pk__in=subset)
+            subrows = rows.filter(pk__in=subset)
+            if incl_all:
+                features = list(subrows.values_list('module', flat=True))
+                rows = rows.filter(module__in=features)
+            else:
+                rows = subrows
 
     elif restype.lower() == 'gsascores':
         rows = GSAScores.objects.filter(experiment__pk__in=exp_list)
         if subset:
-            rows = rows.filter(pk__in=subset)
+            subrows = rows.filter(pk__in=subset)
+            #r.geneset
 
     elif restype.lower() == 'foldchangeresult':
         rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
         if subset:
-            rows = rows.filter(pk__in=subset)
+            subrows = rows.filter(pk__in=subset)
+            #r.gene_identifier
 
     elif restype.lower() == 'experimentcorrelation':
         rows = ExperimentCorrelation.objects.filter(experiment__pk__in=exp_list)
@@ -902,10 +931,37 @@ def export_result_xls(request, restype=None):
     return response
 
 
-def export_heatmap_json(request, restype=None):
-    """ query module / GSA / gene fold change and return json data """
-    res = make_result_export(request, restype)
+def export_leiden(request):
+    """ export CSV file and make available from Leiden application """
 
+    exp_list = request.session.get('analyze_list', [])
+    if not exp_list:
+        message = 'Please report bug: trying to export results with no selected experiments in cart'
+        context = {'message': message, 'error': True}
+        return render(request, 'generic_message.html', context)
+
+    loc = os.path.join(settings.COMPUTATION['url_dir'], 'leiden_exports')
+    if not os.path.isdir(loc):
+        os.makedirs(loc)
+
+    # get a long random barcode
+    code = uuid.uuid4().hex
+    localf = code + '.csv'
+    fullfile = os.path.join(loc, localf)
+
+    make_leiden_csv.delay(fullfile, exp_list)
+
+    context = {'code': code}
+    return render(request, 'send_to_leiden.html', context)
+
+
+def export_heatmap_json(request):
+    """ query module / GSA / gene fold change and return json data """
+
+    incl_all = request.GET.get('incl_all', None)
+    cluster = request.GET.get('cluster', None)
+
+    res = make_result_export(request, None, incl_all=incl_all)
     nres = dict()
 
     if res is None:
@@ -1069,7 +1125,9 @@ def export_mapchart_json(request, restype=None):
 
 def export_barchart_json(request, restype=None):
     """ query module / GSA / gene fold change and return json data """
-    res = make_result_export(request, restype)
+
+    incl_all = request.GET.get('incl_all', None)
+    res = make_result_export(request, restype, incl_all=incl_all)
 
     nres = dict()
 

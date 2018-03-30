@@ -7,7 +7,11 @@ $(function () {
 
     var makeHeatmap = function() {
 
-        $.getJSON('/heatmap_json', function (response) {
+        var incl_all = $('input[name=incl_all]:checked').val();
+        var cluster = $('input[name=cluster]:checked').val();
+        var url = '/heatmap_json/?incl_all=' + incl_all + '&cluster=' + cluster;
+
+        $.getJSON(url, function (response) {
 
             if(response.empty_dataset) {
 
@@ -103,13 +107,17 @@ $(function () {
 
                 var chart = new Highcharts.chart('viz_container', options);
                 $('#viz_loading').removeClass('loader');
+                $('#incl_all_radio').removeClass('hidden');
+                $('#cluster_radio').removeClass('hidden');
             }
         });
     };
 
     var makeBarChart = function() {
 
-        $.getJSON('/barchart_json', function (response) {
+        var incl_all = $('input[name=incl_all]:checked').val();
+        var url = '/barchart_json/?incl_all=' + incl_all;
+        $.getJSON(url, function (response) {
 
             if(response.empty_dataset) {
 
@@ -175,6 +183,7 @@ $(function () {
 
                 var chart = new Highcharts.chart('viz_container', options);
                 $('#viz_loading').removeClass('loader');
+                $('#incl_all_radio').removeClass('hidden');
             }
         });
     };
@@ -308,10 +317,15 @@ $(function () {
 
         var type = sessionStorage.getItem('viz_type');
         if (type == 'heatmap') {
+            $('#zoom_buttons').addClass('hidden');
             makeHeatmap();
         } else if (type == 'mapchart') {
+            $('#incl_all_radio').addClass('hidden');
+            $('#cluster_radio').addClass('hidden');
             makeMapChart();
         } else if (type == 'barchart') {
+            $('#zoom_buttons').addClass('hidden');
+            $('#cluster_radio').addClass('hidden');
             makeBarChart();
         } else {
             console.log('Chart of type ' + type.toString() + ' not supported');
@@ -381,6 +395,12 @@ $(function () {
             makePlot()
         }
     });
+
+    // render the plot again if changing options
+    $('#chart_options input:radio').change(function () {
+        makePlot();
+    });
+
 
     // used when refreshing the page on filtering criteria - don't keep hidding the graph
     if (sessionStorage.getItem('Ctox_viz_on') && !$('#show_viz').hasClass('disabled')) {

@@ -52,6 +52,8 @@ class Experiment(models.Model):
     TISSUE_CHOICES = (
         ('liver' ,'liver'),
         ('kidney', 'kidney'),
+        ('heart', 'heart'),
+        ('primary_heps', 'primary hepatocytes'),
     )
 
     ORGANISM_CHOICES = (

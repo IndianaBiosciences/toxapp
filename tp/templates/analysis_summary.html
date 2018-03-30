@@ -24,6 +24,9 @@
       {% if experiments|length < 50 %}
       <a href="{% url 'tp:export-result' restype='foldchangeresult' %}" class="btn btn-default">Export to Excel</a>
       {% endif %}
+      {% if show_leiden %}
+      <a href="{% url 'tp:export-leiden' %}" class="btn btn-default">Send results to Leiden portal</a>
+      {% endif %}
     </div>
   </div>
   <div id="modulesection" class="card">

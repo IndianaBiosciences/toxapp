@@ -19,6 +19,9 @@ psql -U dbadmin -d postgres <sql/init_db.sql
 sudo mkdir -p /tmp/celery/results
 sudo chmod 777 /tmp/celery/results
 
+sudo mkdir -p /var/www/toxapp/leiden_exports
+sudo chmod 777 /var/www/toxapp/leiden_exports
+
 # set up R dependencies
 R --vanilla < scripts/setup.R
 

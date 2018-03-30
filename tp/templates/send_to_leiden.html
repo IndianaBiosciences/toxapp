@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+<div class="alert alert-info">
+  Your dataset can be analyzed on the Leiden portal by retrieving it with this ID: <strong>{{ code }}</strong><br>
+  (It may take a couple minutes before it's retrievable)
+</div>
+
+<a class="btn btn-primary" href="https://wgcna-lacdr-dds.nl/">Go to Leiden portal</a>
+<a class="btn btn-default" href="{% url 'tp:analysis-summary' %}">Return to analysis summary</a>
+
+{% endblock content %}

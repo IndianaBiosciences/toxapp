@@ -43,7 +43,6 @@ class ModuleScoreFilter(django_filters.FilterSet):
         fields = ['module', 'score_gt', 'score_lt', 'desc']
 
 
-
 class GSAScoreFilter(django_filters.FilterSet):
 
     GENESET_TYPE = (

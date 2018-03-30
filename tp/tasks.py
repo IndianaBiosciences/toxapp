@@ -20,6 +20,28 @@ def add(x, y):
 
 
 @shared_task
+def make_leiden_csv(fullfile, exp_list):
+
+    rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
+
+    colnames = ['experiment_id', 'experiment_name', 'entrez_gene_id', 'gene_symbol', 'log2_fc', 'p_value', 'p_adj']
+    attributes = ['experiment_id', 'experiment.experiment_name', 'gene_identifier.gene.human_entrez_gene', 'gene_identifier.gene.human_gene_symbol', 'log2_fc', 'p', 'p_bh']
+
+    with open (fullfile, 'w', newline='') as csvfile:
+        wr = csv.writer(csvfile)
+        wr.writerow(colnames)
+
+        for r in rows:
+
+            # our model is rat-centric; some genes lack a human EG
+            if r.gene_identifier.gene.human_entrez_gene is None:
+                continue
+
+            vals = map(lambda x: operator.attrgetter(x)(r), attributes)
+            wr.writerow(vals)
+
+
+@shared_task
 def process_user_files(tmpdir, config_file, email):
 
     from_email = settings.FROM_EMAIL
@@ -190,6 +212,7 @@ def load_group_fold_change(compute, groupfc_file):
             # use the method in compute object to avoid repeatedly checking same ID
             exp_obj = compute.get_exp_obj(exp_id)
             if exp_obj is None:
+                logger.debug('No exp obj for experiment id %s', exp_id)
                 continue
 
             identifier_obj = compute.get_identifier_obj(exp_obj.tech, row[1])
@@ -218,18 +241,18 @@ def load_group_fold_change(compute, groupfc_file):
             )
             insert_count += 1
 
-    if insert_count == 0:
-        logger.error('Failed to load any records from file')
-        return None
-
     if identifier_lookup_fail:
         n_fails = len(identifier_lookup_fail)
         ids = list(identifier_lookup_fail.keys())[0:10]
         id_str = ','.join(ids)
         logger.warning('A total of %s identifiers in file %s are not entrez gene IDs in database and ignored; the first 10 are: %s', n_fails, groupfc_file, id_str)
         if n_fails > int(rownum/2):
-            logger.critical('More than 50% of identifiers in file (%s) lack a corresponding identifier in database; Probable error ... exiting', n_fails)
+            logger.critical('More than 50percent of identifiers in file ( %s ) lack a corresponding identifier in database; Probable error ... exiting', n_fails)
             exit(0)
+
+    if insert_count == 0:
+        logger.error('Failed to load any records from file')
+        return None
 
     logging.info('Inserted %s out of %s records from file %s', insert_count, rownum, groupfc_file)
     return 1

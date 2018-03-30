@@ -120,4 +120,8 @@ urlpatterns = [
     url(r'^manage_session/$', views.manage_session, name='manage-session'),
 
     url(r'^gene_detail/(?P<gene_id>\d+)$', views.gene_detail, name='gene-detail'),
+
+    # prepare a CSV file with unique ID that Leiden can pull in for their human primary heps analysis
+    url(r'^export_leiden/$', views.export_leiden, name='export-leiden'),
+
 ]
