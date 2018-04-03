@@ -18,7 +18,7 @@ biocLite('png')
 #
 # need to install rat2302rnentrezgcdf
 #
-install.packages("devtools")
+install.packages("devtools", repos='http://cran.us.r-project.org')
 library("devtools")
 install_url("http://mbni.org/customcdf/21.0.0/entrezg.download/rat2302rnentrezgcdf_21.0.0.tar.gz", quiet=FALSE)
 install_url("http://mbni.org/customcdf/21.0.0/entrezg.download/hgu133plus2hsentrezgcdf_21.0.0.tar.gz", quiet=FALSE)
