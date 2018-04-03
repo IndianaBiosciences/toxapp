@@ -30,6 +30,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '192.168.0.102',
     'ctox.indianabiosciences.org',
+    'ctox-tst.indianabiosciences.org',
+    '34.228.141.134'
 ]
 
 # Application definition
@@ -198,6 +200,7 @@ LOGGING = {
 
 # email backend for development purposes
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_HOST = 'localhost'
 EMAIL_PORT = 25
 EMAIL_HOST_USER = ''
