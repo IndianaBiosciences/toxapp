@@ -13,10 +13,34 @@ import os
 import sys
 import csv
 import collections
+import numpy as np
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
+from scipy.cluster.hierarchy import dendrogram, linkage
 
 logger = logging.getLogger(__name__)
+
+
+def cluster_expression_features(data, x_vals, y_vals):
+
+    logger.debug('Starting clustering')
+    # lay out the table with experiments on cols and genes/pathways/modules (x_vals) on rows
+    a = np.zeros(shape=(len(x_vals), len(y_vals)))
+
+    # fill in the 2D array
+    for r in data:
+        a[[r['x']], [r['y']]] = r['value']
+
+    Z = linkage(a, 'ward')
+    results = dendrogram(Z, no_plot=True, get_leaves=False)
+    # results['ivl'] is the new order of x_vals
+    remap = list(map(int, results['ivl']))
+    sorted_x_vals = [x for _, x in sorted(zip(remap, x_vals))]
+    for r in data:
+        r['x'] = remap.index(r['x'])
+
+    logger.debug('Clustering complete')
+    return sorted_x_vals, data
 
 
 class Vividict(dict):

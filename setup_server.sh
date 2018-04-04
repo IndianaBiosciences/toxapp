@@ -23,6 +23,8 @@ sudo chmod 777 /tmp/celery/results
 sudo mkdir -p /var/www/toxapp/leiden_exports
 sudo chmod 777 /var/www/toxapp/leiden_exports
 
+sudo mkdir -p toxapp/tp/static/site_media
+
 # set up R dependencies
 R --vanilla < scripts/setup.R
 

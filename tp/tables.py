@@ -42,7 +42,7 @@ class GSAScoreTable(tables.Table):
 
 class FoldChangeResultTable(tables.Table):
 
-    gene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.rat_gene_symbol, args=[A('gene_identifier.gene.rat_entrez_gene')])
+    gene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.rat_gene_symbol, args=[A('gene_identifier.gene.rat_entrez_gene')], accessor='gene_identifier.gene.rat_gene_symbol')
     p = SciNotationColumn(verbose_name='P-value', accessor='p')
     p_bh = SciNotationColumn(verbose_name='ajusted P-value', accessor='p_bh')
 

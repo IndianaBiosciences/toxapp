@@ -37,7 +37,7 @@ $(function () {
                         // Jeff had lots of problems with bunched y-axis labels until forced container to
                         // have a minimum height of 350 pixels
                         marginBottom: 200,
-                        plotBorderWidth: 1,
+                        plotBorderWidth: 1
                     },
 
                     boost: {
@@ -134,7 +134,7 @@ $(function () {
 
                     chart: {
                         type: 'column',
-                        zoomType: 'x',
+                        zoomType: 'x'
                     },
 
                     title: {
@@ -238,7 +238,7 @@ $(function () {
                     },
 
                     title: {
-                        text: response.restype + ' map chart',
+                        text: response.restype + ' map chart'
                     },
 
                     legend: {
@@ -249,19 +249,19 @@ $(function () {
                     xAxis: {
                         min: 0,
                         max: 1000,
-                        visible: false,
+                        visible: false
                     },
 
                     yAxis: {
                         min: -1000,
                         max: 0,
-                        visible: false,
+                        visible: false
                     },
 
                     tooltip: {
                         headerFormat: '{response.restype}<br/>',
                         pointFormat: 'score {point.val}</b> {point.detail}',
-                        followPointer: true,
+                        followPointer: true
                     },
 
                     plotOptions: {
@@ -308,7 +308,7 @@ $(function () {
 
         $('#viz_error').addClass('hidden');
         $('#viz_loading').addClass('loader');
-        $('#genedrilldown').addClass('hidden')
+        $('#genedrilldown').addClass('hidden');
 
         if (!sessionStorage.getItem('viz_type')) {
             // default to heatmap
@@ -316,14 +316,14 @@ $(function () {
         }
 
         var type = sessionStorage.getItem('viz_type');
-        if (type == 'heatmap') {
+        if (type === 'heatmap') {
             $('#zoom_buttons').addClass('hidden');
             makeHeatmap();
-        } else if (type == 'mapchart') {
+        } else if (type === 'mapchart') {
             $('#incl_all_radio').addClass('hidden');
             $('#cluster_radio').addClass('hidden');
             makeMapChart();
-        } else if (type == 'barchart') {
+        } else if (type === 'barchart') {
             $('#zoom_buttons').addClass('hidden');
             $('#cluster_radio').addClass('hidden');
             makeBarChart();
@@ -334,16 +334,15 @@ $(function () {
 
     // show currently selected geneset and button for retrieving gene level view
     var geneDrillDown = function(geneset, id) {
-        $('#genedrilldown').removeClass('hidden')
-        $('#selected_geneset').text(geneset)
+        $('#genedrilldown').removeClass('hidden');
+        $('#selected_geneset').text(geneset);
         var url = $('#genefetch').attr('href');
-        url = url.replace('999999', id)
+        url = url.replace('999999', id);
         $('#genefetch').attr('href', url)
-    }
+    };
 
-    $('#genefetch').on('click', function (e) {
-        console.log('clicked')
-        $('#mapchart').addClass('hidden')
+    $('#genefetch').on('click', function () {
+        $('#mapchart').addClass('hidden');
         sessionStorage.setItem('viz_type', 'heatmap');
         // going to a heatmap and not navigating through results summary; explicitly disable
         sessionStorage.removeItem('map_ok');
@@ -352,20 +351,19 @@ $(function () {
 
     $('#show_viz').on('click', function () {
         if (! $(this).hasClass('disabled')) {
-            $(this).addClass('hidden')
+            $(this).addClass('hidden');
             $('#viz_section').removeClass('hidden');
             $('#hide_viz').removeClass('hidden');
-            // TODO - check whether there's a plot there already, and if so, don't remake it
             sessionStorage.setItem('Ctox_viz_on', '1');
             makePlot()
         }
     });
 
     $('#hide_viz').on('click', function () {
-        $(this).addClass('hidden')
+        $(this).addClass('hidden');
         $('#viz_section').addClass('hidden');
         $('#show_viz').removeClass('hidden');
-        $('#genedrilldown').addClass('hidden')
+        $('#genedrilldown').addClass('hidden');
         sessionStorage.removeItem('Ctox_viz_on');
     });
 
@@ -373,7 +371,7 @@ $(function () {
         var current_type = sessionStorage.getItem('viz_type');
         sessionStorage.setItem('viz_type', 'heatmap');
         // no need to make the plot if already on the selected type
-        if (!current_type || current_type != 'heatmap') {
+        if (!current_type || current_type !== 'heatmap') {
             makePlot()
         }
     });
@@ -382,7 +380,7 @@ $(function () {
         var current_type = sessionStorage.getItem('viz_type');
         sessionStorage.setItem('viz_type', 'mapchart');
         // no need to make the plot if already on the selected type
-        if (!current_type || current_type != 'mapchart') {
+        if (!current_type || current_type !== 'mapchart') {
             makePlot()
         }
     });
@@ -391,8 +389,15 @@ $(function () {
         var current_type = sessionStorage.getItem('viz_type');
         sessionStorage.setItem('viz_type', 'barchart');
         // no need to make the plot if already on the selected type
-        if (!current_type || current_type != 'barchart') {
+        if (!current_type || current_type !== 'barchart') {
             makePlot()
+        }
+    });
+
+    // if clustering set to 'yes', then set 'show all values' to 'yes'
+    $('input[type=radio][name=cluster]').change(function () {
+        if (this.value === '1') {
+            $('input[type=radio][name=incl_all]:eq(1)').prop('checked', true);
         }
     });
 
@@ -401,10 +406,9 @@ $(function () {
         makePlot();
     });
 
-
     // used when refreshing the page on filtering criteria - don't keep hidding the graph
     if (sessionStorage.getItem('Ctox_viz_on') && !$('#show_viz').hasClass('disabled')) {
-        $('#show_viz').addClass('hidden')
+        $('#show_viz').addClass('hidden');
         $('#viz_section').removeClass('hidden');
         $('#hide_viz').removeClass('hidden');
         makePlot()

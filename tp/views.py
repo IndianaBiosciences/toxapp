@@ -20,6 +20,8 @@ from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResul
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
+from src.computation import cluster_expression_features
+
 import tp.filters
 import tp.tables
 import tp.utils
@@ -712,6 +714,10 @@ def get_feature_subset(request, geneset_id):
         return render(request, 'generic_message.html', context)
 
     members = list(geneset.members.values_list('id', flat=True))
+
+    if request.session.get('saved_features', None) is None:
+        request.session['saved_features'] = dict()
+
     request.session['saved_features']['genes'] = members
     request.session.modified = True
     request.session['use_saved_features'] = 'geneset: ' + geneset.name
@@ -795,13 +801,21 @@ def make_result_export(request, restype=None, incl_all=None):
         rows = GSAScores.objects.filter(experiment__pk__in=exp_list)
         if subset:
             subrows = rows.filter(pk__in=subset)
-            #r.geneset
+            if incl_all:
+                features = list(subrows.values_list('geneset', flat=True))
+                rows = rows.filter(geneset__in=features)
+            else:
+                rows = subrows
 
     elif restype.lower() == 'foldchangeresult':
         rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
         if subset:
             subrows = rows.filter(pk__in=subset)
-            #r.gene_identifier
+            if incl_all:
+                features = list(subrows.values_list('gene_identifier', flat=True))
+                rows = rows.filter(gene_identifier__in=features)
+            else:
+                rows = subrows
 
     elif restype.lower() == 'experimentcorrelation':
         rows = ExperimentCorrelation.objects.filter(experiment__pk__in=exp_list)
@@ -981,7 +995,7 @@ def export_heatmap_json(request):
             nres.update({'drilldown_ok': True, 'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
         elif restype.lower() == 'gsascores':
             viz_cols = {'feat_id': 'geneset.id', 'x': 'geneset.name', 'y': 'experiment.experiment_name', 'val': 'score', 'tooltip': ['geneset.type', 'geneset.desc', 'p_bh']}
-            nres.update({'drilldown_ok': True, 'scale': 'GSA score', 'scalemin': -10, 'scalemax': 10})
+            nres.update({'drilldown_ok': True, 'scale': 'GSA score', 'scalemin': -15, 'scalemax': 15})
         elif restype.lower() == 'foldchangeresult':
             viz_cols = {'x': 'gene_identifier.gene.rat_gene_symbol', 'y': 'experiment.experiment_name', 'val': 'log2_fc', 'tooltip': ['gene_identifier.gene_identifier', 'p_bh']}
             nres.update({'scale': 'log2 fold change', 'scalemin': -3, 'scalemax': 3})
@@ -1026,6 +1040,9 @@ def export_heatmap_json(request):
                 nr['feat_id'] = feat_id
 
             ndata.append(nr)
+
+        if cluster:
+            xvals, ndata = cluster_expression_features(ndata, x_vals, y_vals)
 
         nres['data'] = ndata
         nres['x_vals'] = x_vals
@@ -1697,14 +1714,6 @@ class FilteredSingleTableView(SingleTableView):
         if self.request.session.get('use_saved_features', None):
             logger.debug('Filtering to saved features enabled in session')
             data, changed_feat = filter_vs_feature_subset(self.request, data)
-
-            # the last-used feature type may not be for the current result types - if no filtering
-            # took place, then we don't want to show the 'Limited' message
-            # TODO - as done currently it would mean that returning to say gene-level results later
-            # would mean there is no filtering applied.  Only an issue if/when we implement ability to
-            # save a favorite gene selection
-            #if not changed_feat:
-            #   self.request.session['use_saved_features'] = None
 
         self.filter = self.filter_class(self.request.GET, queryset=data)
         results = self.filter.qs
