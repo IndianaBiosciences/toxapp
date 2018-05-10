@@ -545,12 +545,15 @@ class Computation:
             this_sets_ids = list()
             for i in sets_ids:
                 if ref_scores[qry_exp.id].get(i, None) is None:
-                    logger.warning('Missing core feature %s in correlation calc of query experiment %s; removing feature', i, qry_exp.id)
+                    logger.warning('Missing core feature %s of type %s in correlation calc of query experiment %s; removing feature', i, source, qry_exp.id)
                 else:
                     this_sets_ids.append(i)
                     sorted_qry_scores.append(ref_scores[qry_exp.id][i])
 
             for ref_exp_id in ref_scores:
+
+                n_zeroed = 0
+                n = 0
 
                 if qry_exp.id == ref_exp_id:
                     continue
@@ -558,16 +561,24 @@ class Computation:
                 sorted_ref_scores = list()
 
                 for i in this_sets_ids:
-                    val = None
+                    n += 1
                     if ref_scores[ref_exp_id].get(i, None) is None:
-                        logger.warning('Missing core feature %s in correlation calc of experiment %s; setting to 0', i, ref_exp_id)
+                        logger.warning('Missing core feature %s of type %s in correlation calc of experiment %s; setting to 0', i, source, ref_exp_id)
                         val = 0
+                        n_zeroed += 1
                     else:
                         val = ref_scores[ref_exp_id][i]
                     sorted_ref_scores.append(val)
+
+                # if more than 20% of the core gene sets are not defined for a given ref exps, skip
+                if n_zeroed/n > 0.2:
+                    logger.error('More than 20% of the core gene sets (%s) for experiment %s dont have a stored value; something wrong',n_zeroed, ref_exp_id)
+                    continue
 
                 #logger.debug('Evaluating correl between query exp %s and ref exp %s', qry_exp.id, ref_exp_id)
                 correl, pval = pearsonr(sorted_qry_scores, sorted_ref_scores)
                 results[qry_exp.id][ref_exp_id] = correl
 
         return results
+
+

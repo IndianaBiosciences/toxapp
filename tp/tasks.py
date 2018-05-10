@@ -27,6 +27,7 @@ def make_leiden_csv(fullfile, exp_list):
     colnames = ['experiment_id', 'experiment_name', 'entrez_gene_id', 'gene_symbol', 'log2_fc', 'p_value', 'p_adj']
     attributes = ['experiment_id', 'experiment.experiment_name', 'gene_identifier.gene.human_entrez_gene', 'gene_identifier.gene.human_gene_symbol', 'log2_fc', 'p', 'p_bh']
 
+    rowcount = 0
     with open (fullfile, 'w', newline='') as csvfile:
         wr = csv.writer(csvfile)
         wr.writerow(colnames)
@@ -39,10 +40,25 @@ def make_leiden_csv(fullfile, exp_list):
 
             vals = map(lambda x: operator.attrgetter(x)(r), attributes)
             wr.writerow(vals)
+            rowcount += 1
+
+    logger.info('Number of rows in the Leiden export: %s', rowcount)
+    return True
 
 
 @shared_task
-def process_user_files(tmpdir, config_file, email):
+def process_user_files(tmpdir, config_file, email, testmode=False):
+
+    """
+    A function to calculate a user's fold change results and other downstream bioinfo calculations
+
+    :param tmpdir: the temporary directory from which computations will be run
+    :param config_file: the config file set up in the view that dictates how samples map to experiments, etc
+    :param email: email address for notification of calc status
+    :param testmode: a parameter intended for testing celery computation within a test script and bail after fold-change
+        calc - i.e. no insertion of test results into DB
+    :return: the body of email message sent to user when testmode is false
+    """
 
     from_email = settings.FROM_EMAIL
 
@@ -57,11 +73,16 @@ def process_user_files(tmpdir, config_file, email):
         message = 'Step 1a Failed: Computation script failed to calculate fold change data'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 1a', email_message, from_email, [email])
+        if not testmode:
+            send_mail('IBRI CTox Computation: Error at Step 1a', email_message, from_email, [email])
         return
+
     logger.info('Step 1: gene-level fold change file created: %s', groupfc_file)
 
     email_message += "Step 1a Completed: gene-fold change\n"
+
+    if testmode:
+        return email_message
 
     status = load_group_fold_change(compute, groupfc_file)
     if status is None:
@@ -191,6 +212,7 @@ def process_user_files(tmpdir, config_file, email):
     logger.info(message)
     email_message += message
     send_mail('IBRI CTox Computation: Complete', email_message, from_email, [email])
+    return email_message
 
 
 def load_group_fold_change(compute, groupfc_file):
