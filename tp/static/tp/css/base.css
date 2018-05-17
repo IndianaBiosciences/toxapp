@@ -237,7 +237,7 @@ a.button_large {
 
 .viz_container {
     min-width: 350px;
-    min-height: 350px;
+    min-height: 700px;
     margin: 0 auto;
 }
 /* prevent django-bootstrap3 horizontal forms with the django-filter module from showing some inline, some horizontal

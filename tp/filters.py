@@ -59,7 +59,14 @@ class GSAScoreFilter(django_filters.FilterSet):
         ('CGP', 'MSigDB chemical/genetic perturbations'),
     )
 
+    CORESET_CHOICES = (
+        ('1', 'Yes'),
+        ('0', 'No'),
+        ('', 'Any'),
+    )
+
     type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, name='geneset__type', label='Geneset type')
+    core_set = django_filters.ChoiceFilter(choices=CORESET_CHOICES, name='geneset__core_set', label='Core geneset')
     geneset = django_filters.CharFilter(name='geneset__name', lookup_expr='icontains', label='Gene set name')
     score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='GSA score greater/equal than')
     score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='GSA score less/equal than')
@@ -67,7 +74,7 @@ class GSAScoreFilter(django_filters.FilterSet):
 
     class Meta:
         model = GSAScores
-        fields = ['type', 'geneset', 'score_gt', 'score_lt', 'p_bh']
+        fields = ['type', 'core_set', 'geneset', 'score_gt', 'score_lt', 'p_bh']
 
 
 class FoldChangeResultFilter(django_filters.FilterSet):

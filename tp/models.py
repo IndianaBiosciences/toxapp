@@ -47,10 +47,11 @@ class MeasurementTech(models.Model):
         txt = "{}-{}".format(self.tech, self.tech_detail)
         return txt
 
+
 class Experiment(models.Model):
 
     TISSUE_CHOICES = (
-        ('liver' ,'liver'),
+        ('liver', 'liver'),
         ('kidney', 'kidney'),
         ('heart', 'heart'),
         ('primary_heps', 'primary hepatocytes'),

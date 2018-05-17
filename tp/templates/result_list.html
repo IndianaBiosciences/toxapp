@@ -9,6 +9,7 @@
   <script src="https://code.highcharts.com/modules/boost-canvas.js"></script>
   <script src="https://code.highcharts.com/modules/boost.js"></script>
   <script src="https://code.highcharts.com/highcharts-more.js"></script>
+  <script src="https://code.highcharts.com/modules/treemap.js"></script>
   <script src="/static/tp/js/charts.js"></script>
   <script src="/static/tp/js/panzoom.js"></script>
 {% endblock %}
@@ -70,6 +71,7 @@
     <button id="heatmap" class="btn btn-default">Heatmap</button>
     <button id="barchart" class="btn btn-default">Barchart</button>
     <button id="mapchart" class="btn btn-default hidden">Map chart</button>
+    <button id="treemapchart" class="btn btn-default hidden">Treemap chart</button>
     <div id="genedrilldown" class="pull-right hidden">
       <span id="selected_geneset"></span>
       <a id="genefetch" href="{% url 'tp:get-feature-subset' geneset_id=geneset_drilldown_id %}" class="btn btn-default">View genes</a>

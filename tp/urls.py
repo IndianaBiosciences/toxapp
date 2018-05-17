@@ -101,17 +101,20 @@ urlpatterns = [
     # export to excel handler
     url(r'^export_results/(?P<restype>\w+)$', views.export_result_xls, name='export-result'),
 
-    # export to filtered results to excel
+    # export filtered results to excel
     url(r'^export_filtered_results/$', views.export_result_xls, name='export-filtered-result'),
 
-    # export to filtered results to json
+    # export filtered results to json for heatmap
     url(r'^heatmap_json/$', views.export_heatmap_json, name='heatmap-json'),
 
-    # export to filtered results to json
+    # export filtered results to json for mapchart
     url(r'^mapchart_json/$', views.export_mapchart_json, name='mapchart-json'),
 
-    # export to filtered results to json
+    # export filtered results to json for barchart
     url(r'^barchart_json/$', views.export_barchart_json, name='barchart-json'),
+
+    # export filtered results to json for treemap
+    url(r'^treemap_json/$', views.export_treemap_json, name='treemap-json'),
 
     url(r'^get_tox_assoc/$', login_required(views.ToxAssociation.as_view()), name='get-tox-assoc'),
 

@@ -21,6 +21,7 @@ from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesFo
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
 from src.computation import cluster_expression_features
+from src.treemap import TreeMap
 
 import tp.filters
 import tp.tables
@@ -1084,6 +1085,7 @@ def export_mapchart_json(request, restype=None):
             return JsonResponse(nres)
 
         # TODO - not really working, as the range_to for blue to white goes through green and yellow, i.e .rainbow
+        # probably best to revisit having highcharts do the coloring ... see Treemap coloring setup
         # some ideas here - https://bsou.io/posts/color-gradients-with-python
         blue = colour.Color('blue')
         white = colour.Color('white')
@@ -1225,6 +1227,36 @@ def export_barchart_json(request, restype=None):
     nres['series'] = series
     #formatted = json.dumps(nres, indent=4, sort_keys=True)
     #logger.debug(formatted)
+
+    return JsonResponse(nres)
+
+
+def export_treemap_json(request, restype=None):
+    """ query module / GSA / gene fold change and return json data """
+    res = make_result_export(request, restype)
+
+    nres = dict()
+
+    if res is None:
+        # not an error when called here - as user filters data and there are no results avail, the
+        # chart will ask for revised dataset
+        logger.info('Empty dataset requested for visualization')
+        nres['empty_dataset'] = True
+
+    else:
+
+        restype = res['restype']
+
+        if restype.lower() == 'gsascores':
+            # all we need here is the list of experiment objects - the method re-queries the data
+            treemap = TreeMap()
+            colored_treemap = treemap.color_by_score(res['data'])
+            treemap.reduce_tree(colored_treemap)
+
+            nres['data'] = [v for k,v in colored_treemap.items()]
+
+        else:
+            nres['not_applicable'] = True
 
     return JsonResponse(nres)
 

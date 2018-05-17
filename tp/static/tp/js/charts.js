@@ -33,9 +33,15 @@ $(function () {
                         type: 'heatmap',
                         zoomType: 'x',
                         marginTop: 40,
+                        height: '40%',
                         // need a large value to accomodate the long feature labels and color key
                         // Jeff had lots of problems with bunched y-axis labels until forced container to
                         // have a minimum height of 350 pixels
+                        // Update - problem appears again when going to min height of 700 for the other charts
+                        // TODO - need some guidance here, may not work well with say 50+ experiments in the heatmap ...
+                        // solution for now is to set height to 40% above, which worked fine for 1-15 experiments
+                        // another approach would be to set height to a percentage based on the number of rows (experiments)
+                        // in the heatmap - i.e. dynamic calculation right here, say minimum of 20% (one series) or 5 * n_exps + '%'
                         marginBottom: 200,
                         plotBorderWidth: 1
                     },
@@ -188,11 +194,7 @@ $(function () {
         });
     };
 
-
     var makeMapChart = function() {
-
-        // current Txg map doesn't need to be any bigger and looks too big otherwise
-        $('#viz_container').width(500);
 
         $.getJSON('/mapchart_json', function (response) {
 
@@ -230,6 +232,14 @@ $(function () {
                         type: 'bubble',
                         //zoomType: 'xy', //image does not zoom with data; use jquery zoom/pan on div
                         height: '100%',
+                        /*
+                            current Txg map doesn't need to be any bigger and looks too big otherwise
+                            TODO - not sure how this will look on mobile devices, no option to use a percent of the
+                            container; may need a div inside a div
+                            before, Jeff was changing size of container, but then would need to change back when
+                            going to other chart type that needs full width ($('#viz_container').width(500);)
+                        */
+                        width: '500',
                         plotBackgroundImage: '/static/tp/img/' + response.image + '.svg'
                     },
                     boost: {
@@ -304,6 +314,77 @@ $(function () {
         });
     };
 
+    var makeTreeMapChart = function() {
+
+        $.getJSON('/treemap_json', function (response) {
+
+            if(response.empty_dataset) {
+
+                // not changing the sessionStorage status, so next refresh with data will put the chart back
+                $('#hide_viz').addClass('hidden');
+                $('#viz_section').addClass('hidden');
+                $('#viz_loading').removeClass('loader');
+                $('#viz_error').text('No data, nothing to show');
+                $('#viz_error').removeClass('hidden');
+
+            } else if(response.not_applicable) {
+
+                $('#hide_viz').addClass('hidden');
+                //$('#viz_section').addClass('hidden');
+                sessionStorage.setItem('viz_type', 'heatmap');
+                $('#viz_loading').removeClass('loader');
+                $('#viz_error').text('map chart not supported for this data type');
+                $('#viz_error').removeClass('hidden');
+
+            } else {
+
+                var options = {
+
+                    title: {
+                        text: 'treemap chart'
+                    },
+
+                    tooltip: {
+                        pointFormat: '{point.id} {point.value} {point.toolTip}',
+                    },
+
+                    colorAxis: {
+                        stops: [
+                          [0, '#3060cf'],
+                          [0.5, '#ffffff'],
+                          [1, '#c4463a']
+                        ],
+                        min: -15,
+                        max: 15,
+                    },
+
+                    series: [{
+                        type: 'treemap',
+                        layoutAlgorithm: 'squarified',
+                        allowDrillToNode: true,
+                        animationLimit: 1000,
+                        dataLabels: {
+                            enabled: false
+                        },
+                        levelIsConstant: false,
+                        levels: [{
+                            level: 1,
+                            dataLabels: {
+                                enabled: true
+                            },
+                            borderWidth: 3
+                        }],
+                        data: response.data
+                    }],
+                };
+
+                var chart = new Highcharts.chart('viz_container', options);
+                $('#viz_loading').removeClass('loader');
+
+            }
+        });
+    };
+
     var makePlot = function() {
 
         $('#viz_error').addClass('hidden');
@@ -323,6 +404,10 @@ $(function () {
             $('#incl_all_radio').addClass('hidden');
             $('#cluster_radio').addClass('hidden');
             makeMapChart();
+        } else if (type === 'treemapchart') {
+            $('#incl_all_radio').addClass('hidden');
+            $('#cluster_radio').addClass('hidden');
+            makeTreeMapChart();
         } else if (type === 'barchart') {
             $('#zoom_buttons').addClass('hidden');
             $('#cluster_radio').addClass('hidden');
@@ -343,9 +428,11 @@ $(function () {
 
     $('#genefetch').on('click', function () {
         $('#mapchart').addClass('hidden');
+        $('#treemapchart').addClass('hidden');
         sessionStorage.setItem('viz_type', 'heatmap');
         // going to a heatmap and not navigating through results summary; explicitly disable
         sessionStorage.removeItem('map_ok');
+        sessionStorage.removeItem('treemap_ok');
         //e.preventDefault()
     });
 
@@ -385,6 +472,15 @@ $(function () {
         }
     });
 
+    $('#treemapchart').on('click', function () {
+        var current_type = sessionStorage.getItem('viz_type');
+        sessionStorage.setItem('viz_type', 'treemapchart');
+        // no need to make the plot if already on the selected type
+        if (!current_type || current_type !== 'treemapchart') {
+            makePlot()
+        }
+    });
+
     $('#barchart').on('click', function () {
         var current_type = sessionStorage.getItem('viz_type');
         sessionStorage.setItem('viz_type', 'barchart');
@@ -418,6 +514,15 @@ $(function () {
     if (sessionStorage.getItem('map_ok')) {
         // show the mapchart button when appropriate
         $('#mapchart').removeClass('hidden')
+    } else {
+        // after viewing a mapchart and going to other types, set the selected type
+        // to something valid
+        sessionStorage.setItem('viz_type', 'heatmap');
+    }
+
+    if (sessionStorage.getItem('treemap_ok')) {
+        // show the treemap button when appropriate
+        $('#treemapchart').removeClass('hidden')
     } else {
         // after viewing a mapchart and going to other types, set the selected type
         // to something valid
