@@ -29,13 +29,15 @@ class ModuleScoreTable(tables.Table):
 
 class GSAScoreTable(tables.Table):
 
+    geneset_name = TruncateColumn(verbose_name='Name', accessor='geneset.name',
+                                  attrs={'td': {'title': lambda record: record.geneset.name}})
     geneset_desc = TruncateColumn(verbose_name='Geneset description', accessor='geneset.desc',
                                   attrs={'td': {'title': lambda record: record.geneset.desc}})
     p_bh = SciNotationColumn(verbose_name='ajusted P-value', accessor='p_bh')
 
     class Meta:
         model = GSAScores
-        fields = ['experiment', 'geneset.name', 'geneset_desc', 'score', 'p_bh']
+        fields = ['experiment', 'geneset_name', 'geneset_desc', 'score', 'p_bh']
         attrs = {'class': 'table table-striped custab'}
         order_by = 'p_bh'
 

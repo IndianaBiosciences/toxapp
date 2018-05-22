@@ -277,7 +277,7 @@ $(function () {
                     plotOptions: {
 
                         bubble: {
-                            minSize: '1%', // percentage of the smallest of plot width or height
+                            minSize: '0.5%', // percentage of the smallest of plot width or height
                             maxSize: '5%'    // percentage of the smallest of plot width or height
                         },
 

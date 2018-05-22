@@ -52,6 +52,7 @@ class GSAScoreFilter(django_filters.FilterSet):
         ('CP:REACTOME', 'REACTOME pathways'),
         ('CP:KEGG', 'KEGG pathways'),
         ('CP:BIOCARTA', 'Biocarta pathways'),
+        ('CP', 'MSigDB curated pathways'),
         ('RegNet', 'Dow AgroSciences regulator networks'),
         ('TF-target annotation', 'Curated transcription factor targets'),
         ('MIR', 'MSigDB MIR targets'),
