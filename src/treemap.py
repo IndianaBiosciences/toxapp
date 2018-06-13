@@ -1,4 +1,4 @@
-from tp.models import GeneSets, GSAScores
+from tp.models import GeneSets, GSAScores, Experiment
 from django.conf import settings
 
 import logging
@@ -8,6 +8,8 @@ import collections
 import configparser
 import pickle
 import copy
+import numpy as np
+from sklearn.decomposition import PCA
 
 logger = logging.getLogger(__name__)
 
@@ -362,7 +364,7 @@ class TreeMap:
 
             # if all the children are terminal nodes, drop them and keep the parent only
             if allbase:
-                logger.info('All children of parent %s are terminal nodes; all dropped', parent)
+                logger.debug('All children of parent %s are terminal nodes; all dropped', parent)
                 tree[parent]['terminal'] = True
                 tree[parent]['colorValue'] = tree[first]['colorValue']
                 tree[parent]['toolTip'] = tooltxt
@@ -373,7 +375,7 @@ class TreeMap:
                     tree.pop(c)
 
             else:
-                logger.info('One or more chilren of parent %s are not terminal nodes; one terminal child retained',
+                logger.debug('One or more chilren of parent %s are not terminal nodes; one terminal child retained',
                             parent)
                 tree[first]['toolTip'] = tooltxt
                 done.append(first)
@@ -385,5 +387,116 @@ class TreeMap:
         for nid in tree:
             if not tree[nid]['terminal']:
                 tree[nid].pop('colorValue')
+
+        return clusters
+
+    def reduce_tree_pca(self):
+        """
+        a method to take a tree and reduce it to a single representative, most induced/repressed pathway among all
+        redundant children pathways that belong to a common cluster
+
+        The colorValue attribute must have been added using color_by_score before running this method
+
+        The input tree is modified by the method
+
+        :return: cluster, a dictionary keyed on the new terminal nodes which has the removed and redundant children
+        nodes
+        """
+
+        tree = copy.deepcopy(self.nodes)
+
+        # TODO - could separate the pruning process from selection of color (i.e. score) to use among redundant pathways
+        # this would speed up response a little, although it works reasonably as-is; the pruning will never change, it's
+        # the selection of which node to use in the cluster that will
+        children = collections.defaultdict(list)
+        clusters = collections.defaultdict(list)
+
+        exps = Experiment.objects.filter(study__source='TG')
+        n_exps = exps.count()
+
+        # don't use parent2child, child2parent which were read from R dendrogram before evaluating significance of edges
+        for nid in tree:
+            n = tree[nid]
+            parent = n.get('parent', None)
+            if parent:
+                children[parent].append(n['id'])
+
+        done = list()
+
+        while True:
+
+            term_nodes = list(filter(lambda x: tree[x]['terminal'] and x not in done, tree.keys()))
+            if not term_nodes:
+                break
+
+            bn = tree[term_nodes[0]]
+
+            # does the first parent have multiple children that are all terminal nodes?
+            # If so, assign them to a common cluster represented by parent
+            parent = bn['parent']
+            term_children = list()
+            allbase = True
+
+            for c in children[parent]:
+                c_is_parent = children.get(c, None)
+                if not c_is_parent:
+                    term_children.append(c)
+                else:
+                    logger.debug('Child %s of parent %s has its own children %s', c, parent, c_is_parent)
+                    allbase = False
+
+            if len(term_children) > 1:
+                # sort the children by descending absolute score
+                geneset_names = [tree[x]['name'] for x in term_children]
+                allscores = list()
+
+                for g in geneset_names:
+                    # faster to query on a few genesets than on each experiment
+                    scores = list(GSAScores.objects.filter(experiment__in=exps, geneset__name=g).order_by(
+                        'experiment').values_list('score', flat=True))
+                    scores = [float(s) for s in scores]
+                    allscores.append(scores)
+
+                    if len(scores) != n_exps:
+                        raise Exception('Lazy loading of scores matrix improper due to missing experiment scores')
+
+                a = np.array(allscores)
+                table = np.transpose(a)
+                pca = PCA(n_components=1)
+                pca.fit(table)
+                loadings = pca.components_[0].tolist()
+                max_value = max(loadings)
+                max_index = loadings.index(max_value)
+                first = term_children[max_index]
+                logger.debug('First PC on %s genesets explains %s fraction of variance and most highly loaded geneset is %s',
+                             len(geneset_names), pca.explained_variance_ratio_, tree[first]['name'])
+            else:
+                # no need to do PCA if there's a single child node
+                first = term_children[0]
+
+            # if all the children are terminal nodes, drop them and keep the parent only
+            if allbase:
+                logger.debug('All children of parent %s are terminal nodes; all dropped', parent)
+                tree[parent]['terminal'] = True
+                done.append(parent)
+
+                # the first one is the most loaded
+                clusters[parent].append(first)
+
+                for o in children[parent]:
+                    tree.pop(o)
+                    if o != first:  # was already added - first one
+                        clusters[parent].append(o)
+
+            else:
+                logger.debug('One or more chilren of parent %s are not terminal nodes; one terminal child retained',
+                            parent)
+                done.append(first)
+
+                for o in term_children:
+                    if o == first:
+                        continue
+                    clusters[first].append(o)
+                    tree.pop(o)
 
         return clusters

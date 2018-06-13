@@ -61,6 +61,16 @@ class TestTreeMap(unittest.TestCase):
             expected_clusters = pickle.load(fp)
         self.assertDictEqual(clusters, expected_clusters)
 
+    def test_tree_reduce_pca(self):
+
+        treemap = TreeMap()
+        clusters = treemap.reduce_tree_pca()
+        with open('clusters.txt', 'w') as f:
+            for p in clusters:
+                for i in range(len(clusters[p])):
+                    row = '\t'.join([p, str(i), clusters[p][i], '\n'])
+                    f.write(row)
+
 
 if __name__ == '__main__':
     unittest.main()
