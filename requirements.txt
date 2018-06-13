@@ -9,3 +9,5 @@ django-filter
 xlwt
 scipy
 colour
+numpy
+sklearn

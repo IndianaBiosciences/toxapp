@@ -563,7 +563,7 @@ class Computation:
                 for i in this_sets_ids:
                     n += 1
                     if ref_scores[ref_exp_id].get(i, None) is None:
-                        logger.warning('Missing core feature %s of type %s in correlation calc of experiment %s; setting to 0', i, source, ref_exp_id)
+                        logger.debug('Missing core feature %s of type %s in correlation calc of experiment %s; setting to 0', i, source, ref_exp_id)
                         val = 0
                         n_zeroed += 1
                     else:
