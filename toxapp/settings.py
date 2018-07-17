@@ -206,7 +206,8 @@ EMAIL_PORT = 25
 EMAIL_HOST_USER = ''
 EMAIL_HOST_PASSWORD = ''
 EMAIL_USE_TLS = False
-FROM_EMAIL = 'CTox <dhrobertson@runbox.com>'
+FROM_EMAIL = 'CTox <do_not_reply@indianabiosciences.org>'
+TEST_EMAIL = 'someone@indianabiosciences.org'
 
 # Computation Configurations
 COMPUTATION = {

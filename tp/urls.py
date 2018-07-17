@@ -76,8 +76,8 @@ urlpatterns = [
     # here, a feature means a gene expression 'feature' - module, geneset, gene
     url(r'^feature_add/(?P<pk>\d+)/(?P<ftype>\w+)/$', views.feature_add, name='feature-add'),
     url(r'^feature_del/(?P<pk>\d+)/(?P<ftype>\w+)/$', views.feature_del, name='feature-del'),
-    url(r'^feature_empty/(?P<ftype>\w+)/$', views.feature_empty, name='feature-empty'),
-    url(r'^feature_add_filtered/(?P<ftype>\w+)/$', views.feature_add_filtered, name='feature-add-filtered'),
+    url(r'^feature_empty/$', views.feature_empty, name='feature-empty'),
+    url(r'^feature_add_filtered/$', views.feature_add_filtered, name='feature-add-filtered'),
     url(r'^manage_features/(?P<ftype>\w+)/$', views.manage_features, name='manage-features'),
 
     # display overview of results for selected experiments

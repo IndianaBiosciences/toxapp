@@ -77,6 +77,9 @@ class GenesetToxAssocTable(tables.Table):
                                         'td': {'align': 'center'},
                                     })
 
+    geneset = TruncateColumn(verbose_name='geneset name', accessor='geneset.name',
+                                  attrs={'td': {'title': lambda record: record.geneset.desc}})
+
     class Meta:
         model = GeneSetTox
         fields = ['add_feature', 'geneset', 'tox', 'time', 'n_pos', 'effect_size', 'coef', 'p_adj', 'q_adj', 'rank']

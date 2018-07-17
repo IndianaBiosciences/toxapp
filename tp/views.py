@@ -229,18 +229,30 @@ def feature_add(request, pk, ftype):
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 
-def feature_add_filtered(request, ftype):
-    filtered_features = request.session.get('filtered_features', [])
+def feature_add_filtered(request):
     if request.session.get('saved_features', None) is None:
         request.session['saved_features'] = {}
 
-    flist = request.session['saved_features'].get(ftype, [])
+    # TODO - see related comment on ToxAssociation view
+    # because modules and GSA genesets are filtered together in ToxAssociation, they are separated by type
+    # in the ToxAssociation class and will be available within the separate module or GSA result views
+    filtered_modules = request.session.get('filtered_modules', [])
+    module_list = request.session['saved_features'].get('modules', [])
+    if filtered_modules:
+        for pk in filtered_modules:
+            if pk not in module_list:
+                module_list.append(pk)
 
-    for pk in filtered_features:
-        if pk not in flist:
-            flist.append(pk)
+        request.session['saved_features']['modules'] = module_list
 
-    request.session['saved_features'][ftype] = flist
+    filtered_genesets = request.session.get('filtered_genesets', [])
+    geneset_list = request.session['saved_features'].get('genesets', [])
+    if filtered_genesets:
+        for pk in filtered_genesets:
+            if pk not in geneset_list:
+                geneset_list.append(pk)
+        request.session['saved_features']['genesets'] = geneset_list
+
     request.session.modified = True
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
@@ -257,10 +269,10 @@ def feature_del(request, pk, ftype):
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 
-def feature_empty(request, ftype):
+def feature_empty(request):
 
-    if request.session.get('saved_features', None) and request.session['saved_features'].get(ftype, None):
-        request.session['saved_features'][ftype] = []
+    if request.session.get('saved_features', None):
+        request.session['saved_features'] = {}
         request.session.modified = True
 
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
@@ -688,9 +700,8 @@ def filter_vs_feature_subset(request, data):
         change = True
     elif data.model == GSAScores and features.get('genesets', None) is not None:
         logger.debug('Filtering for type GSAScore')
-        #data = data.filter(geneset__pk__in=features['genesets'])
-        #change = True
-        raise NotImplemented
+        data = data.filter(geneset__pk__in=features['genesets'])
+        change = True
     elif data.model == FoldChangeResult and features.get('genes', None) is not None:
         logger.debug('Filtering for type FoldChangeResult')
         data = data.filter(gene_identifier__gene__pk__in=features['genes'])
@@ -1799,8 +1810,7 @@ class FilteredSingleTableView(SingleTableView):
         context['geneset_drilldown_id'] = 999999
 
         if getattr(self, 'feature_type', None) and self.request.session.get('saved_features', None) and \
-                self.request.session['saved_features'].get(self.feature_type, None) and \
-                self.feature_type == 'modules':  # TODO - drop limit to modules later
+                self.request.session['saved_features'].get(self.feature_type, None):
             context['show_saved_features'] = True
 
         if type(self).__name__ == 'SimilarExperimentsSingleTableView':
@@ -1869,8 +1879,13 @@ class ToxAssociation(SingleTableView):
 
         changed_fields = len(self.filter.form.changed_data)
         if changed_fields > 0:
-            geneset_ids = list(sorted(set(map(lambda x: x.geneset.id, self.filter.qs))))
-            self.request.session['filtered_features'] = geneset_ids
+
+            # TODO - a hack to get the GSA genesets into the tox prediction stuff; will need to refactor if moving beyond
+            # modules and GSA pathways
+            module_ids = list(sorted(set(map(lambda x: x.geneset.id, filter(lambda x: x.geneset.type == 'liver_module', self.filter.qs)))))
+            geneset_ids = list(sorted(set(map(lambda x: x.geneset.id, filter(lambda x: x.geneset.type != 'liver_module', self.filter.qs)))))
+            self.request.session['filtered_modules'] = module_ids
+            self.request.session['filtered_genesets'] = geneset_ids
             context['filtered_features'] = True
 
         return context

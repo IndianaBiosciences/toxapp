@@ -12,12 +12,13 @@
     <div class="panel-body">
     {# TODO - currently specific to modules, generalize later #}
     {% if request.session.saved_features.modules %}
-    <a class="btn btn-default" href="{% url 'tp:feature-empty' ftype='modules' %}">Clear saved modules</a>
+    <a class="btn btn-default" href="{% url 'tp:feature-empty' %}">Clear saved features</a>
     {% endif %}
     {% if filtered_features %}
-    <a class="btn btn-default" href="{% url 'tp:feature-add-filtered' ftype='modules' %}">Save all filtered modules</a>
+    <a class="btn btn-default" href="{% url 'tp:feature-add-filtered' %}">Save all filtered features</a>
     {% endif %}
     <a class="btn btn-default pull-right" href="{% url 'tp:manage-features' ftype='modules' %}">View saved modules {{ request.session.saved_features.modules|length }}</a>
+    <a class="btn btn-default pull-right" href="{% url 'tp:manage-features' ftype='genesets' %}">View saved genesets {{ request.session.saved_features.genesets|length }}</a>
     </div>
   </div>
   {% endif %}

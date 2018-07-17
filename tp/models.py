@@ -188,6 +188,7 @@ class GeneSets(models.Model):
     x_coord = models.FloatField(blank=True, null=True)
     y_coord = models.FloatField(blank=True, null=True)
     core_set = models.BooleanField()
+    repr_set = models.NullBooleanField()  # currently only useful for GO / MsigDB to get at the 382 non-redundant set
     members = models.ManyToManyField(Gene, through='GeneSetMember')
 
     def __str__(self):

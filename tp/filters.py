@@ -155,6 +155,16 @@ class ToxicologyResultsFilter(django_filters.FilterSet):
 
 class ToxAssociationFilter(django_filters.FilterSet):
 
+    GENESET_TYPE = (
+        ('biological_process', 'GO biological process'),
+        ('cellular_component', 'GO cellular component'),
+        ('CP:REACTOME', 'REACTOME pathways'),
+        ('CP:KEGG', 'KEGG pathways'),
+        ('CP:BIOCARTA', 'Biocarta pathways'),
+        ('CP', 'MSigDB curated pathways'),
+        ('liver_module', 'WGCNA liver module'),
+    )
+
     tox = django_filters.ModelMultipleChoiceFilter(label='Tox phenotype',
                                                    queryset=ToxPhenotype.objects.all())
     time = DynamicChoiceFilter(name='time', label='Sample collection time')
@@ -163,7 +173,8 @@ class ToxAssociationFilter(django_filters.FilterSet):
     p_adj = django_filters.NumberFilter(name='p_adj', lookup_expr='lte', label='p-adj less/equal than')
     q_adj = django_filters.NumberFilter(name='q_adj', lookup_expr='lte', label='q-adj less/equal than')
     rank = django_filters.NumberFilter(name='rank', lookup_expr='lte', label='rank for tox-time combo less/equal than')
+    geneset_type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, name='geneset__type', label='Geneset type')
 
     class Meta:
         model = GeneSetTox
-        fields = ['tox', 'time', 'n_pos', 'effect_size', 'p_adj', 'q_adj', 'rank']
+        fields = ['tox', 'time', 'n_pos', 'effect_size', 'p_adj', 'q_adj', 'rank', 'geneset_type']
