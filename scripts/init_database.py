@@ -474,11 +474,11 @@ if __name__ == '__main__':
     # step 4) load the toxicology results file
     load_tox_results()
 
-    # step 5) load the toxicology results file
-    load_geneset_vs_tox_associations()
-
-    # step 6) load definition of core gene sets
+    # step 5) load definition of core gene sets
     load_genesets()
+
+    # step 6) load the toxicology results file
+    load_geneset_vs_tox_associations()
 
     # step 7) load the fold change data
     load_fold_change_data()
