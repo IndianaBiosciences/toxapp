@@ -484,7 +484,7 @@ def load_gsa_scores(gsa_scores):
 
 def load_correl_results(compute, correl, source):
 
-    assert source in ['WGCNA', 'RegNet']
+    assert source in ['WGCNA', 'RegNet', 'PathNR']
 
     insert_count = 0
 

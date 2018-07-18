@@ -495,3 +495,6 @@ if __name__ == '__main__':
 
     correla = compute.calc_exp_correl(created_exp_list, 'RegNet')
     load_correl_results(compute, correla, 'RegNet')
+
+    correlp = compute.calc_exp_correl(created_exp_list, 'PathNR')
+    load_correl_results(compute, correlp, 'PathNR')

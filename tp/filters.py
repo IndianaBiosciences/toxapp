@@ -97,6 +97,7 @@ class SimilarExperimentsFilter(django_filters.FilterSet):
     SOURCE_TYPE = (
         ('WGCNA', 'WGCNA'),
         ('RegNet', 'RegNet'),
+        ('PathNR', 'Non-redundant GO/Pathways')
     )
 
     experiment_ref_name = django_filters.CharFilter(name='experiment_ref__experiment_name', lookup_expr='icontains', label='Reference experiment')

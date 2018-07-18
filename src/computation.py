@@ -507,9 +507,13 @@ class Computation:
     def calc_exp_correl(self, qry_exps, source):
 
         assert isinstance(qry_exps[0], Experiment)
-        assert source in ['WGCNA', 'RegNet']
+        assert source in ['WGCNA', 'RegNet', 'PathNR']
 
-        sets = GeneSets.objects.filter(source=source, core_set=True)
+        if source == 'PathNR':
+            sets = GeneSets.objects.filter(source__in=['GO', 'MSigDB'], core_set=True, repr_set=True)
+        else:
+            sets = GeneSets.objects.filter(source=source, core_set=True)
+
         logger.debug('Performing similarity analysis on method %s with %s gene sets', source, len(sets))
         sets_ids = [x.id for x in sets]
         ref_scores = Vividict()
@@ -519,7 +523,7 @@ class Computation:
             for o in ref:
                 ref_scores[o.experiment_id][o.module_id] = float(o.score)
 
-        elif source == 'RegNet':
+        elif source == 'RegNet' or source == 'PathNR':
             ref = GSAScores.objects.filter(geneset__in=sets)
             for o in ref:
                 ref_scores[o.experiment_id][o.geneset_id] = float(o.score)
@@ -572,7 +576,7 @@ class Computation:
 
                 # if more than 20% of the core gene sets are not defined for a given ref exps, skip
                 if n_zeroed/n > 0.2:
-                    logger.error('More than 20% of the core gene sets (%s) for experiment %s dont have a stored value; something wrong',n_zeroed, ref_exp_id)
+                    logger.error('More than 20 percent of the core gene sets (%s genesets) for experiment %s dont have a stored value for method %s; something wrong', n_zeroed, ref_exp_id, source)
                     continue
 
                 #logger.debug('Evaluating correl between query exp %s and ref exp %s', qry_exp.id, ref_exp_id)
