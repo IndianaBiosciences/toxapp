@@ -36,6 +36,8 @@ import subprocess
 import csv
 import json
 import logging
+from django.conf import settings
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "toxapp.settings")
 
 logger = logging.getLogger('computeGFC.gffactors')
 
@@ -61,6 +63,8 @@ def read_cfg_file(cfg_file):
         logger.critical("Unable to locate defined input json file " + cfg_file)
         exit(0)
 
+    config['script_dir'] = settings.COMPUTATION["script_dir"]
+    config['url_dir'] = settings.COMPUTATION["url_dir"]
     return config
 
 

@@ -637,14 +637,11 @@ def confirm_experiment_sample_pair(request):
 
     if request.method == 'POST':
         tmpdir = request.session.get('tmp_dir')
-        computation_config = settings.COMPUTATION
         json_cfg = dict(experiments=request.session.get('computation_recs'),
                         file_name=request.session.get('sample_file'),
                         file_type=request.session.get('sample_type'),
                         measurement_tech=request.session.get('measurement_tech'),
                         tmpdir=request.session.get('tmp_dir'),
-                        script_dir=computation_config["script_dir"],
-                        url_dir=computation_config["url_dir"],
                         userid=request.user.id,
                         username=request.user.username)
         file = os.path.join(tmpdir, 'computation_data.json')

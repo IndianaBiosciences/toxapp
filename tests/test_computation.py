@@ -175,13 +175,15 @@ class TestComputation(unittest.TestCase):
         correl_results = dict()
         correl_results['WGCNA'] = self.compute.calc_exp_correl(qry_exps, 'WGCNA')
         correl_results['RegNet'] = self.compute.calc_exp_correl(qry_exps, 'RegNet')
+        correl_results['PathNR'] = self.compute.calc_exp_correl(qry_exps, 'PathNR')
 
         #logger.debug('Have the following correls: %s', pprint.pformat(correl_results))
         self.assertTrue(isinstance(correl_results['WGCNA'][8376], dict))
         self.assertGreater(len(correl_results['WGCNA'][8376]), 1000)
         self.assertTrue(isinstance(correl_results['RegNet'][8376], dict))
         self.assertGreater(len(correl_results['RegNet'][8376]), 1000)
-
+        self.assertTrue(isinstance(correl_results['PathNR'][8376], dict))
+        self.assertGreater(len(correl_results['PathNR'][8376]), 1000)
         saveobj = False
         if saveobj:
             with open(os.path.join(settings.BASE_DIR, 'tests/test_results/correl-expected.pkl'), 'wb') as fp:
