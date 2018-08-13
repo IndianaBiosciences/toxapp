@@ -90,16 +90,20 @@ def manage_session(request):
     return HttpResponseRedirect(url)
 
 
-def get_temp_dir(obj):
+def get_temp_dir(request):
 
-    if obj.request.session.get('tmp_dir', None) is None:
+    if request.session.get('tmp_dir', None) is None:
         tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
         os.makedirs(tmp)
         os.chmod(tmp, 0o777)
         logger.debug('Creating temporary working directory %s', tmp)
-        obj.request.session['tmp_dir'] = tmp
+        request.session['tmp_dir'] = tmp
 
-    return obj.request.session['tmp_dir']
+    # validate that the directory is readable - isses on centos where path is modified in apache setup
+    elif not os.path.isdir(request.session['tmp_dir']):
+        raise NotADirectoryError('Directory {} configured in session is not accessible'.format(request.session['tmp_dir']))
+
+    return request.session['tmp_dir']
 
 
 def remove_from_computation_recs(request, exp):
@@ -636,12 +640,12 @@ def confirm_experiment_sample_pair(request):
     """ display table of experiment vs. samples that will be processed """
 
     if request.method == 'POST':
-        tmpdir = request.session.get('tmp_dir')
+        tmpdir = get_temp_dir(request)
         json_cfg = dict(experiments=request.session.get('computation_recs'),
                         file_name=request.session.get('sample_file'),
                         file_type=request.session.get('sample_type'),
                         measurement_tech=request.session.get('measurement_tech'),
-                        tmpdir=request.session.get('tmp_dir'),
+                        tmpdir=tmpdir,
                         userid=request.user.id,
                         username=request.user.username)
         file = os.path.join(tmpdir, 'computation_data.json')
@@ -747,7 +751,7 @@ def compute_fold_change(request):
 
     else:
         # TODO - Should move most of this to the Computation.calc_fold_change location to keep this cleaner
-        tmpdir = request.session.get('tmp_dir')
+        tmpdir = get_temp_dir(request)
         cfg_file = request.session.get("computation_config")
         logger.debug('compute_fold_change: json job config file:  %s', cfg_file)
         with open(cfg_file) as infile:
@@ -1633,7 +1637,7 @@ class UploadSamplesView(FormView):
 
             samples_added = []
             if request.FILES.get('single_file', None) is not None:
-                tmpdir = get_temp_dir(self)
+                tmpdir = get_temp_dir(self.request)
                 f = request.FILES.get('single_file')
                 fs = FileSystemStorage(location=tmpdir)
                 fs.save(f.name, f)
@@ -1654,7 +1658,7 @@ class UploadSamplesView(FormView):
                         # TODO - read and parse the first row to get the sample names, append to samples_added
                 #samples_added = some_future_call()
             elif request.FILES.getlist('multiple_files'):
-                tmpdir = get_temp_dir(self)
+                tmpdir = get_temp_dir(self.request)
                 self.request.session['sample_file'] = 'cel:in_directory'
                 self.request.session['sample_type'] = "CEL"
                 mult_files = request.FILES.getlist('multiple_files')
@@ -1690,7 +1694,7 @@ class UploadTechMapView(FormView):
         #TODO - same thing as above, don't load into memory then dump out again
         if form.is_valid() and request.FILES.get('map_file', None) is not None:
             f = request.FILES.get('map_file')
-            tmpdir = get_temp_dir(self)
+            tmpdir = get_temp_dir(self.request)
             fs = FileSystemStorage(location=tmpdir)
             local_file = fs.save(f.name, f)
             full_path_file = os.path.join(tmpdir, local_file)

@@ -158,7 +158,7 @@ class Computation:
         script_dir = settings.COMPUTATION['script_dir']
         script = os.path.join(script_dir, "computeGFC.py")
         outfile = "groupFC.txt"
-        script_cmd = "cd "+tmpdir+'; '+sys.executable+' '+script+" -i "+cfg_file+" -o "+outfile
+        script_cmd = "export PYTHONPATH={}; cd {}; {} {} -i {} -o {}".format(settings.BASE_DIR, tmpdir, sys.executable, script, cfg_file, outfile)
         file = os.path.join(tmpdir, outfile)
         logger.info("command %s ", script_cmd)
         output = subprocess.getoutput(script_cmd)
@@ -582,6 +582,70 @@ class Computation:
                 #logger.debug('Evaluating correl between query exp %s and ref exp %s', qry_exp.id, ref_exp_id)
                 correl, pval = pearsonr(sorted_qry_scores, sorted_ref_scores)
                 results[qry_exp.id][ref_exp_id] = correl
+
+        return results
+
+    def calc_geneset_correl(self, source1, source2):
+
+        sources = [source1, source2]
+        allscores = Vividict()
+
+        tg_exps = Experiment.objects.filter(study__source='TG')
+        tg_exp_ids = [x.id for x in tg_exps]
+
+        for source in sources:
+
+            assert source in ['WGCNA', 'RegNet', 'PathNR']
+
+            if source == 'PathNR':
+                sets = GeneSets.objects.filter(source__in=['GO', 'MSigDB'], core_set=True, repr_set=True)
+            else:
+                sets = GeneSets.objects.filter(source=source, core_set=True)
+
+            logger.debug('Retrieving all TG scores for %s', source)
+
+            if source == 'WGCNA':
+                scores = ModuleScores.objects.filter(module__in=sets, experiment__in=tg_exps)
+                for s in scores:
+                    allscores[source][s.module_id][s.experiment_id] = float(s.score)
+            elif source == 'RegNet' or source == 'PathNR':
+                scores = GSAScores.objects.filter(geneset__in=sets, experiment__in=tg_exps)
+                for s in scores:
+                    allscores[source][s.geneset_id][s.experiment_id] = float(s.score)
+            else:
+                raise NotImplementedError
+
+        if not allscores:
+            logger.critical('Did not retrieve any scores of type %s vs %s; empty database?', source1, source2)
+            return
+
+        results = Vividict()
+        n_zeroed = 0
+
+        for gs1 in allscores[source1]:
+            gs1_scores = list()
+            for exp_id in tg_exp_ids:
+                s = allscores[source1][gs1].get(exp_id, None)
+                if s is None:
+                    logger.error('Did not retrieve scores for source and geneset %s and %s, zeroing', source1, gs1)
+                    s = 0
+                    n_zeroed += 1
+
+                gs1_scores.append(s)
+
+            for gs2 in allscores[source2]:
+                gs2_scores = list()
+                for exp_id in tg_exp_ids:
+                    s = allscores[source2][gs2].get(exp_id, None)
+                    if s is None:
+                        logger.error('Did not retrieve scores for source and geneset %s and %s, zeroing', source2, gs2)
+                        s = 0
+                        n_zeroed += 1
+
+                    gs2_scores.append(s)
+
+                correl, pval = pearsonr(gs1_scores, gs2_scores)
+                results[gs1][gs2] = correl
 
         return results
 
