@@ -74,7 +74,7 @@ def reset_session(session):
 def manage_session(request):
     """ manage the session via url?key1=val1&key2=val2 type calls and return to referrer """
 
-    params = request.GETm
+    params = request.GET
 
     # TODO - maybe - validate against allowed session variables? doesn't seem like a security risk to Jeff
     for p in params:
