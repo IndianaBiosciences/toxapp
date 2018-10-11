@@ -71,6 +71,7 @@
     <button id="heatmap" class="btn btn-default">Heatmap</button>
     <button id="barchart" class="btn btn-default">Barchart</button>
     <button id="mapchart" class="btn btn-default hidden">Map chart</button>
+    <button id="trellis" class="btn btn-default hidden">Trellis chart</button>
     <button id="treemapchart" class="btn btn-default hidden">Treemap chart</button>
     <div id="genedrilldown" class="pull-right hidden">
       <span id="selected_geneset"></span>
@@ -100,6 +101,12 @@
     <button class="btn btn-default reset">Reset</button>
   </div>
 </section>
+<script>
 
+$("#type_buttons .btn").click(function() {
+    $(this).siblings().removeClass("active");
+
+    });
+</script>
 {% render_table table %}
 {% endblock content %}

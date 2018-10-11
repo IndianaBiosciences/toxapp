@@ -74,7 +74,7 @@ def reset_session(session):
 def manage_session(request):
     """ manage the session via url?key1=val1&key2=val2 type calls and return to referrer """
 
-    params = request.GET
+    params = request.GETm
 
     # TODO - maybe - validate against allowed session variables? doesn't seem like a security risk to Jeff
     for p in params:
@@ -1107,6 +1107,7 @@ def export_mapchart_json(request, restype=None):
         both = blues + reds
 
         ndata = list()
+
         for r in res['data']:
 
             image = operator.attrgetter(viz_cols['image'])(r)
@@ -1123,6 +1124,12 @@ def export_mapchart_json(request, restype=None):
             val = float(operator.attrgetter(viz_cols['val'])(r))
             geneset = operator.attrgetter(viz_cols['geneset'])(r)
             geneset_id = operator.attrgetter(viz_cols['geneset_id'])(r)
+            compound_name = operator.attrgetter('experiment.compound_name')(r)
+            timer = operator.attrgetter('experiment.time')(r)
+            dose = operator.attrgetter('experiment.dose')(r)
+            dose_unit = operator.attrgetter('experiment.dose_unit')(r)
+            thisgene = geneset.split(':')
+
 
             if val < nres['scalemin']:
                 z = abs(nres['scalemin'])
@@ -1146,11 +1153,10 @@ def export_mapchart_json(request, restype=None):
                 ttiptxt += item + '=' + s
 
             # without the explicit float call (because it's a decimal), json ends up with numeric value in string
-            nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'geneset_id': geneset_id, 'color': color, 'trellis': trellis, 'detail': ttiptxt}
+            nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'geneset_id': geneset_id, 'thisgeneset':thisgene, 'color': color, 'trellis': trellis, 'detail': ttiptxt, 'compound_name': compound_name, 'time': timer, 'dose': dose, 'dose_unit': dose_unit}
             ndata.append(nr)
-
+        ndata = sorted(ndata, key=lambda x: (x['thisgeneset'],x['compound_name'],x['time'],x['dose']))
         nres['data'] = ndata
-
     return JsonResponse(nres)
 
 
