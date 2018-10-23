@@ -45,7 +45,11 @@ def index(request):
 
 
 def get_study_from_session(session):
+    """
+    Action:  Returns study object from the session storage
+    Returns: Session Storages studyobj
 
+    """
     studyobj = None
     if session.get('adding_study', None) is None:
         logger.error('no adding_study key in session')
@@ -91,7 +95,11 @@ def manage_session(request):
 
 
 def get_temp_dir(request):
+    """
+    Action:  If temporary directory does not exist, it is created. Then the temporary directory is returned
+    Returns: Temporary Directory
 
+    """
     if request.session.get('tmp_dir', None) is None:
         tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
         os.makedirs(tmp)
@@ -107,7 +115,11 @@ def get_temp_dir(request):
 
 
 def remove_from_computation_recs(request, exp):
+    """
+    Action:  Removes experiments from computation recs within the current session
+    Returns: None
 
+    """
     logger.debug('Removing experiment %s from computation_recs in session', exp)
     computation_recs = request.session.get('computation_recs', [])
     exp_id = exp.pk
@@ -218,6 +230,11 @@ def cart_edit(request, pk=None):
 
 
 def feature_add(request, pk, ftype):
+    """
+    Action:  If features list does not exist, it is created. Then the feature is added and the list is returned
+    Returns: saved features list
+
+    """
     pk = int(pk)
     if request.session.get('saved_features', None) is None:
         request.session['saved_features'] = {}
@@ -234,6 +251,11 @@ def feature_add(request, pk, ftype):
 
 
 def feature_add_filtered(request):
+    """
+    Action:  If Feature list does not exist, it is created, based upon filters a filtered feature is added.
+    Returns: Feature list
+
+    """
     if request.session.get('saved_features', None) is None:
         request.session['saved_features'] = {}
 
@@ -262,6 +284,11 @@ def feature_add_filtered(request):
 
 
 def feature_del(request, pk, ftype):
+    """
+    Action:  Removes requested feature
+    Returns: Feature list
+
+    """
     pk = int(pk)
     saved_features = request.session.get('saved_features', {})
     flist = saved_features.get(ftype, [])
@@ -274,7 +301,11 @@ def feature_del(request, pk, ftype):
 
 
 def feature_empty(request):
+    """
+    Action:  Empties feature cart.
+    Returns: empty feature list
 
+    """
     if request.session.get('saved_features', None):
         request.session['saved_features'] = {}
         request.session.modified = True
@@ -283,7 +314,11 @@ def feature_empty(request):
 
 
 def manage_features(request, ftype):
+    """
+    Action:  If there is no post request (if the form hasnt been submitted yet) generate the form if there are features. Otherwise save the feature list
+    Returns: The form or the edited experiment list
 
+    """
     if request.method == 'POST':
         form = FeatureConfirmForm(request.POST, ftype=ftype)
         if form.is_valid():
@@ -1143,6 +1178,8 @@ def export_mapchart_json(request, restype=None):
                 # calc the distance from scale min to scale max for the current value and pick the nearest color
                 # from set of 100
                 color_index = int((val - nres['scalemin'])/(nres['scalemax'] - nres['scalemin'])*100)
+                if color_index > 99:
+                    color_index = 99
                 color = both[color_index].get_hex()
 
             ttiptxt = ''
@@ -1280,7 +1317,11 @@ def export_treemap_json(request, restype=None):
 
 
 def gene_detail(request, gene_id):
+    """
+    Action:  Generates url for specific gene detail page
+    Returns: Gene detail page url
 
+    """
     link = 'https://www.ncbi.nlm.nih.gov/gene/' + str(gene_id)
     return HttpResponseRedirect(link)
 

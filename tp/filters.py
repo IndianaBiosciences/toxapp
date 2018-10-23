@@ -11,6 +11,11 @@ class DynamicChoiceMixin(object):
 
     @property
     def field(self):
+        """
+        Action:  Creates field names for dynamic choices
+        Returns: Returns field names
+
+        """
         queryset = self.parent.queryset
         field = super(DynamicChoiceMixin, self).field
 
@@ -32,7 +37,11 @@ class DynamicChoiceFilter(DynamicChoiceMixin, django_filters.ChoiceFilter):
 
 
 class ModuleScoreFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for module score
+    Returns: None
 
+    """
     module = django_filters.CharFilter(name='module__name', lookup_expr='icontains', label='Module name')
     score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='module score greater/equal than')
     score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='module score less/equal than')
@@ -44,7 +53,11 @@ class ModuleScoreFilter(django_filters.FilterSet):
 
 
 class GSAScoreFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for GSA Score
+    Returns: None
 
+    """
     GENESET_TYPE = (
         ('molecular_function', 'GO molecular function'),
         ('biological_process', 'GO biological process'),
@@ -79,7 +92,11 @@ class GSAScoreFilter(django_filters.FilterSet):
 
 
 class FoldChangeResultFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for Fold Change Results
+    Returns: None
 
+    """
     identifier = django_filters.CharFilter(name='gene_identifier__gene_identifier', lookup_expr='iexact', label='Gene Identifier')
     symbol = django_filters.CharFilter(name='gene_identifier__gene__rat_gene_symbol', lookup_expr='icontains', label='Gene Symbol')
     log2fc_gt = django_filters.NumberFilter(name='log2_fc', lookup_expr='gte', label='Log2 fold-change greater/equal than')
@@ -93,7 +110,11 @@ class FoldChangeResultFilter(django_filters.FilterSet):
 
 
 class SimilarExperimentsFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for similar experiments
+    Returns: None
 
+    """
     SOURCE_TYPE = (
         ('WGCNA', 'WGCNA'),
         ('RegNet', 'RegNet'),
@@ -113,7 +134,11 @@ class SimilarExperimentsFilter(django_filters.FilterSet):
 
 
 class ToxicologyResultsFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for Toxicology Results
+    Returns: None
 
+    """
     # TODO - of course this shouldn't be hard-coded.
     # You could just use result_type = DynamicChoiceFilter(...) but you get intermixed. Or take result types
     # out and put them as foreign key, with order in the ToxResultType model (best solution).
@@ -155,7 +180,11 @@ class ToxicologyResultsFilter(django_filters.FilterSet):
 
 
 class ToxAssociationFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for Tox Associations
+    Returns: None
 
+    """
     GENESET_TYPE = (
         ('biological_process', 'GO biological process'),
         ('cellular_component', 'GO cellular component'),

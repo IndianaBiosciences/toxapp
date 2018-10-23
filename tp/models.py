@@ -7,7 +7,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Study(models.Model):
+    """
+    Action:  Model for Studies
+    Returns: if called as string returns study name
 
+    """
     PERMISSION_TYPE = (
         ('S', 'Private'),
         ('G', 'Group'),
@@ -34,7 +38,11 @@ class Study(models.Model):
 
 
 class MeasurementTech(models.Model):
+    """
+    Action:  Model for Measurement Tech
+    Returns: if called as string returns: tech - tech detail
 
+    """
     TECH_CHOICES = (
         ('microarray', 'microarray'),
         ('RNAseq', 'RNAseq'),
@@ -49,7 +57,11 @@ class MeasurementTech(models.Model):
 
 
 class Experiment(models.Model):
+    """
+    Action:  Model for Experiments
+    Returns: if called as string returns experiment name, if absoulte url is called it returns the url
 
+    """
     TISSUE_CHOICES = (
         ('liver', 'liver'),
         ('kidney', 'kidney'),
@@ -85,7 +97,7 @@ class Experiment(models.Model):
         ('NA', 'Not applicable'),
     )
 
-    experiment_name = models.CharField(max_length=200)
+    experiment_name = models.CharField(max_length=500)
     tech = models.ForeignKey(MeasurementTech, on_delete=models.CASCADE)
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
     compound_name = models.CharField(max_length=50)
@@ -110,7 +122,11 @@ class Experiment(models.Model):
 
 
 class Sample(models.Model):
+    """
+    Action:  Model for Samples
+    Returns: if called as string returns sample name
 
+    """
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
     sample_name = models.CharField(max_length=150)
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
@@ -120,7 +136,11 @@ class Sample(models.Model):
 
 
 class ExperimentSample(models.Model):
+    """
+    Action:  Model for Experiment Samples
+    Returns: if called as string, returns group type
 
+    """
     GROUP_TYPE = (
         ('I', 'intervention'),
         ('C', 'control'),
@@ -136,7 +156,11 @@ class ExperimentSample(models.Model):
 
 
 class Gene(models.Model):
+    """
+    Action:  Model for Gene
+    Returns: if called as string returns Gene symbol
 
+    """
     # the core organism is rat, must have rat entrez gene
     rat_entrez_gene = models.IntegerField(unique=True)
     rat_gene_symbol = models.CharField(max_length=30)
@@ -150,7 +174,11 @@ class Gene(models.Model):
 
 
 class IdentifierVsGeneMap(models.Model):
+    """
+    Action:  Model for Identifier vs Gene Map
+    Returns: if called as string returns tech - gene identifier
 
+    """
     tech = models.ForeignKey(MeasurementTech, on_delete=models.CASCADE)
     gene_identifier = models.CharField(max_length=30)
     gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
@@ -161,6 +189,12 @@ class IdentifierVsGeneMap(models.Model):
 
 
 class FoldChangeResult(models.Model):
+    """
+    Action:  Model for Fold Change Result
+    Returns: if called as string returns experiment id vs gene gene identifier
+
+    """
+
     #TODO - Need to have expression_ctl to be larger digits due to RNAseq counts
     #TODO - p_bh probably needs to become p_adj as there may be different ways to adjust
 
@@ -179,7 +213,11 @@ class FoldChangeResult(models.Model):
 
 
 class GeneSets(models.Model):
+    """
+    Action:  Model for GeneSets
+    Returns: if called as string returns gene set name
 
+    """
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=50)
     desc = models.CharField(max_length=500)
@@ -196,7 +234,11 @@ class GeneSets(models.Model):
 
 
 class GeneSetMember(models.Model):
+    """
+    Action:  Model for Gene Set Member
+    Returns: if called as string returns geneset - gene
 
+    """
     geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
     weight = models.DecimalField(blank=True, null=True, max_digits=5, decimal_places=2)
@@ -207,7 +249,11 @@ class GeneSetMember(models.Model):
 
 
 class ModuleScores(models.Model):
+    """
+    Action:  Model for Module Scores
+    Returns: if called as string returns Experiment Id vs module module
 
+    """
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     module = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
@@ -218,7 +264,11 @@ class ModuleScores(models.Model):
 
 
 class GSAScores(models.Model):
+    """
+    Action:  Model for GSA Scores
+    Returns: if called as string returns experiment.id vs geneset.id
 
+    """
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
@@ -230,7 +280,11 @@ class GSAScores(models.Model):
 
 
 class ExperimentCorrelation(models.Model):
+    """
+    Action:  Model for Experiment Correlation
+    Returns: if called as string returns experiment experiment.id vs experiment experiment_ref.id correlation: correl
 
+    """
     SOURCE_TYPE = (
         ('WGCNA', 'WGCNA'),
         ('RegNet', 'RegNet'),
@@ -248,7 +302,11 @@ class ExperimentCorrelation(models.Model):
 
 
 class ToxicologyResult(models.Model):
+    """
+    Action:  Model for Toxicology Result
+    Returns: if called as string returns experiment experiment.id vs result result_name
 
+    """
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     result_type = models.CharField(max_length=30)
     result_name = models.CharField(max_length=100)
@@ -261,7 +319,11 @@ class ToxicologyResult(models.Model):
 
 
 class ToxPhenotype(models.Model):
+    """
+    Action:  Model for Tox Phenotype
+    Returns: if called as string returns ToxPhenotype name
 
+    """
     name = models.CharField(max_length=200)
     desc = models.TextField(blank=True, null=True)
 
@@ -270,7 +332,11 @@ class ToxPhenotype(models.Model):
 
 
 class GeneSetTox(models.Model):
+    """
+    Action:  Model for GeneSetTox
+    Returns: if called as string returns geneset geneset.name vs tox tox.name
 
+    """
     geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     tox = models.ForeignKey(ToxPhenotype, on_delete=models.CASCADE)
     time = models.CharField(max_length=10)

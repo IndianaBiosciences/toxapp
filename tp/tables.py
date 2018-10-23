@@ -6,13 +6,21 @@ from decimal import Decimal
 
 
 class SciNotationColumn(tables.Column):
+    """
+    Action:  Formats column into scientific notation
+    Returns: Scientific Notation Value
 
+    """
     def render(self, value):
         return '%.2E' % Decimal(value)
 
 
 class TruncateColumn(tables.Column):
+    """
+    Action:  Truncates the text in a column at 30 characters and then adds a ..
+    Returns: value[:30]+..
 
+    """
     def render(self, value):
         if len(value) > 30:
             value = value[:30] + '..'
@@ -20,6 +28,11 @@ class TruncateColumn(tables.Column):
 
 
 class ModuleScoreTable(tables.Table):
+    """
+    Action:  Table Declaration for Module Scores
+    Returns: None
+
+    """
     class Meta:
         model = ModuleScores
         fields = ['experiment', 'module', 'score', 'module.desc']
@@ -28,7 +41,11 @@ class ModuleScoreTable(tables.Table):
 
 
 class GSAScoreTable(tables.Table):
+    """
+    Action:  Table Declaration for GSA Scores Table
+    Returns: None
 
+    """
     geneset_name = TruncateColumn(verbose_name='Name', accessor='geneset.name',
                                   attrs={'td': {'title': lambda record: record.geneset.name}})
     geneset_desc = TruncateColumn(verbose_name='Geneset description', accessor='geneset.desc',
@@ -43,7 +60,11 @@ class GSAScoreTable(tables.Table):
 
 
 class FoldChangeResultTable(tables.Table):
+    """
+    Action:  Table Declaration for Fold Change Result
+    Returns: None
 
+    """
     gene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.rat_gene_symbol, args=[A('gene_identifier.gene.rat_entrez_gene')], accessor='gene_identifier.gene.rat_gene_symbol')
     p = SciNotationColumn(verbose_name='P-value', accessor='p')
     p_bh = SciNotationColumn(verbose_name='ajusted P-value', accessor='p_bh')
@@ -56,6 +77,11 @@ class FoldChangeResultTable(tables.Table):
 
 
 class SimilarExperimentsTable(tables.Table):
+    """
+    Action:  Table Declaration for Similar Experiments
+    Returns: None
+
+    """
     class Meta:
         model = ExperimentCorrelation
         fields = ['experiment', 'experiment_ref', 'source', 'correl', 'rank']
@@ -64,6 +90,11 @@ class SimilarExperimentsTable(tables.Table):
 
 
 class ToxicologyResultsTable(tables.Table):
+    """
+    Action:  Table Declaration for Toxicology Results
+    Returns: None
+
+    """
     class Meta:
         model = ToxicologyResult
         fields = ['experiment', 'result_type', 'result_name', 'group_avg', 'animal_details']
@@ -71,7 +102,11 @@ class ToxicologyResultsTable(tables.Table):
 
 
 class GenesetToxAssocTable(tables.Table):
+    """
+    Action:  Table Declaration for Geneset Tox Association
+    Returns: None
 
+    """
     add_feature = tables.TemplateColumn(template_name='manage_features.html', orderable=False,
                                     attrs={
                                         'td': {'align': 'center'},
@@ -87,7 +122,11 @@ class GenesetToxAssocTable(tables.Table):
 
 
 class ExperimentListTable(tables.Table):
+    """
+    Action:  Table Declaration for Experiment List
+    Returns: None
 
+    """
     analyze = tables.TemplateColumn(template_name='results_ready_col.html', orderable=False,
                                     attrs={
                                         'td': {'align': 'center'},
@@ -108,7 +147,11 @@ class ExperimentListTable(tables.Table):
 
 
 class StudyListTable(tables.Table):
+    """
+    Action:  Table Declaration for Study List
+    Returns: None
 
+    """
     get_exps=tables.LinkColumn('tp:experiments-bystudy', kwargs={'study': A('pk')}, orderable=False, text='',
                                      attrs={
                                          'a': {'class': 'glyphicon glyphicon-arrow-right',

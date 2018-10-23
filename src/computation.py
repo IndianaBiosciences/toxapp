@@ -22,7 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 def cluster_expression_features(data, x_vals, y_vals):
+    """
+    Action: creates an array based on the size of x and y values. the data is then filled into the array.
+    Perform hierarchical/agglomerative clustering based upon the data in a. Then the results from z are then plotted into a dendrogram. the values are then sorted, the first xvalue is set to r['x']
+    Returns: Sorted x values, and the data
 
+    """
     logger.debug('Starting clustering')
     # lay out the table with experiments on cols and genes/pathways/modules (x_vals) on rows
     a = np.zeros(shape=(len(x_vals), len(y_vals)))
@@ -67,7 +72,12 @@ class Computation:
         self._gene_obj_map = dict()
 
     def map_fold_change_from_exp(self, exp_obj):
+        """
+        Action: results is set to the experiments matching the given object. for each item in results, set rat_eg to the rat_entrez_gene.
+        Then set fc_data at location of the experiment id and the rat_eg to the results log2_fc and the gene identifier.
+        Returns: fc_data
 
+        """
         assert isinstance(exp_obj, Experiment)
         results = FoldChangeResult.objects.filter(experiment=exp_obj)
 
@@ -227,7 +237,11 @@ class Computation:
         return 1
 
     def make_gsa_file(self, tech_obj):
+        """
+        Action: Make sure there are atleast 1000 identifiers, create temp file, for each signature write each to gmt
+        Returns:gmt name
 
+        """
         assert isinstance(tech_obj, MeasurementTech)
 
         identifiers = IdentifierVsGeneMap.objects.filter(tech=tech_obj).all()
@@ -505,7 +519,11 @@ class Computation:
         return gsa_scores
 
     def calc_exp_correl(self, qry_exps, source):
+        """
+        Action: depending on source, set sets to the filtered geneset, sorts and calculates the correlation between exps
+        Returns: correlated results
 
+        """
         assert isinstance(qry_exps[0], Experiment)
         assert source in ['WGCNA', 'RegNet', 'PathNR']
 
@@ -586,7 +604,11 @@ class Computation:
         return results
 
     def calc_geneset_correl(self, source1, source2):
+        """
+        Action: Calculates the correlation between genesets
+        Returns: correlations
 
+        """
         sources = [source1, source2]
         allscores = Vividict()
 

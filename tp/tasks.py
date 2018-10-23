@@ -21,7 +21,11 @@ def add(x, y):
 
 @shared_task
 def make_leiden_csv(fullfile, exp_list):
+    """
+    Action:  creates a leiden csv from experimemnts given
+    Returns: True
 
+    """
     rows = FoldChangeResult.objects.filter(experiment__pk__in=exp_list)
 
     colnames = ['experiment_id', 'experiment_name', 'entrez_gene_id', 'gene_symbol', 'log2_fc', 'p_value', 'p_adj']
@@ -216,7 +220,11 @@ def process_user_files(tmpdir, config_file, email, testmode=False):
 
 
 def load_group_fold_change(compute, groupfc_file):
+    """
+    Action:  Reads fold change from groupfc_file,  If Results exist, they are deleted, otherwise they are created as an object.
+    Returns: 1
 
+    """
     logger.info('Reading fold change data from %s', groupfc_file)
 
     insert_count = 0
@@ -281,7 +289,11 @@ def load_group_fold_change(compute, groupfc_file):
 
 
 def load_measurement_tech_gene_map(file):
+    """
+    Action:  Loads measurement tech gene map from file.  Opens the file, for each row, set values,  then gets the tech object from these values. Creates object from values found.
+    Returns: Insert Count
 
+    """
     logger.info('Loading mapping of identifiers to genes for file %s', file)
     required_cols = ['TECH', 'TECH_DETAIL', 'SPECIES', 'IDENTIFIER', 'SPECIES_ENTREZ_GENE']
 
@@ -363,7 +375,11 @@ def load_measurement_tech_gene_map(file):
 
 
 def query_or_create_measurement_tech(tech, tech_detail):
+    """
+    Action:  Find Values based upon tech and tech detail, if nothing is found, the object is then created.
+    Returns: Tech Object
 
+    """
     logger.debug('Querying measurement tech on %s and %s', tech, tech_detail)
 
     tech_obj = MeasurementTech.objects.filter(tech=tech, tech_detail=tech_detail).first()
@@ -380,7 +396,11 @@ def query_or_create_measurement_tech(tech, tech_detail):
 
 
 def load_module_scores(module_scores):
+    """
+    Action:  Inserts module scores into database as objects
+    Returns: 1
 
+    """
     logger.info('Loading computed module scores into database')
 
     insert_count_scores = 0
@@ -432,7 +452,11 @@ def load_module_scores(module_scores):
 
 
 def load_gsa_scores(gsa_scores):
+    """
+    Action:  Inserts GSA Scores into database
+    Returns: 1
 
+    """
     logger.info('Loading computed GSA scores into database')
 
     insert_count_scores = 0
@@ -483,7 +507,11 @@ def load_gsa_scores(gsa_scores):
 
 
 def load_correl_results(compute, correl, source):
+    """
+    Action:  Inserts correlation results into database object
+    Returns: 1
 
+    """
     assert source in ['WGCNA', 'RegNet', 'PathNR']
 
     insert_count = 0

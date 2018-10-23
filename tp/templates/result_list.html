@@ -26,7 +26,7 @@
 {% endif %}
 <section id="control_section" class="panel panel-default">
   <div class="panel panel-body">
-    <a id="res_summary_link" href="{% url 'tp:analysis-summary' %}" class="btn btn-primary">Back to summary</a>
+    <a id="res_summary_link" href="{% url 'tp:analysis-summary' %}" class="btn btn-primary active">Back to summary</a>
     {% if request.session.allow_export %}
     <a href="{% url 'tp:export-filtered-result' %}" class="btn btn-default">Export to Excel</a>
     {% if filter.qs.count > 5000 %}

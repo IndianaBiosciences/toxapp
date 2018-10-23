@@ -252,6 +252,7 @@ $(function () {
                     $('#viz_loading').removeClass('loader');
                     $('#viz_error').text('map chart not supported for this data type');
                     $('#viz_error').removeClass('hidden');
+                    makeHeatmap();
 
                 } else if(!response.image) {
 
@@ -260,6 +261,7 @@ $(function () {
                     $('#viz_loading').removeClass('loader');
                     $('#viz_error').text('No image available for this result type');
                     $('#viz_error').removeClass('hidden');
+                    makeHeatmap();
 
                 } else {
 
@@ -370,6 +372,7 @@ $(function () {
                 $('#viz_error').text('No data, nothing to show');
                 $('#viz_error').removeClass('hidden');
 
+
             } else if(response.not_applicable) {
 
                 $('#hide_viz').addClass('hidden');
@@ -378,6 +381,7 @@ $(function () {
                 $('#viz_loading').removeClass('loader');
                 $('#viz_error').text('map chart not supported for this data type');
                 $('#viz_error').removeClass('hidden');
+                makeHeatmap();
 
             } else if(!response.image) {
 
@@ -386,6 +390,7 @@ $(function () {
                 $('#viz_loading').removeClass('loader');
                 $('#viz_error').text('No image available for this result type');
                 $('#viz_error').removeClass('hidden');
+                makeHeatmap();
 
             } else {
                 var names = [];
@@ -399,6 +404,7 @@ $(function () {
                 var write = "";
                 var genesets = [];
                 var multiple = 0;
+                var title = "";
 
                 //for each item in response data create a unique string for each item in trellis
                 for (x in response.data){
@@ -444,10 +450,24 @@ $(function () {
                     multiple = 1;
                 }
                 //set w to the width of the document, with some changes to set the width of each trellis dynamically
-                var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0)/((times.length +1)*1.25);
+                if(trials.length == 1){
+                    //var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0)/((times.length+1));
+                    var w = $("#viz_section").width()/(times.length+1)
+                 }
+                else{
+                var w = $("#viz_section").width()/((4));
+
+
+                if(w >= 400){
+                    w = 400;}
+                }
+
                 //create a unqiue option set for each trellis
 
                 for(m in respdata){
+                                if(w >300){
+                     title = names[m];
+                }
                      options.push( {
 
                         chart: {
@@ -461,7 +481,7 @@ $(function () {
                                 before, Jeff was changing size of container, but then would need to change back when
                                 going to other chart type that needs full width ($('#viz_container').width(500);)
                             */
-                            width: w,
+                            //width: w,
                             plotBackgroundImage: '/static/tp/img/' + response.image + '.svg'
                         },
                         boost: {
@@ -470,7 +490,7 @@ $(function () {
                         },
 
                         title: {
-                            text: response.restype + ' map chart ' + names[m]
+                            text: title
                         },
 
                         legend: {
@@ -530,7 +550,7 @@ $(function () {
                 write = write + '<table style="border: 1px solid black; padding-left:15px;">' + '<thead style="border: 1px solid black;">' + '<th style="border-right: 1px solid black;"> Dosages</th>';
                 // for each item in times create the headers
                 for(x in times){
-                    write = write + '<th style="text-align: center; border-right: 1px solid black; min-width:'+w+'px;">'+times[x]+' Days </th>';
+                    write = write + '<th style="text-align: center; border-right: 1px solid black; width:'+w+'px;">'+times[x]+' Days </th>';
 
                 }
                 write = write + '</thead><tbody>';
@@ -550,7 +570,7 @@ $(function () {
                    write = write + '<table style="border: 1px solid black; padding-left:15px;"><tbody>';
                    write = write + '<tr style="border-bottom: 1px solid black;">'
                    for (item in respdata){
-                    write = write + '<td style="border-right: 1px solid black;" id='+String(respdata[item][0]['dose'])+String(respdata[item][0]['dose_unit'])+String(respdata[item][0]['time'])+'></td>';
+                    write = write + '<td style="border-right: 1px solid black; width:'+w+'px; " id='+String(respdata[item][0]['dose'])+String(respdata[item][0]['dose_unit'])+String(respdata[item][0]['time'])+'></td>';
                     if(((item +1) % 3)==0){
                     write = write + '</tr><tr style="border-bottom: 1px solid black;">';
                     }
@@ -609,6 +629,7 @@ $(function () {
                 $('#viz_loading').removeClass('loader');
                 $('#viz_error').text('map chart not supported for this data type');
                 $('#viz_error').removeClass('hidden');
+                makeHeatmap();
 
             } else {
 
@@ -665,6 +686,9 @@ $(function () {
     };
 
     var makePlot = function() {
+    var w = $('thead').width();
+    console.log(w);
+            $('#viz_section').width(w);
                     $('#heatmap').attr("disabled", "disabled");
         $('#mapchart').attr("disabled", "disabled");
         $('#trellis').attr("disabled", "disabled");
@@ -765,6 +789,7 @@ $(function () {
 
         var current_type = sessionStorage.getItem('viz_type');
         sessionStorage.setItem('viz_type', 'trellis');
+
         // no need to make the plot if already on the selected type
         if (!current_type || current_type !== 'trellis') {
             makePlot()

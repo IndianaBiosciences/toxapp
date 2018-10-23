@@ -24,6 +24,13 @@ logger.setLevel(logging.INFO)
 
 
 def setup_gene_table():
+    """
+    Action: opens gene file, searches for cols with required cols, it makes sure eachs row has a value,
+    then for each column in rows, it replaces each blank value with a None type, then it creates the oject in the database
+    Returns: none
+    :rtype: object
+
+    """
 
     Gene.objects.all().delete()
     gf = os.path.join(settings.BASE_DIR, config['DEFAULT']['gene_file'])
@@ -56,7 +63,11 @@ def setup_gene_table():
 
 
 def setup_measurement_tech():
+    """
+    Action: reads the measurement tech and measurement detail files, if there is no object or mapping for these, it creates that object
+    Returns: measurement object
 
+    """
     mt = config['DEFAULT']['measurement_tech']
     md = config['DEFAULT']['measurement_detail']
     mf = os.path.join(settings.BASE_DIR, config['DEFAULT']['measurement_tech_file'])
@@ -77,7 +88,12 @@ def setup_measurement_tech():
 
 
 def load_DM_TG_experiments():
+    """
+    Action: opens the exoeriments file, looks up the study name, deletes attributes, sets study, results_ready,and tech.
+     It looks up the object, if it exists, it is updated, if it doesnt, it is created.
+    Returns: created experiments
 
+    """
     ef = os.path.join(settings.BASE_DIR, config['DEFAULT']['experiments_file'])
     logger.info('Loading experiments table from file %s', ef)
     updatecount = 0
@@ -115,7 +131,12 @@ def load_DM_TG_experiments():
 
 
 def load_tox_results():
+    """
+    Action: Opens the tox_results file, and removes any existing toxicology results objects.
+    Each experiment in the file that has a value, create that results object.
+    Returns: none
 
+    """
     tf = os.path.join(settings.BASE_DIR, config['DEFAULT']['tox_results_file'])
     logger.info('Loading toxicology results from file %s', tf)
     createcount = 0
@@ -140,7 +161,13 @@ def load_tox_results():
 
 
 def load_geneset_vs_tox_associations():
+    """
+    Action: Opens tox_association_file, removes all preexisting data objects.
+    Sets phenotype to the object in row tox, if there is a geneset it too gets set.
+    Then the genesettox object is created.
+    Returns: none
 
+    """
     tf = os.path.join(settings.BASE_DIR, config['DEFAULT']['tox_association_file'])
     logger.info('Loading geneset vs toxicology results from file %s', tf)
     createcount = 0
@@ -171,7 +198,16 @@ def load_geneset_vs_tox_associations():
 
 
 def load_genesets():
-
+    """
+    Action: Opens core_gene_sets file, sets gsa info with the same name to the current row.
+    Opens the WGCNA Modules, if a row has missing data, an error is raised, each row coulmn is then set to the values in loading.
+    Then we read the rgd vs go file. if values are blank, an exception is raised. then the geneset id is set to 1. Then if the row doesnt exist in gsa_info at that row is set to the values.
+    Then MSigDB signature vs. gene pairs file is read. IF the subcategory is RegNet it is changed from MSigDB to RegNet. then the value in the current gsa_genes is set to 1.
+    If there is no value in row['sig_name'] then it is generated. if n_genes < 3 or n_genes > 5000 then we drop those sigs. We then update or create the object.
+    Then we create GeneSetMember objects.
+    Returns: none
+    Notes: Can this be broken up for readability?
+    """
     cf = os.path.join(settings.BASE_DIR, config['DEFAULT']['core_gene_sets'])
     logger.info('Loading core gene sets from file %s', cf)
     gsa_info = collections.defaultdict(dict)
@@ -330,7 +366,12 @@ def load_genesets():
 
 
 def load_fold_change_data():
+    """
+    Action: we read the files in groupfc_file_location. For each file, we read each row and get each experiment object and identifier object if they exist.
+     Then we append them to the row.and write the file to output.
+    Returns: none
 
+    """
     pgbin = config['DEFAULT']['pgloader_exec']
     if not os.path.isfile(pgbin):
         logger.fatal('Configured file for pgloader not accessible %s', pgbin)
@@ -396,6 +437,13 @@ def load_fold_change_data():
 
 
 def score_experiments(created_exps):
+    """
+    Action: find out if computing initial gsa from tech object and set it to success.
+    For each experiment in each created one, compute the map_fold_change data from experiment. we then compute module scores, gsa scores and status if they exist.
+    The values are then saved.
+    Returns: none
+
+    """
     failed_scoring = collections.defaultdict(list)
 
     # don't keep re-initializing GSA calc; these are all RG230-2 exps
@@ -445,7 +493,11 @@ def score_experiments(created_exps):
 
 
 if __name__ == '__main__':
+    """
+    Action: See commments
+    Returns: none
 
+    """
     config_file = os.path.join(settings.BASE_DIR, 'data/toxapp.cfg')
     if not os.path.isfile(config_file):
         logger.critical('Configuration file %s not readable', config_file)

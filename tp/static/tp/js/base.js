@@ -37,7 +37,8 @@ $(function() {
         var organism = $('#id_organism').val()
         var gender = $('#id_gender').val()
         var single_repeat_type = $('#id_single_repeat_type').val()
-
+        dose = parseFloat(dose).toFixed(2);
+        time = parseFloat(time).toFixed(2);
         var expname = ''
         if (compound_name) {
             expname += compound_name.substring(0, 12)

@@ -12,7 +12,7 @@
   <div class="panel panel-default">
     <div class="panel-body">
     {% if request.session.analyze_list %}
-    <a class="btn btn-primary" href="{% url 'tp:analysis-summary' %}">Analyze experiments in cart</a>
+    <a class="btn btn-primary active" href="{% url 'tp:analysis-summary' %}">Analyze experiments in cart</a>
     <a class="btn btn-default" href="{% url 'tp:cart-empty' %}">Empty analysis cart</a>
     {% endif %}
     <a class="btn btn-default" href="{% url 'tp:cart-add-all' %}">Add all experiments to cart</a>
