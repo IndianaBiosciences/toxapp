@@ -760,7 +760,12 @@ def compute_fold_change(request):
         # need to make sure world readable as script run by different user
         for f in os.listdir(tmpdir):
             logger.debug("chmod on %s", f)
-            os.chmod(os.path.join(tmpdir, f), 0o777)
+
+            try:
+                os.chmod(os.path.join(tmpdir, f), 0o777)
+            except OSError:
+                logger.info('Cannot change permissions of file %s; user may be rerunning computation using back button', f)
+
         # create context to send back to web page
         context = dict()
         n_samples = 0
