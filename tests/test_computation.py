@@ -193,6 +193,18 @@ class TestComputation(unittest.TestCase):
         #    expected_scores = pickle.load(fp)
         #self.assertDictEqual(correl_results, expected_scores)
 
+    def test_init_BMD(self):
+
+        # using DM N,N-dimethylformamide which has 4 doses (140, 700, 1400, 2100 mg/kg) in SD male rat liver
+        bmd_config = self.compute.init_BMD([9235, 9302, 9238, 9307])
+        saveobj = False
+        if saveobj:
+            with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmdconfig-expected.pkl'), 'wb') as fp:
+                pickle.dump(bmd_config, fp, pickle.HIGHEST_PROTOCOL)
+
+        with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmdconfig-expected.pkl'), 'rb') as fp:
+            expected_bmd_config = pickle.load(fp)
+        self.assertListEqual(bmd_config, expected_bmd_config)
 
 if __name__ == '__main__':
     unittest.main()
