@@ -671,4 +671,36 @@ class Computation:
 
         return results
 
+    def init_BMD(self, exp_ids):
 
+        logger.info('BMD initialization for experiments %s', exp_ids)
+
+        exp_objs = Experiment.objects.filter(id__in=exp_ids)
+        if not exp_objs:
+            raise LookupError('Did not retrieve experiments from experiment list {}'.format(exp_ids))
+        if len(exp_objs) != len(exp_ids):
+            raise LookupError('Did not obtain the same number of experiment objects from model as input exp ids {}'.format(exp_ids))
+
+        # need to organize experiments by compound, time, tissue - etc. i.e. a strict dose response under
+        # otherwise identical conditions
+        bmd_grps = Vividict()
+        bmd_config = list()
+
+        for e in exp_objs:
+            barcode = ''
+            for attr in ['tech', 'time', 'tissue', 'organism', 'strain', 'gender', 'single_repeat_type', 'route', 'dose_unit']:
+                barcode += ':' + str(getattr(e, attr))
+            bmd_grps[e.compound_name][barcode][e.dose] = e.id
+
+        for cpd in bmd_grps:
+            for cnd in bmd_grps[cpd]:
+                if len(bmd_grps[cpd][cnd]) < 3:
+                    logger.debug('Fewer then 3 doses for compound %s and condition %s; no BMD calc', cpd, cnd)
+                    continue
+
+                calc = dict()
+                for conc in bmd_grps[cpd][cnd]:
+                    calc[float(conc)] = bmd_grps[cpd][cnd][conc]
+                bmd_config.append(calc)
+
+        return bmd_config
