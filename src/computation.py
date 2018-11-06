@@ -286,7 +286,7 @@ class Computation:
 
         """ read the fold change data and map to rat entrez gene IDs starting from a file """
 
-        # TODO - this could be retired by using the map_fold_change_from_exp as we are effectively doing the same
+        # TODO - look into minor - this could be retired by using the map_fold_change_from_exp as we are effectively doing the same
         # mapping exercise twice - once when loading the FC data in tasks.py function, then once again here.
         # However this means that the Computation script could no longer run without loading the fold change data using
         # the function in tasks.  As it stands script can perform complete calculation without actually loading anything

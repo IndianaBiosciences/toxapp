@@ -719,7 +719,7 @@ def compute_fold_factors(infile, outfile, celdir, sdir):
         config = {
             'file_type': 'CEL',
         }
-        # TODO - Need to set other parameters?
+
 
     # run different workflows
     if config['file_type'] == 'CEL':
@@ -779,7 +779,7 @@ class MyTests(unittest.TestCase):
 
         compute_fold_factors("cfg_CEL_test.json", ofile, "UI_Test1", cfg['script_dir'])
         self.assertTrue(os.path.isfile(ofile))
-        # TODO - Add some additional tests
+        # todo unit tests
         if os.path.isfile(ofile):
             os.remove(ofile)
 

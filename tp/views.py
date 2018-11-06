@@ -66,8 +66,7 @@ def reset_session(session):
     """ helper function to restore various session vars used for tracking between views """
 
     logger.debug('Resetting session info for tracking metadata across handlers')
-    # TODO - delete the existing tmp_dir first
-    # delete and not set to None due to manner in which they are created as lists
+
     for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'measurement_tech', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
         try:
             del session[attr]
@@ -493,7 +492,7 @@ def samples_confirm(request):
 def create_samples(request):
     """ allow bulk creation/edit of samples from uploaded file """
 
-    #TODO - Nasty bug where if you make mistake and select upload single sample and select file
+    #TODO - URGENT - Nasty bug where if you make mistake and select upload single sample and select file
     # and then realize and go back and select the correct multiple files -- only the initial file
     # will be uploaded to the tmpdir. However, the other samples are in the session and it appears
     # to work until you launch the computation
@@ -1134,7 +1133,7 @@ def export_mapchart_json(request, restype=None):
 
         # TODO - not really working, as the range_to for blue to white goes through green and yellow, i.e .rainbow
         # probably best to revisit having highcharts do the coloring ... see Treemap coloring setup
-        # some ideas here - https://bsou.io/posts/color-gradients-with-python
+        # some ideas here - https://bsou.io/posts/color-gradients-with-python look at treemap for reference
         blue = colour.Color('blue')
         white = colour.Color('white')
         red = colour.Color('red')
@@ -1329,7 +1328,6 @@ def gene_detail(request, gene_id):
 
 class ResetSessionMixin(object):
 
-    # TODO - better way to call an arbitary function (reset_session) on CBV lisview?
     def get_context_data(self, **kwargs):
 
         # only reason for doing this is to force a reset of session when flow from study->sample upload is interrupted
@@ -1522,7 +1520,7 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
             last_exp_id = self.request.session['last_exp_id']
             logger.debug('Retrieved prior experiment ID %s', last_exp_id)
             last_exp = Experiment.objects.get(pk=last_exp_id)
-            # TODO - remove experiment name assuming that this will be prepopulated by other meta data
+            # TODO - remove experiment name assuming that this will be prepopulated by other meta data play with this
             fields = ['experiment_name', 'tech', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue',
                       'organism', 'strain', 'gender', 'single_repeat_type', 'route']
             for f in fields:
@@ -1679,8 +1677,7 @@ class UploadSamplesView(FormView):
         form_class = self.get_form_class()
         form = self.get_form(form_class)
 
-        # TODO write custom upload handlers to send files directly working directory instead of loading them
-        # https://docs.djangoproject.com/en/1.10/ref/files/uploads/#custom-upload-handlers
+
         if form.is_valid():
 
             samples_added = []
@@ -1703,8 +1700,7 @@ class UploadSamplesView(FormView):
                             samples_added.append(s)
                 else:
                     logger.warning("unable to read uploaded file % in dir %s", f.name, tmpdir)
-                        # TODO - read and parse the first row to get the sample names, append to samples_added
-                #samples_added = some_future_call()
+
             elif request.FILES.getlist('multiple_files'):
                 tmpdir = get_temp_dir(self.request)
                 self.request.session['sample_file'] = 'cel:in_directory'
@@ -1739,7 +1735,7 @@ class UploadTechMapView(FormView):
         form_class = self.get_form_class()
         form = self.get_form(form_class)
 
-        #TODO - same thing as above, don't load into memory then dump out again
+
         if form.is_valid() and request.FILES.get('map_file', None) is not None:
             f = request.FILES.get('map_file')
             tmpdir = get_temp_dir(self.request)
@@ -1747,7 +1743,6 @@ class UploadTechMapView(FormView):
             local_file = fs.save(f.name, f)
             full_path_file = os.path.join(tmpdir, local_file)
 
-            #TODO - either use it with the .delay option in celery or add a spinning bar to show upload in progress - takes ~1 minute for 15k recs
             status = load_measurement_tech_gene_map(full_path_file)
             if status:
                 #TODO - could create a new success URL that loads a message showing name of array platforms and number of recs loaded
@@ -1775,7 +1770,7 @@ class FilteredSingleTableView(SingleTableView):
         # when accessing ToxicologyResults from the analysis_summary, reset the list of similar experiments so that
         # additional queries on the class (when user filters results) is not recognized as having come from Sim Exps
         # (the referrer will be itself)
-        # TODO - a better way to check referrer? what if URL is setup differently?
+        #todo jeff is least satisfied with this class, may want to look at later
         if type(self).__name__ == 'ToxicologyResultsSingleTableView' and referrer and 'analysis_summary' in referrer:
             logger.debug('Resetting stored list of similar experiments since referrer was analysis_summary')
             sim_list = list()

@@ -195,15 +195,15 @@ class FoldChangeResult(models.Model):
 
     """
 
-    #TODO - Need to have expression_ctl to be larger digits due to RNAseq counts
-    #TODO - p_bh probably needs to become p_adj as there may be different ways to adjust
+    #TODO - Need to have expression_ctl to floatfield
+
 
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     gene_identifier = models.ForeignKey(IdentifierVsGeneMap, on_delete=models.CASCADE)
     log2_fc = models.DecimalField(max_digits=5, decimal_places=2)
     n_trt = models.IntegerField()
     n_ctl = models.IntegerField()
-    expression_ctl = models.DecimalField(max_digits=7, decimal_places=2)
+    expression_ctl = models.FloatField()
     p = models.FloatField()
     p_bh = models.FloatField()
 
