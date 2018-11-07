@@ -36,6 +36,7 @@ import subprocess
 import csv
 import json
 import logging
+import pickle
 from django.conf import settings
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "toxapp.settings")
 
@@ -267,7 +268,7 @@ def normalize_cel_expression(celdir, sdir, array_type, experiments):
     logger.info("Finished computing the means for the TRT and CTL groups")
 
     rma = {'samples': rma_samples_list,
-           'probes': rma_probes_list,
+           'genes': rma_probes_list,
            'values': rma_values}
 
     # cleanup files
@@ -280,7 +281,7 @@ def normalize_cel_expression(celdir, sdir, array_type, experiments):
 
 def compute_limma_results(sdir, experiments, rma):
     rma_values = rma['values']
-    rma_probes_list = rma['probes']
+    rma_probes_list = rma['genes']
     #
     # Create the fold change files for running LIMMA
     # Store values into dictionary for final results
@@ -550,7 +551,10 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, config):
         output file with the results
     config : dict
         full json configuration
-"""
+
+    return data structure of sample counts
+    """
+
     #
     # Set up directories
     #
@@ -668,6 +672,7 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, config):
                 shutil.copy(file, os.path.join(udir,file))
             logging.debug("Copying file %s to directory %s", file, udir)
 
+    return rna
 
 def compute_gfc_CEL(infile, outfile, celdir, sdir, array_type):
     """ Compute the fold factors for CEL file via Lilly process
@@ -682,7 +687,9 @@ def compute_gfc_CEL(infile, outfile, celdir, sdir, array_type):
         the directory location for the R scripts
     celdir : str
         the directory of the CEL files [default "."]
-"""
+
+    return data structure of sample intensities
+    """
 
     # read the data files
     experiments = dict()
@@ -695,6 +702,7 @@ def compute_gfc_CEL(infile, outfile, celdir, sdir, array_type):
     rma = normalize_cel_expression(celdir, sdir, array_type, experiments)
     results = compute_limma_results(sdir, experiments, rma)
     write_results(outfile, experiments, results)
+    return rma
 
 
 def compute_fold_factors(infile, outfile, celdir, sdir):
@@ -716,16 +724,18 @@ def compute_fold_factors(infile, outfile, celdir, sdir):
     if f_ext == '.json':
         config = read_cfg_file(infile)
     else:
-        config = {
-            'file_type': 'CEL',
-        }
-        # TODO - Need to set other parameters?
+        raise NotImplemented('Report to developers - every computation is expected to have a json config file')
 
     # run different workflows
     if config['file_type'] == 'CEL':
-        compute_gfc_CEL(infile, outfile, celdir, config['script_dir'], config['measurement_tech'])
+        sample_intensities = compute_gfc_CEL(infile, outfile, celdir, config['script_dir'], config['measurement_tech'])
     else:
-        compute_gfc_rnaseq(config['file_name'], config['experiments'], outfile, config)
+        sample_intensities = compute_gfc_rnaseq(config['file_name'], config['experiments'], outfile, config)
+
+    # BMD calc needs sample level data
+    with open('sample_intensities.pkl', 'wb') as fp:
+        pickle.dump(sample_intensities, fp, pickle.HIGHEST_PROTOCOL)
+
 
 
 class MyTests(unittest.TestCase):
@@ -757,7 +767,7 @@ class MyTests(unittest.TestCase):
         cfg = read_cfg_file('cfg_CEL_test.json')
         experiments = read_exp_file('cfg_CEL_test.json')
         rma = normalize_cel_expression('UI_Test1', cfg['script_dir'], experiments)
-        self.assertEqual(len(rma['probes']), 14132)
+        self.assertEqual(len(rma['genes']), 14132)
         self.assertEqual(len(rma['samples']), 12)
         self.assertEqual(len(rma['values']), 16)
 
