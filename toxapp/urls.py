@@ -34,4 +34,7 @@ urlpatterns = [
     url(r'^', include('django.contrib.auth.urls')),
 
     url(r'', include('tp.urls', namespace='tp')),
+
+    url(r'^signup/$', views.signup, name='signup'),
+
 ]

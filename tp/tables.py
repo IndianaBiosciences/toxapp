@@ -3,7 +3,10 @@ from django_tables2.utils import A
 from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation,\
                     ToxicologyResult, GeneSetTox
 from decimal import Decimal
+class SigFigColumn(tables.Column):
 
+    def render(self,value):
+        return str.format('{0:.3f}', value)
 
 class SciNotationColumn(tables.Column):
     """
