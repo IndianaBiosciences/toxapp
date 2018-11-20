@@ -14,7 +14,6 @@ class Study(models.Model):
     """
     PERMISSION_TYPE = (
         ('S', 'Private'),
-        ('G', 'Group'),
         ('P', 'Public'),
     )
 
@@ -130,7 +129,6 @@ class Sample(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
     sample_name = models.CharField(max_length=150)
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
-
     def __str__(self):
         return self.sample_name
 

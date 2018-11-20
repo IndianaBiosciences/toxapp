@@ -497,7 +497,6 @@ def create_samples(request):
     # will be uploaded to the tmpdir. However, the other samples are in the session and it appears
     # to work until you launch the computation
     skipped_from_file = list()
-
     if request.method == 'POST':
         formset = SampleFormSet(request.POST)
         if formset.is_valid():
@@ -506,11 +505,18 @@ def create_samples(request):
             # since you can delete the first one and 2, 3, ... come through just not the last one
             # can also get this if you delete all orig ones and hand-enter new sample names
             study = get_study_from_session(request.session)
+
             samples = formset.save(commit=False)
+            for form in formset.ordered_forms:
+                print(form.cleaned_data)
+
             # need to save the study which was not in the formset
             for s in samples:
+
                 s.study = study
                 s.save()
+
+
             return HttpResponseRedirect(reverse('tp:samples-confirm'))
 
     else:
