@@ -1,12 +1,12 @@
 import os
 import logging
 import csv
-import configparser
 import pprint
 import gzip
 import time
 import subprocess
 import collections
+import tp.utils
 from tempfile import gettempdir, NamedTemporaryFile
 from django.core.wsgi import get_wsgi_application
 
@@ -32,11 +32,11 @@ def setup_gene_table():
 
     """
 
-    Gene.objects.all().delete()
     gf = os.path.join(settings.BASE_DIR, config['DEFAULT']['gene_file'])
     logger.info('Loading orthology gene table from file %s', gf)
     required_cols = ['rat_entrez_gene', 'rat_gene_symbol']
     createcount = 0
+    updatecount = 0
     rowcount = 0
     with open(gf) as f:
         dialect = csv.Sniffer().sniff(f.read(1024))
@@ -56,10 +56,16 @@ def setup_gene_table():
                 if row[col] == '':
                     row[col] = None
 
-            Gene.objects.create(**row)
-            createcount += 1
+            # lookup the exp obj; update if exists create otherwise
+            gene = Gene.objects.filter(rat_entrez_gene=row['rat_entrez_gene'])
+            if gene:
+                gene.update(**row)
+                updatecount += 1
+            else:
+                Gene.objects.create(**row)
+                createcount += 1
 
-    logging.info('Number of genes created: %s', createcount)
+    logging.info('Number of genes created: %s; number updated: %s', createcount, updatecount)
 
 
 def setup_measurement_tech():
@@ -498,14 +504,8 @@ if __name__ == '__main__':
     Returns: none
 
     """
-    config_file = os.path.join(settings.BASE_DIR, 'data/toxapp.cfg')
-    if not os.path.isfile(config_file):
-        logger.critical('Configuration file %s not readable', config_file)
-        exit(1)
 
-    # vars used in main scope and accessible to all functs
-    config = configparser.ConfigParser()
-    config.read(config_file)
+    config = tp.utils.parse_config_file()
     tech_obj = None
 
     # file loading requires tmp space ... set up

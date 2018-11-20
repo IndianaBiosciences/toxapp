@@ -16,7 +16,7 @@ from django_tables2 import SingleTableView
 
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene
+                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BenchmarkDoseResult
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
@@ -370,6 +370,24 @@ def analysis_summary(request):
         if e.tissue == 'primary_heps':
             context['show_leiden'] = 1
             break
+
+    bmds = BenchmarkDoseResult.objects.filter(experiment__id__in=analyze_list)
+
+    # there are benchmarkdose results for one or more experiments in cart
+    # however, don't show if more than 4 files - likely to be someone who added all exps to cart
+    if bmds and bmds.values_list('experiment__study__study_name').distinct().count() <= 4:
+        have_file = list()
+        study_file_pairs = list()
+
+        for bmd in bmds:
+            study_name = bmd.experiment.study.study_name
+            file = bmd.bm2_file
+            if file not in have_file:
+                url = '/docs/bm2_files/' + file
+                study_file_pairs.append({'study_name': study_name, 'link': url})
+                have_file.append(file)
+
+        context = {'bmd_results': study_file_pairs}
 
     return render(request, 'analysis_summary.html', context)
 
@@ -808,7 +826,7 @@ def compute_fold_change(request):
             n_samples += len(e['sample'])
         context['n_experiments'] = len(experiments)
         context['n_samples'] = n_samples
-        res = process_user_files.delay(tmpdir, cfg_file, user.email)
+        res = process_user_files(tmpdir, cfg_file, user)
         logger.debug("compute_fold_change: config %s", pprint.pformat(experiments))
 
         context['email'] = user.email
@@ -1909,7 +1927,6 @@ class ToxicologyResultsSingleTableView(FilteredSingleTableView):
     table_class = tp.tables.ToxicologyResultsTable
     table_pagination = True
     filter_class = tp.filters.ToxicologyResultsFilter
-
 
 class ToxAssociation(SingleTableView):
     model = GeneSetTox

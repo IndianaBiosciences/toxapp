@@ -1,6 +1,7 @@
 import os
 from django.core.wsgi import get_wsgi_application
 from django.conf import settings
+from django.contrib.auth.models import User
 import logging
 import time
 import unittest
@@ -60,11 +61,11 @@ class TestCelery(unittest.TestCase):
 
         shutil.copytree(sourcedir, tmpdir)
         logger.debug('temp directory is %s', tmpdir)
-        email = 'someone@somewhere.com'
+        user = User.objects.get(username='admin')
         config_file = os.path.join(tmpdir, 'computation_data.json')
 
-        logger.debug('Running fold change calculation ')
-        res = process_user_files.delay(tmpdir, config_file, email, True)
+        logger.debug('Running process_user_files')
+        res = process_user_files.delay(tmpdir, config_file, user, True)
         time.sleep(20)
         status = res.ready()
         message = res.get(timeout=1)

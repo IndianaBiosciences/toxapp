@@ -22,6 +22,8 @@ sudo chmod 777 /tmp/celery/results
 
 sudo mkdir -p /var/www/toxapp/leiden_exports
 sudo chmod 777 /var/www/toxapp/leiden_exports
+sudo mkdir -p /var/www/toxapp/bm2_files
+sudo chmod 777 /var/www/toxapp/bm2_files
 
 sudo mkdir -p toxapp/tp/static/site_media
 
