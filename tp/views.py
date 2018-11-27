@@ -474,6 +474,8 @@ def samples_confirm(request):
             return render(request, 'generic_message.html', context)
 
         smpls = Sample.objects.filter(study=study).all()
+        smpls = smpls.order_by('date_created','order')
+
 
         # if revising an existing, it's possible to move to experiment-vs-sample dialog without ever uploading
         # a file (and hence setting sample_files and other stuff in session; force use of sample upload handler
@@ -482,6 +484,7 @@ def samples_confirm(request):
             return HttpResponseRedirect(reverse('tp:samples-upload'))
 
         form = SampleConfirmForm()
+
         # override the default queryset which is all smpls
         form.fields['samples'].queryset = smpls
 
@@ -497,6 +500,7 @@ def create_samples(request):
     # will be uploaded to the tmpdir. However, the other samples are in the session and it appears
     # to work until you launch the computation
     skipped_from_file = list()
+
     if request.method == 'POST':
         formset = SampleFormSet(request.POST)
         if formset.is_valid():
@@ -507,12 +511,13 @@ def create_samples(request):
             study = get_study_from_session(request.session)
 
             samples = formset.save(commit=False)
+
             for form in formset.ordered_forms:
-                print(form.cleaned_data)
+                form.instance.order = form.cleaned_data['order']
+
 
             # need to save the study which was not in the formset
             for s in samples:
-
                 s.study = study
                 s.save()
 
@@ -1819,6 +1824,19 @@ class FilteredSingleTableView(SingleTableView):
         if type(self).__name__ == 'SimilarExperimentsSingleTableView':
             ids = list(results.values_list('id', flat=True))
             logger.debug('Storing retrieved data in session for subsequent ToxicologyResult view')
+            test= results.values_list('experiment_ref', flat=True)
+            for tid in test:
+                texp = Experiment.objects.get(id=tid)
+                study = Study.objects.get(id=texp.study.id)
+                if(study.permission == 'P'):
+                    continue
+                else:
+                    rvalue = ExperimentCorrelation.objects.get(id=tid)
+                    print( 'removing: ' + str(texp))
+
+                    ExperimentCorrelation.objects.exclude(experiment_ref=texp.id)
+
+            #print(objet.values())
             self.request.session['sim_list'] = ids
 
         # store the object IDs in case data is exported to excel via separate handler
@@ -1903,12 +1921,17 @@ class SimilarExperimentsSingleTableView(FilteredSingleTableView):
     filter_class = tp.filters.SimilarExperimentsFilter
 
 
+
+
+
 class ToxicologyResultsSingleTableView(FilteredSingleTableView):
     model = ToxicologyResult
     template_name = 'result_list.html'
     table_class = tp.tables.ToxicologyResultsTable
     table_pagination = True
     filter_class = tp.filters.ToxicologyResultsFilter
+
+
 
 
 class ToxAssociation(SingleTableView):

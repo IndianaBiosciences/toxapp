@@ -1,11 +1,4 @@
-from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores,\
-    GSAScores, Gene, GeneSetMember
-from django.conf import settings
-from tempfile import NamedTemporaryFile
-from scipy.stats.stats import pearsonr
-
 import pprint
-import shutil
 import json
 import subprocess
 import logging
@@ -13,10 +6,18 @@ import os
 import sys
 import csv
 import collections
+import copy
+import itertools
 import numpy as np
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 from scipy.cluster.hierarchy import dendrogram, linkage
+from tempfile import NamedTemporaryFile
+from scipy.stats.stats import pearsonr
+from django.conf import settings
+from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores,\
+    GSAScores, Gene, GeneSetMember
+import tp.utils
 
 logger = logging.getLogger(__name__)
 
@@ -671,36 +672,227 @@ class Computation:
 
         return results
 
-    def init_BMD(self, exp_ids):
+    def get_BMD_calcs(self, exp_objs):
 
-        logger.info('BMD initialization for experiments %s', exp_ids)
-
-        exp_objs = Experiment.objects.filter(id__in=exp_ids)
-        if not exp_objs:
-            raise LookupError('Did not retrieve experiments from experiment list {}'.format(exp_ids))
-        if len(exp_objs) != len(exp_ids):
-            raise LookupError('Did not obtain the same number of experiment objects from model as input exp ids {}'.format(exp_ids))
+        logger.info('Identifying BMD calcs for experiments %s', [e.id for e in exp_objs])
 
         # need to organize experiments by compound, time, tissue - etc. i.e. a strict dose response under
         # otherwise identical conditions
-        bmd_grps = Vividict()
-        bmd_config = list()
+
+        # tabulate a list of meta data attributes that varies across the experiments
+        varying_attr = collections.defaultdict(list)
+        bmd_grps = collections.defaultdict(dict)
+        bmd_calcs = collections.defaultdict(dict)
 
         for e in exp_objs:
-            barcode = ''
-            for attr in ['tech', 'time', 'tissue', 'organism', 'strain', 'gender', 'single_repeat_type', 'route', 'dose_unit']:
-                barcode += ':' + str(getattr(e, attr))
-            bmd_grps[e.compound_name][barcode][e.dose] = e.id
+            for attr in ['tech', 'time', 'tissue', 'organism', 'strain', 'gender', 'single_repeat_type', 'route', 'compound_name', 'dose_unit']:
+                val = getattr(e, attr)
+                if val not in varying_attr[attr]:
+                    varying_attr[attr].append(val)
 
-        for cpd in bmd_grps:
-            for cnd in bmd_grps[cpd]:
-                if len(bmd_grps[cpd][cnd]) < 3:
-                    logger.debug('Fewer then 3 doses for compound %s and condition %s; no BMD calc', cpd, cnd)
+        # delete experiment attributes which are shared by all experiments - no need showing them to users
+        # Don't delete compound as a singlet attribute.  We want to do a BMD calc for a set of experiments where
+        # cpd is the same for all
+        attrs = list(varying_attr.keys())
+        for attr in attrs:
+            if len(varying_attr[attr]) == 1 and attr != 'compound_name':
+                del varying_attr[attr]
+                continue
+
+        # create a list of all unique combinations of varying attributes encountered in experiments set
+        keys, values = zip(*varying_attr.items())
+        for val in itertools.product(*values):
+            combo = dict(zip(keys, val))
+            logger.debug('Identifying experiments matching conditions %s', combo)
+            these_exp_objs = filter(lambda item: all((getattr(item, k) == v for (k, v) in combo.items())), exp_objs)
+
+            calc = dict()
+            for e in these_exp_objs:
+                logger.debug('Have exp %s which matches condition', e.id)
+                conc = float(e.dose)
+                if calc.get(conc, None) is not None:
+                    raise NotImplemented('Did not anticipate multiple experiments having same concentration for a BMD condition; report to developer')
+                calc[conc] = e.id
+
+            # some combos of conditions have no experiments; e.g. repeat dose study vs. <= 1 day duration in TG data
+            if not calc:
+                continue
+            if len(calc) < 3:
+                logger.debug('Fewer then 3 doses for condition %s; no BMD calc', combo)
+                continue
+
+            cnd = ''
+            for attr in combo:
+                cnd += '-' if cnd else ''
+                cnd += attr + '=' + str(combo[attr])
+
+            bmd_calcs[cnd] = calc
+
+        return bmd_calcs
+
+    def make_BMD_files(self, exp_objs, config_file, sample_int, fc_data):
+
+        logger.info('Preparing BMD input files for experiments %s', [e.id for e in exp_objs])
+
+        bmd_calcs = self.get_BMD_calcs(exp_objs)
+        # many user studies will not have multiple conc, hence BMD not possible
+        if not bmd_calcs:
+            return None
+
+        with open(config_file) as infile:
+            config = json.load(infile)
+
+        # fc_data contains the mapping from original platform-specific identifier to rat entrez gene
+        # BMD will be run on rat refseq to avoid having to select a BMD-supported platform
+        identifier_map = Vividict()
+        for exp_id in fc_data:
+            for rat_entrez in fc_data[exp_id]:
+                identifier_map[exp_id][fc_data[exp_id][rat_entrez]['identifier']] = rat_entrez
+
+        sample2exp = dict()
+        for e in config['experiments']:
+            for s in e['sample']:
+                sample2exp[s['sample_name']] = exp_id
+
+        identifier2ensembl = dict()
+
+        # take the sample intensities object and build a convertion table to rat entrez
+        for sample_nm in sample_int['samples']:
+            count = 0
+            for identifier in sample_int['genes']:
+                exp_id = sample2exp[sample_nm]
+                # not all platform identifiers are convertable to rat entrez
+                rat_eg = identifier_map[exp_id].get(identifier, None)
+                if rat_eg is None:
                     continue
 
-                calc = dict()
-                for conc in bmd_grps[cpd][cnd]:
-                    calc[float(conc)] = bmd_grps[cpd][cnd][conc]
-                bmd_config.append(calc)
+                gene_obj = self.get_gene_obj(rat_eg)
+                # some rat entrez gene IDs don't have a ensembl rn6 ID avail
+                if not gene_obj.ensembl_rn6:
+                    continue
 
-        return bmd_config
+                if identifier2ensembl.get(identifier, None) is not None and identifier2ensembl[identifier] != gene_obj.ensembl_rn6:
+                    raise NotImplemented('Did not anticipate possibility that identifier vs rat eg is not unique without considering sample')
+
+                identifier2ensembl[identifier] = gene_obj.ensembl_rn6
+
+        # a user might be uploading experiments where not all of conditions required for
+        # performing BMD are the same across all experiments, i.e. different time points
+        # iterate through each set of experiments where the req'd conditions are the same
+        filenames = list()
+        for cond in bmd_calcs:
+            conc2sample = collections.defaultdict(list)
+            for conc, exp_id in bmd_calcs[cond].items():
+                for e in config['experiments']:
+                    if e['experiment']['exp_id'] == exp_id:
+                        for s in e['sample']:
+                            use_conc = float(conc) if s['sample_type'] == 'I' else 0
+                            if not s['sample_name'] in conc2sample[use_conc]:
+                                conc2sample[use_conc].append(s['sample_name'])
+
+            if not conc2sample:
+                raise LookupError('Did not match any of concentration/experiments in bmd_config to experiments')
+
+            filename = os.path.join(self.tmpdir, 'bmd_input-' + cond + '.txt')
+            with open(filename, 'w') as bmd_f:
+
+                head1 = 'SampleID'
+                head2 = 'Dose'
+                firstrow = True
+                genecount = -1  # need to make sure that platform identifiers not mappable to rat eg get incremented
+
+                for gene in sample_int['genes']:
+
+                    genecount += 1
+                    refseq = identifier2ensembl.get(gene, None)
+                    if refseq is None:
+                        continue
+
+                    row = str(refseq)
+                    for conc in sorted(conc2sample):
+                        for sample_nm in sorted(conc2sample[conc]):
+                            if firstrow:
+                                head1 += '\t' + sample_nm
+                                head2 += '\t' + str(conc)
+                            row += '\t' + str(sample_int['values'][sample_nm][genecount])
+
+                    if firstrow:
+                        head1 += '\n'
+                        head2 += '\n'
+                        bmd_f.write(head1)
+                        bmd_f.write(head2)
+                        firstrow = False
+
+                    row += '\n'
+                    bmd_f.write(row)
+
+            bmd_f.close()
+            filenames.append(filename)
+
+        return filenames
+
+    def run_BMD(self, files):
+
+        config = tp.utils.parse_config_file()
+        bmd_config_file_template = os.path.join(settings.BASE_DIR, config['DEFAULT']['bmd_config'])
+
+        with open(bmd_config_file_template) as infile:
+            bmd_config_ref = json.load(infile)
+
+        bmd_config = copy.deepcopy(bmd_config_ref)
+        bmd_config['bm2FileName'] = os.path.join(self.tmpdir, 'bmd_results.bm2')
+        bmd_config['expressionDataConfigs'] = []
+        bmd_config['preFilterConfigs'] = []
+        bmd_config['bmdsConfigs'] = []
+        bmd_config['categoryAnalysisConfigs'] = []
+
+        for f in files:
+            base = os.path.basename(f)
+            no_ext = os.path.splitext(base)[0]
+            no_ext = no_ext.replace('bmd_input-', '')  # drop the file prefix
+
+            input_stub = copy.deepcopy(bmd_config_ref['expressionDataConfigs'][0])
+            prefilter_stub = copy.deepcopy(bmd_config_ref['preFilterConfigs'][0])
+            bmds_stub = copy.deepcopy(bmd_config_ref['bmdsConfigs'][0])
+            go_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][0])
+            path_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][1])
+
+            # populate the expressionDataConfigs section
+            input_stub['inputFileName'] = f
+            input_stub['outputName'] = no_ext
+            bmd_config['expressionDataConfigs'].append(input_stub)
+
+            # populate the expressionDataConfigs section
+            # NOTE - currently does not support multiple filtering strategies
+            analysis_type = prefilter_stub['@type']
+            prefilter_stub['inputName'] = no_ext
+            prefilter_stub['outputName'] = no_ext + '_' + analysis_type
+            bmd_config['preFilterConfigs'].append(prefilter_stub)
+
+            # populate the bmdsConfigs section
+            bmds_stub['inputCategory'] = analysis_type
+            bmds_stub['inputName'] = no_ext + '_' + analysis_type
+            bmds_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds'
+            bmd_config['bmdsConfigs'].append(bmds_stub)
+
+            # populate the categoryAnalysisConfigs section - GO and pathway
+            go_stub['inputName'] = no_ext + '_' + analysis_type + '_bmds'
+            go_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds_GOuniversal'
+            path_stub['inputName'] = no_ext + '_' + analysis_type + '_bmds'
+            path_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds_REACTOME'
+            bmd_config['categoryAnalysisConfigs'].append(go_stub)
+            bmd_config['categoryAnalysisConfigs'].append(path_stub)
+
+        bmd_config_file = os.path.join(self.tmpdir, 'toxapp_bmd_input_file.json')
+        with open(bmd_config_file, 'w') as outfile:
+            json.dump(bmd_config, outfile)
+
+        cmd = config['DEFAULT']['bmd_exec'] + ' analyze --config-file=' + bmd_config_file
+        logger.debug('Running BMD as %s', cmd)
+        output = subprocess.getoutput(cmd)
+        logger.debug('Have BMD output %s', output)
+
+        if not os.path.isfile(bmd_config['bm2FileName']):
+            logger.error('Expected file %s not produced by BMD run; output is %s',bmd_config['bm2FileName'], output)
+
+        return bmd_config['bm2FileName']

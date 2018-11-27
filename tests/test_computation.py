@@ -1,6 +1,4 @@
 import os
-from django.core.wsgi import get_wsgi_application
-from django.conf import settings
 import logging
 import unittest
 import tempfile
@@ -10,9 +8,11 @@ import filecmp
 import pickle
 import pprint
 
+from django.core.wsgi import get_wsgi_application
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "toxapp.settings")
 application = get_wsgi_application()
 
+from django.conf import settings
 from src.computation import Computation
 from tp.models import Study, Experiment, Gene, MeasurementTech, IdentifierVsGeneMap
 
@@ -193,18 +193,66 @@ class TestComputation(unittest.TestCase):
         #    expected_scores = pickle.load(fp)
         #self.assertDictEqual(correl_results, expected_scores)
 
-    def test_init_BMD(self):
+    def test_get_BMD_calcs(self):
 
-        # using DM N,N-dimethylformamide which has 4 doses (140, 700, 1400, 2100 mg/kg) in SD male rat liver
-        bmd_config = self.compute.init_BMD([9235, 9302, 9238, 9307])
+        # using TG-GATES 1d omeprazole, 3 doses - 100, 300, 1000mg/kg correspond to exps 58322, 58323, 58321
+        # and 4d omeprazole, same 3 doses 55274, 55275, 55273
+        exp_objs = Experiment.objects.filter(id__in=[58322, 58323, 58321, 55274, 55275, 55273])
+        bmd_calcs = self.compute.get_BMD_calcs(exp_objs)
         saveobj = False
         if saveobj:
             with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmdconfig-expected.pkl'), 'wb') as fp:
-                pickle.dump(bmd_config, fp, pickle.HIGHEST_PROTOCOL)
+                pickle.dump(bmd_calcs, fp, pickle.HIGHEST_PROTOCOL)
 
         with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmdconfig-expected.pkl'), 'rb') as fp:
-            expected_bmd_config = pickle.load(fp)
-        self.assertListEqual(bmd_config, expected_bmd_config)
+            expected_bmd_calcs = pickle.load(fp)
+        self.assertDictEqual(bmd_calcs, expected_bmd_calcs)
+
+    def test_make_BMD_files(self):
+
+        # using TG-GATES 1d omeprazole, 3 doses - 100, 300, 1000mg/kg correspond to exps 58322, 58323, 58321
+        exp_objs = Experiment.objects.filter(id__in=[58322, 58323, 58321, 55274, 55275, 55273])
+
+        config_file = os.path.join(self.tmp_dir, 'omeprazole_1d_4d_computation_data.json')
+        with open(os.path.join(self.tmp_dir, 'omeprazole_1d_4d_sample_intensities.pkl'), 'rb') as fp:
+            sample_int = pickle.load(fp)
+
+        fc_file = os.path.join(settings.BASE_DIR, 'tests/test_data/omeprazole_1d_4d_groupFC.txt')
+        fc_data = self.compute.map_fold_change_data(fc_file)
+
+        bmd_files = self.compute.make_BMD_files(exp_objs, config_file, sample_int, fc_data)
+        ref_files = []
+
+        savefile = False
+        for f in bmd_files:
+            base = os.path.basename(f)
+            ref_file = os.path.join(settings.BASE_DIR, 'tests/test_results', base)
+
+            if savefile:
+                shutil.copy(f, ref_file)
+                ref_files.append(ref_file)
+
+            self.assertTrue(filecmp.cmp(f, ref_file, shallow=False))
+
+        if savefile:
+            with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmdfiles-expected.pkl'), 'wb') as fp:
+                pickle.dump(ref_files, fp, pickle.HIGHEST_PROTOCOL)
+
+    def test_run_BMD(self):
+
+        with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmdfiles-expected.pkl'), 'rb') as fp:
+            bmd_files = pickle.load(fp)
+
+        new_file = self.compute.run_BMD(bmd_files)
+        ref_file = os.path.join(settings.BASE_DIR, 'tests/test_results/bmd_results.bm2')
+
+        savefile = False
+        if savefile:
+            shutil.copy(new_file, ref_file)
+
+        logger.info('Have BMD file of size %s', os.path.getsize(new_file))
+        self.assertGreater(os.path.getsize(new_file), 9000000)
+
 
 if __name__ == '__main__':
     unittest.main()

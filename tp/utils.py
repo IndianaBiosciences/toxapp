@@ -2,8 +2,9 @@ import os
 from django.conf import settings
 import pprint
 import logging
-
+import configparser
 logger = logging.getLogger(__name__)
+
 
 def get_user_qc_urls(username):
     """ read the users url directory and return the dictionary of experiments
@@ -22,9 +23,23 @@ def get_user_qc_urls(username):
     if os.path.isdir(udir):
         files = os.listdir(udir)
         for file in files:
-            base = file.split('.')[0]
-            exp_id = int(base.split('_')[1])
-            exp_with_qc[exp_id] = "/docs/" + username +"/" + file
+            if file.startswith('Rplot'):
+                base = os.path.splitext(file)[0]
+                exp_id = int(base.split('_')[1])
+                exp_with_qc[exp_id] = "/docs/" + username +"/" + file
 
     print(pprint.pformat(exp_with_qc))
     return exp_with_qc
+
+
+def parse_config_file():
+
+    config_file = os.path.join(settings.BASE_DIR, 'data/toxapp.cfg')
+    if not os.path.isfile(config_file):
+        logger.critical('Configuration file %s not readable', config_file)
+        exit(1)
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    return config
+
