@@ -129,6 +129,7 @@ class Sample(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
     sample_name = models.CharField(max_length=150)
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
+    order = models.IntegerField(blank=True, null=True)
     def __str__(self):
         return self.sample_name
 
@@ -166,7 +167,6 @@ class Gene(models.Model):
     mouse_gene_symbol = models.CharField(max_length=30, blank=True, null=True)
     human_entrez_gene = models.IntegerField(blank=True, null=True)
     human_gene_symbol = models.CharField(max_length=30, blank=True, null=True)
-    ensembl_rn6 = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
         return self.rat_gene_symbol
@@ -314,20 +314,6 @@ class ToxicologyResult(models.Model):
 
     def __str__(self):
         txt = "experiment {} vs result {}".format(self.experiment.id, self.result_name)
-        return txt
-
-
-class BenchmarkDoseResult(models.Model):
-    """
-    Action:  Model for Toxicology Result
-    Returns: if called as string returns experiment experiment.id vs result result_name
-
-    """
-    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
-    bm2_file = models.CharField(max_length=100)
-
-    def __str__(self):
-        txt = "bm2 file {} for experiment {}".format(self.bm2_file, self.experiment.id)
         return txt
 
 
