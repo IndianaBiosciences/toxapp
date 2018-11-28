@@ -492,7 +492,7 @@ def samples_confirm(request):
             return render(request, 'generic_message.html', context)
 
         smpls = Sample.objects.filter(study=study).all()
-
+        smpls = smpls.order_by('date_created', 'order')
         # if revising an existing, it's possible to move to experiment-vs-sample dialog without ever uploading
         # a file (and hence setting sample_files and other stuff in session; force use of sample upload handler
         # Also, if there aren't any existing samples, skip this dialog and go straight to upload handler
@@ -526,7 +526,7 @@ def create_samples(request):
 
             samples = formset.save(commit=False)
             for form in formset.ordered_forms:
-                print(form.cleaned_data)
+                form.instance.order = form.cleaned_data['order']
 
             # need to save the study which was not in the formset
             for s in samples:
@@ -1837,6 +1837,19 @@ class FilteredSingleTableView(SingleTableView):
         if type(self).__name__ == 'SimilarExperimentsSingleTableView':
             ids = list(results.values_list('id', flat=True))
             logger.debug('Storing retrieved data in session for subsequent ToxicologyResult view')
+            expref = results.values_list('experiment_ref', flat=True)
+            for eid in expref:
+                eexp = Experiment.objects.get(id=eid)
+                study = Study.objects.get(id=eexp.study.id)
+                if(study.permission == 'P'):
+                    continue
+                else:
+                    rvalue = ExperimentCorrelation.objects.get(id=eid)
+                    print( 'removing: ' + str(eexp))
+
+                    ExperimentCorrelation.objects.exclude(experiment_ref=eexp.id)
+
+            #print(objet.values())
             self.request.session['sim_list'] = ids
 
         # store the object IDs in case data is exported to excel via separate handler
