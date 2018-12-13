@@ -16,7 +16,7 @@ from django_tables2 import SingleTableView
 
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BMDFile
+                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BMDFile, BMDPathwayResult
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
@@ -1940,6 +1940,15 @@ class ToxicologyResultsSingleTableView(FilteredSingleTableView):
     table_class = tp.tables.ToxicologyResultsTable
     table_pagination = True
     filter_class = tp.filters.ToxicologyResultsFilter
+
+
+class BMDPathwayResultsSingleTableView(FilteredSingleTableView):
+    model = BMDPathwayResult
+    template_name = 'result_list.html'
+    table_class = tp.tables.BMDPathwayResultsTable
+    table_pagination = True
+    filter_class = tp.filters.BMDPathwayResultsFilter
+
 
 class ToxAssociation(SingleTableView):
     model = GeneSetTox
