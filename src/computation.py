@@ -42,9 +42,16 @@ def cluster_expression_features(data, x_vals, y_vals):
     results = dendrogram(Z, no_plot=True, get_leaves=False)
     # results['ivl'] is the new order of x_vals
     remap = list(map(int, results['ivl']))
+
     sorted_x_vals = [x for _, x in sorted(zip(remap, x_vals))]
+
+    #sorted_x_vals = []
     for r in data:
         r['x'] = remap.index(r['x'])
+        sorted_x_vals[r['x']] = r['feat']
+
+
+
 
     logger.debug('Clustering complete')
     return sorted_x_vals, data

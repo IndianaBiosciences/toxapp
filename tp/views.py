@@ -1115,7 +1115,11 @@ def export_heatmap_json(request):
             ndata.append(nr)
 
         if cluster:
-            xvals, ndata = cluster_expression_features(ndata, x_vals, y_vals)
+            x_vals, ndata = cluster_expression_features(ndata, x_vals, y_vals)
+            #print("xvals \n")
+            #print(xvals)
+            #print("x_vals \n")
+            #print(x_vals)
 
         nres['data'] = ndata
         nres['x_vals'] = x_vals
