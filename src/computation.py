@@ -10,13 +10,14 @@ import copy
 import itertools
 import numpy as np
 import rpy2.robjects as robjects
+import tempfile
+import time
 from rpy2.robjects.packages import importr
 from scipy.cluster.hierarchy import dendrogram, linkage
-from tempfile import NamedTemporaryFile
 from scipy.stats.stats import pearsonr
 from django.conf import settings
 from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores,\
-    GSAScores, Gene, GeneSetMember
+    GSAScores, Gene, GeneSetMember, BMDPathwayResult
 import tp.utils
 
 logger = logging.getLogger(__name__)
@@ -257,7 +258,8 @@ class Computation:
 
         # prepare file suitable for R GSA calc
         # this needs to be generated at run time because each measurement tech will have a different subset of genes
-        gmt = NamedTemporaryFile(delete=False, suffix='.gmt', dir=self.tmpdir)
+        gmt = tempfile.NamedTemporaryFile(delete=False, suffix='.gmt', dir=self.tmpdir)
+
         logger.debug('Have temporary GSA file %s', gmt.name)
         sig_count = 0
         for s in GeneSets.objects.exclude(source='WGCNA').prefetch_related('members'):
@@ -887,12 +889,59 @@ class Computation:
         with open(bmd_config_file, 'w') as outfile:
             json.dump(bmd_config, outfile)
 
-        cmd = config['DEFAULT']['bmd_exec'] + ' analyze --config-file=' + bmd_config_file
-        logger.debug('Running BMD as %s', cmd)
-        output = subprocess.getoutput(cmd)
+        # run the BMD analysis - slow
+        runcmd = config['DEFAULT']['bmd_exec'] + ' analyze --config-file=' + bmd_config_file
+        logger.debug('Running BMD as %s', runcmd)
+        output = subprocess.getoutput(runcmd)
         logger.debug('Have BMD output %s', output)
 
         if not os.path.isfile(bmd_config['bm2FileName']):
             logger.error('Expected file %s not produced by BMD run; output is %s',bmd_config['bm2FileName'], output)
 
-        return bmd_config['bm2FileName']
+        # export the categorical results in tab-delim format
+        export_file = os.path.join(self.tmpdir, '{}'.format(hash(time.time())))
+        logger.debug('Have temporary BMD export file %s', export_file)
+        exportcmd = config['DEFAULT']['bmd_exec'] + ' export --analysis-group categorical --input-bm2 ' +\
+            bmd_config['bm2FileName'] + ' --output-file-name ' + export_file
+        logger.debug('Exporting BMD results as %s', exportcmd)
+        output = subprocess.getoutput(exportcmd)
+        logger.debug('Have BMD export output %s', output)
+
+        if not os.path.isfile(export_file) or os.path.getsize(export_file) < 1000000:
+            logger.error('Expected file %s not produced by BMD export; output is %s',export_file, output)
+
+        return bmd_config['bm2FileName'], export_file
+
+    def parse_BMD_results(self, export_file):
+
+        assert os.path.isfile(export_file)
+
+        # create lookup from the verbose names (which are in the BMD results file) to model field names
+        req_attr = dict()
+        results = list()
+        for f in BMDPathwayResult._meta.get_fields():
+            if f.name in ['id', 'experiment']:
+                continue
+            req_attr[f.verbose_name] = f.name
+
+        with open(export_file) as f:
+            next(f)  # the first line is blank in bmd export file
+            reader = csv.DictReader(f, delimiter='\t')
+            for row in reader:
+
+                if row['Genes That Passed All Filters'] == '0':
+                    continue
+
+                for i in req_attr:
+                    if row[i] == '':
+                        logger.error('File %s contains undefined values for attribute %s on line %s',
+                                     export_file, i, row)
+                        return None
+
+                result = dict()
+                for verbose_field in req_attr:
+                    model_field_name = req_attr[verbose_field]
+                    result[model_field_name] = row[verbose_field]
+                    results.append(result)
+
+        return results

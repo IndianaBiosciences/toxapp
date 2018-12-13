@@ -17,7 +17,7 @@ from itertools import chain
 
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BenchmarkDoseResult
+                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BMDFile, BMDPathwayResult
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
@@ -372,7 +372,7 @@ def analysis_summary(request):
             context['show_leiden'] = 1
             break
 
-    bmds = BenchmarkDoseResult.objects.filter(experiment__id__in=analyze_list)
+    bmds = BMDFile.objects.filter(experiment__id__in=analyze_list)
 
     # there are benchmarkdose results for one or more experiments in cart
     # however, don't show if more than 4 files - likely to be someone who added all exps to cart
@@ -1956,6 +1956,15 @@ class ToxicologyResultsSingleTableView(FilteredSingleTableView):
     table_class = tp.tables.ToxicologyResultsTable
     table_pagination = True
     filter_class = tp.filters.ToxicologyResultsFilter
+
+
+class BMDPathwayResultsSingleTableView(FilteredSingleTableView):
+    model = BMDPathwayResult
+    template_name = 'result_list.html'
+    table_class = tp.tables.BMDPathwayResultsTable
+    table_pagination = True
+    filter_class = tp.filters.BMDPathwayResultsFilter
+
 
 class ToxAssociation(SingleTableView):
     model = GeneSetTox

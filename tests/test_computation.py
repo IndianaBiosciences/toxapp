@@ -243,15 +243,35 @@ class TestComputation(unittest.TestCase):
         with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmdfiles-expected.pkl'), 'rb') as fp:
             bmd_files = pickle.load(fp)
 
-        new_file = self.compute.run_BMD(bmd_files)
-        ref_file = os.path.join(settings.BASE_DIR, 'tests/test_results/bmd_results.bm2')
+        bm2_file, export_file = self.compute.run_BMD(bmd_files)
+        ref_bm2_file = os.path.join(settings.BASE_DIR, 'tests/test_results/bmd_results.bm2')
+        ref_export_file = os.path.join(settings.BASE_DIR, 'tests/test_results/bmd_export.txt')
 
         savefile = False
         if savefile:
-            shutil.copy(new_file, ref_file)
+            shutil.copy(bm2_file, ref_bm2_file)
+            shutil.copy(export_file, ref_export_file)
 
-        logger.info('Have BMD file of size %s', os.path.getsize(new_file))
-        self.assertGreater(os.path.getsize(new_file), 9000000)
+        logger.info('Have BMD bm2 file of size %s', os.path.getsize(bm2_file))
+        self.assertGreater(os.path.getsize(bm2_file), 9000000)
+
+        logger.info('Have BMD export file of size %s', os.path.getsize(export_file))
+        self.assertGreater(os.path.getsize(export_file), 1000000)
+
+    def test_parse_BMD_results(self):
+
+        ref_export_file = os.path.join(settings.BASE_DIR, 'tests/test_results/bmd_export.txt')
+        bmd_results = self.compute.parse_BMD_results(ref_export_file)
+
+        saveobj = False
+        if saveobj:
+            with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmd_export-expected.pkl'), 'wb') as fp:
+                pickle.dump(bmd_results, fp, pickle.HIGHEST_PROTOCOL)
+
+        with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmd_export-expected.pkl'), 'rb') as fp:
+            expected_bmd_results = pickle.load(fp)
+
+        self.assertListEqual(bmd_results, expected_bmd_results)
 
 
 if __name__ == '__main__':
