@@ -13,6 +13,7 @@ from django.core.files.storage import FileSystemStorage
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.http import JsonResponse
 from django_tables2 import SingleTableView
+from itertools import chain
 
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
@@ -1463,22 +1464,37 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
             # exps = Experiment.objects.annotate(rank=SearchRank(vector, query)).order_by('-rank')
             # instead running multiple searches, one per keyword and combining
 
-            vector = SearchVector('experiment_name',
-                                  'compound_name',
-                                  'tissue',
-                                  'organism',
-                                  'strain')
+            #vector = SearchVector('experiment_name',
+             #                     'compound_name',
+              #                    'tissue',
+               #                   'organism',
+                #                  'strain')
 
             first = terms.pop(0)
-            exps = Experiment.objects.annotate(search=vector).filter(search__contains=first)
-            logger.debug('First user term %s returned %s hits', first, len(exps))
 
-            while terms:
-                this = terms.pop(0)
-                logger.debug('Searching on term %s', this)
-                exps = exps.annotate(search=vector).filter(search__contains=this)
-                logger.debug('Subsequent user term %s reduced to %s hits', this, len(exps))
 
+            #exps = Experiment.objects.annotate(search__icontains=vector).filter(search__icontains=first)
+            nsearch = Experiment.objects.filter(experiment_name__icontains=first)
+            csearch = Experiment.objects.filter(compound_name__icontains=first)
+            tsearch = Experiment.objects.filter(tissue__icontains=first)
+            osearch = Experiment.objects.filter(organism__icontains=first)
+            ssearch = Experiment.objects.filter(strain__icontains=first)
+
+
+
+
+
+
+            #logger.debug('First user term %s returned %s hits', first, len(exps))
+
+            #while terms:
+                #this = terms.pop(0)
+                #logger.debug('Searching on term %s', this)
+                #exps = exps.annotate(search__icontains=vector).filter(search__icontains=this)
+                #logger.debug('Subsequent user term %s reduced to %s hits', this, len(exps))
+
+
+            exps = nsearch | csearch | tsearch | osearch | ssearch
             logger.debug('User query returned %s exps', len(exps))
         elif by_study:
             exps = Experiment.objects.filter(study=int(by_study))
