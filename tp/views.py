@@ -16,7 +16,7 @@ from django_tables2 import SingleTableView
 
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BenchmarkDoseResult
+                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BMDFile
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
@@ -371,7 +371,7 @@ def analysis_summary(request):
             context['show_leiden'] = 1
             break
 
-    bmds = BenchmarkDoseResult.objects.filter(experiment__id__in=analyze_list)
+    bmds = BMDFile.objects.filter(experiment__id__in=analyze_list)
 
     # there are benchmarkdose results for one or more experiments in cart
     # however, don't show if more than 4 files - likely to be someone who added all exps to cart
