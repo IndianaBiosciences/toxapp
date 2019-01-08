@@ -1,7 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task, current_task
 from .models import Experiment, FoldChangeResult, MeasurementTech, Gene, IdentifierVsGeneMap, ModuleScores, GeneSets,\
-    GSAScores, ExperimentCorrelation, BenchmarkDoseResult
+    GSAScores, ExperimentCorrelation, BMDFile, BMDPathwayResult
 from django.conf import settings
 from django.core.mail import send_mail
 from src.computation import Computation
@@ -115,18 +115,6 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
 
     email_message += "Step 2 Completed: gene-fold changes mapped to rat entrez gene IDs\n"
     new_exps = Experiment.objects.filter(id__in=list(fc_data.keys()))
-
-    logger.info('Step 6')
-    intensities_file = os.path.join(tmpdir, 'sample_intensities.pkl')
-    try:
-        with open(intensities_file, 'rb') as fp:
-            intensities = pickle.load(fp)
-    except FileNotFoundError:
-        message = 'Required intensity file {} not produced by computeGFC.py; no further computations performed'.format(intensities_file)
-        logger.error(message)
-        email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 6a', email_message, from_email, [user.email])
-        return
 
     # step 3 - score experiment data using WGCNA modules and load to database
     logger.info('Step 3')
@@ -244,28 +232,49 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
 
     email_message += "Step 5f Completed: Correlations to PathNR processed and loaded\n"
 
+    logger.info('Step 6')
+    intensities_file = os.path.join(tmpdir, 'sample_intensities.pkl')
+    try:
+        with open(intensities_file, 'rb') as fp:
+            intensities = pickle.load(fp)
+    except FileNotFoundError:
+        message = 'Required intensity file {} not produced by computeGFC.py; no further computations performed'.format(intensities_file)
+        logger.error(message)
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 6a', email_message, from_email, [user.email])
+        return
+
     files = compute.make_BMD_files(new_exps, config_file, intensities, fc_data)
     if not files:
         message = 'No BMD input files prepared; no suitable multi-concentration experiments'
         logger.info(message)
         email_message += message
     else:
-        bm2_file = compute.run_BMD(files)
-        if bm2_file is None or not os.path.isfile(bm2_file):
+        bm2_file, export_file = compute.run_BMD(files)
+        if bm2_file is None or not os.path.isfile(bm2_file) or export_file is None or not os.path.isfile(export_file):
             message = 'Failed to run BMD calculations on files {}; no further computations performed'.format(files)
             logger.error(message)
             email_message += message
             send_mail('IBRI CTox Computation: Error at Step 6b', email_message, from_email, [user.email])
             return
 
-        status = load_bmd_results(new_exps, bm2_file)
-        if status is None:
-            message = 'Step 6c Failed: Error processing and load BMD results data; no further computations performed'
+        pathway_results = compute.parse_BMD_results(export_file)
+        if not pathway_results:
+            message = 'Step 6c Failed: Error parsing BMD pathway results; no further computations performed'
             logger.error(message)
             email_message += message
             send_mail('IBRI CTox Computation: Error at Step 6c', email_message, from_email, [user.email])
             return
-        logger.info('Step 6c: BMD file reference loaded to database')
+        logger.info('Step 6c: BMD pathway results parsed')
+
+        status = load_bmd_results(new_exps, bm2_file, pathway_results)
+        if status is None:
+            message = 'Step 6c Failed: Error processing and load BMD results data; no further computations performed'
+            logger.error(message)
+            email_message += message
+            send_mail('IBRI CTox Computation: Error at Step 6d', email_message, from_email, [user.email])
+            return
+        logger.info('Step 6d: BMD file reference loaded to database')
 
         logger.info('Step 6 Completed: BMD results generated')
 
@@ -632,7 +641,7 @@ def load_correl_results(compute, correl, source):
     return 1
 
 
-def load_bmd_results(exps, bm2file):
+def load_bmd_results(exps, bm2file, bmd_results):
     """
     Action:  Inserts bm2 results file into database
     Returns: 1
@@ -650,15 +659,22 @@ def load_bmd_results(exps, bm2file):
     newfile = os.path.join(bm2file_loc, base)
     shutil.copy(bm2file, newfile)
 
-    insert_count = 0
+    file_insert_count = 0
+    result_insert_count = 0
 
     for exp_obj in exps:
-        BenchmarkDoseResult.objects.filter(experiment=exp_obj).delete()
-        BenchmarkDoseResult.objects.create(
+        BMDFile.objects.filter(experiment=exp_obj).delete()
+        BMDFile.objects.create(
             experiment=exp_obj,
             bm2_file=base
         )
-        insert_count += 1
+        file_insert_count += 1
 
-    logging.info('Inserted %s experiment vs BM2 file result associations', insert_count)
+        BMDPathwayResult.objects.filter(experiment=exp_obj).delete()
+        for row in bmd_results:
+            row['experiment'] = exp_obj
+            BMDPathwayResult.objects.create(**row)
+            result_insert_count += 1
+
+    logging.info('Inserted %s BMD file and %s pathway results for experiments', file_insert_count, result_insert_count)
     return 1

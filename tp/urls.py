@@ -98,6 +98,9 @@ urlpatterns = [
     # display list of toxicology results (clinchem, histo)
     url(r'^toxicology_results/$', login_required(views.ToxicologyResultsSingleTableView.as_view()), name='toxicology-results'),
 
+    # display list of BMD pathway results
+    url(r'^bmd_pathway_results/$', login_required(views.BMDPathwayResultsSingleTableView.as_view()),name='bmdpathway-results'),
+
     # export to excel handler
     url(r'^export_results/(?P<restype>\w+)$', views.export_result_xls, name='export-result'),
 

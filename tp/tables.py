@@ -1,7 +1,7 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation,\
-                    ToxicologyResult, GeneSetTox
+                    ToxicologyResult, GeneSetTox, BMDPathwayResult
 from decimal import Decimal
 class SigFigColumn(tables.Column):
 
@@ -101,6 +101,19 @@ class ToxicologyResultsTable(tables.Table):
     class Meta:
         model = ToxicologyResult
         fields = ['experiment', 'result_type', 'result_name', 'group_avg', 'animal_details']
+        attrs = {'class': 'table table-striped custab'}
+
+
+class BMDPathwayResultsTable(tables.Table):
+    """
+    Action:  Table Declaration for BMD pathway results
+    Returns: None
+
+    """
+    class Meta:
+        model = BMDPathwayResult
+        fields = ['experiment', 'analysis', 'pathway_id', 'pathway_name', 'all_genes_data', 'all_genes_platform', 'input_genes',
+                  'pass_filter_genes', 'bmd_median', 'bmdl_median']
         attrs = {'class': 'table table-striped custab'}
 
 

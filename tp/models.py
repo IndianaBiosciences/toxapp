@@ -167,6 +167,7 @@ class Gene(models.Model):
     mouse_gene_symbol = models.CharField(max_length=30, blank=True, null=True)
     human_entrez_gene = models.IntegerField(blank=True, null=True)
     human_gene_symbol = models.CharField(max_length=30, blank=True, null=True)
+    ensembl_rn6 = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
         return self.rat_gene_symbol
@@ -314,6 +315,42 @@ class ToxicologyResult(models.Model):
 
     def __str__(self):
         txt = "experiment {} vs result {}".format(self.experiment.id, self.result_name)
+        return txt
+
+
+class BMDFile(models.Model):
+    """
+    Action:  Model for BMD results file
+    Returns: if called as string returns bm2 file vs experiment
+
+    """
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+    bm2_file = models.CharField(max_length=100)
+
+    def __str__(self):
+        txt = "bm2 file {} for experiment {}".format(self.bm2_file, self.experiment.id)
+        return txt
+
+
+class BMDPathwayResult(models.Model):
+    """
+    Action:  Model for BMD pathway scores
+    Returns: if called as string returns bm2 file vs experiment
+
+    """
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+    analysis = models.CharField(max_length=100, verbose_name='Analysis')
+    pathway_id = models.CharField(max_length=20, verbose_name='GO/Pathway/Gene Set ID')
+    pathway_name = models.CharField(max_length=250, verbose_name='GO/Pathway/Gene Set Name')
+    all_genes_data = models.IntegerField(verbose_name='All Genes (Expression Data)')
+    all_genes_platform = models.IntegerField(verbose_name='All Genes (Platform)')
+    input_genes = models.IntegerField(verbose_name='Input Genes')
+    pass_filter_genes = models.IntegerField(verbose_name='Genes That Passed All Filters')
+    bmd_median = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='BMD Median')
+    bmdl_median = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='BMDL Median')
+
+    def __str__(self):
+        txt = "experiment {} vs BMD result {}".format(self.experiment.id, self.id)
         return txt
 
 

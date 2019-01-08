@@ -2,7 +2,7 @@ import django_filters
 import collections
 import logging
 from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult, GeneSetTox, \
-                    ToxPhenotype
+                    ToxPhenotype, BMDPathwayResult
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +177,32 @@ class ToxicologyResultsFilter(django_filters.FilterSet):
     class Meta:
         model = ToxicologyResult
         fields = ['result_type', 'result_name', 'group_avg_gt', 'group_avg_lt']
+
+
+class BMDPathwayResultsFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for BMD pathway results
+    Returns: None
+
+    """
+
+    pathway_name = django_filters.CharFilter(name='pathway_name', lookup_expr='icontains', label='Pathway name')
+    all_genes_data_gt = django_filters.NumberFilter(name='all_genes_data', lookup_expr='gte',
+                                                    label='All Genes (Expression Data) greater/equal than')
+    all_genes_platform_gt = django_filters.NumberFilter(name='all_genes_platform', lookup_expr='gte',
+                                                    label='All Genes (Platform) greater/equal than')
+    input_genes_gt = django_filters.NumberFilter(name='input_genes', lookup_expr='gte',
+                                                    label='Input greater/equal than')
+    pass_filter_genes_gt = django_filters.NumberFilter(name='pass_filter_genes', lookup_expr='gte',
+                                                    label='Genes That Passed All Filters greater/equal than')
+    bmd_median_lt = django_filters.NumberFilter(name='bmd_median', lookup_expr='lte',
+                                                       label='BMD median less/equal than')
+    bmdl_median_lt = django_filters.NumberFilter(name='bmdl_median', lookup_expr='lte',
+                                                       label='BMDL median less/equal than')
+    class Meta:
+        model = BMDPathwayResult
+        fields = ['pathway_name', 'all_genes_data_gt', 'all_genes_platform_gt', 'input_genes_gt', 'pass_filter_genes_gt',
+                  'bmd_median_lt', 'bmdl_median_lt']
 
 
 class ToxAssociationFilter(django_filters.FilterSet):
