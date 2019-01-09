@@ -119,6 +119,9 @@ urlpatterns = [
     # export filtered results to json for treemap
     url(r'^treemap_json/$', views.export_treemap_json, name='treemap-json'),
 
+    # export filtered results to json for treemap
+    url(r'^bmd_accumulation_json/$', views.export_bmd_accumulation_json, name='bmd-accumulation-json'),
+
     url(r'^get_tox_assoc/$', login_required(views.ToxAssociation.as_view()), name='get-tox-assoc'),
 
     url(r'^get_feature_subset/(?P<geneset_id>\d+)$', views.get_feature_subset, name='get-feature-subset'),

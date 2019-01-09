@@ -1,7 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task, current_task
 from .models import Experiment, FoldChangeResult, MeasurementTech, Gene, IdentifierVsGeneMap, ModuleScores, GeneSets,\
-    GSAScores, ExperimentCorrelation, BMDFile, BMDPathwayResult
+    GSAScores, ExperimentCorrelation, BMDFile, BMDPathwayResult, BMDAnalysis
 from django.conf import settings
 from django.core.mail import send_mail
 from src.computation import Computation
@@ -14,6 +14,7 @@ import csv
 import operator
 import pickle
 import shutil
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,53 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
 
     email_message += "Step 2 Completed: gene-fold changes mapped to rat entrez gene IDs\n"
     new_exps = Experiment.objects.filter(id__in=list(fc_data.keys()))
+
+
+    logger.info('Step 6')
+    intensities_file = os.path.join(tmpdir, 'sample_intensities.pkl')
+    try:
+        with open(intensities_file, 'rb') as fp:
+            intensities = pickle.load(fp)
+    except FileNotFoundError:
+        message = 'Required intensity file {} not produced by computeGFC.py; no further computations performed'.format(intensities_file)
+        logger.error(message)
+        email_message += message
+        send_mail('IBRI CTox Computation: Error at Step 6a', email_message, from_email, [user.email])
+        return
+
+    files = compute.make_BMD_files(new_exps, config_file, intensities, fc_data)
+    if not files:
+        message = 'No BMD input files prepared; no suitable multi-concentration experiments'
+        logger.info(message)
+        email_message += message
+    else:
+        bm2_file, export_file = compute.run_BMD(files)
+        if bm2_file is None or not os.path.isfile(bm2_file) or export_file is None or not os.path.isfile(export_file):
+            message = 'Failed to run BMD calculations on files {}; no further computations performed'.format(files)
+            logger.error(message)
+            email_message += message
+            send_mail('IBRI CTox Computation: Error at Step 6b', email_message, from_email, [user.email])
+            return
+
+        pathway_results = compute.parse_BMD_results(export_file)
+        if not pathway_results:
+            message = 'Step 6c Failed: Error parsing BMD pathway results; no further computations performed'
+            logger.error(message)
+            email_message += message
+            send_mail('IBRI CTox Computation: Error at Step 6c', email_message, from_email, [user.email])
+            return
+        logger.info('Step 6c: BMD pathway results parsed')
+
+        status = load_bmd_results(new_exps, bm2_file, pathway_results)
+        if status is None:
+            message = 'Step 6c Failed: Error processing and load BMD results data; no further computations performed'
+            logger.error(message)
+            email_message += message
+            send_mail('IBRI CTox Computation: Error at Step 6d', email_message, from_email, [user.email])
+            return
+        logger.info('Step 6d: BMD file reference loaded to database')
+
+        logger.info('Step 6 Completed: BMD results generated')
 
     # step 3 - score experiment data using WGCNA modules and load to database
     logger.info('Step 3')
@@ -231,52 +279,6 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
     logger.info('Step 5f: experiment correl using PathNR loaded to database')
 
     email_message += "Step 5f Completed: Correlations to PathNR processed and loaded\n"
-
-    logger.info('Step 6')
-    intensities_file = os.path.join(tmpdir, 'sample_intensities.pkl')
-    try:
-        with open(intensities_file, 'rb') as fp:
-            intensities = pickle.load(fp)
-    except FileNotFoundError:
-        message = 'Required intensity file {} not produced by computeGFC.py; no further computations performed'.format(intensities_file)
-        logger.error(message)
-        email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 6a', email_message, from_email, [user.email])
-        return
-
-    files = compute.make_BMD_files(new_exps, config_file, intensities, fc_data)
-    if not files:
-        message = 'No BMD input files prepared; no suitable multi-concentration experiments'
-        logger.info(message)
-        email_message += message
-    else:
-        bm2_file, export_file = compute.run_BMD(files)
-        if bm2_file is None or not os.path.isfile(bm2_file) or export_file is None or not os.path.isfile(export_file):
-            message = 'Failed to run BMD calculations on files {}; no further computations performed'.format(files)
-            logger.error(message)
-            email_message += message
-            send_mail('IBRI CTox Computation: Error at Step 6b', email_message, from_email, [user.email])
-            return
-
-        pathway_results = compute.parse_BMD_results(export_file)
-        if not pathway_results:
-            message = 'Step 6c Failed: Error parsing BMD pathway results; no further computations performed'
-            logger.error(message)
-            email_message += message
-            send_mail('IBRI CTox Computation: Error at Step 6c', email_message, from_email, [user.email])
-            return
-        logger.info('Step 6c: BMD pathway results parsed')
-
-        status = load_bmd_results(new_exps, bm2_file, pathway_results)
-        if status is None:
-            message = 'Step 6c Failed: Error processing and load BMD results data; no further computations performed'
-            logger.error(message)
-            email_message += message
-            send_mail('IBRI CTox Computation: Error at Step 6d', email_message, from_email, [user.email])
-            return
-        logger.info('Step 6d: BMD file reference loaded to database')
-
-        logger.info('Step 6 Completed: BMD results generated')
 
     for exp in new_exps:
         exp.results_ready = True
@@ -670,11 +672,19 @@ def load_bmd_results(exps, bm2file, bmd_results):
         )
         file_insert_count += 1
 
-        BMDPathwayResult.objects.filter(experiment=exp_obj).delete()
-        for row in bmd_results:
-            row['experiment'] = exp_obj
-            BMDPathwayResult.objects.create(**row)
-            result_insert_count += 1
+    BMDAnalysis.objects.filter(experiments__in=exps).delete()
+    for row in bmd_results:
+
+        # TODO - do we need another attribute to ensure that someone else coming along with the
+        # same BMD analysis names gets their own (new) analysis object?
+        analysis_obj, status = BMDAnalysis.objects.get_or_create(name=row['analysis'], barcode=base)
+        if status:
+            for exp_obj in exps:
+                analysis_obj.experiments.add(exp_obj)
+
+        row['analysis'] = analysis_obj
+        BMDPathwayResult.objects.create(**row)
+        result_insert_count += 1
 
     logging.info('Inserted %s BMD file and %s pathway results for experiments', file_insert_count, result_insert_count)
     return 1

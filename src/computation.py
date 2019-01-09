@@ -42,16 +42,10 @@ def cluster_expression_features(data, x_vals, y_vals):
     results = dendrogram(Z, no_plot=True, get_leaves=False)
     # results['ivl'] is the new order of x_vals
     remap = list(map(int, results['ivl']))
-
     sorted_x_vals = [x for _, x in sorted(zip(remap, x_vals))]
-
-    #sorted_x_vals = []
     for r in data:
         r['x'] = remap.index(r['x'])
         sorted_x_vals[r['x']] = r['feat']
-
-
-
 
     logger.debug('Clustering complete')
     return sorted_x_vals, data
@@ -906,7 +900,7 @@ class Computation:
             logger.error('Expected file %s not produced by BMD run; output is %s',bmd_config['bm2FileName'], output)
 
         # export the categorical results in tab-delim format
-        export_file = os.path.join(self.tmpdir, '{}'.format(hash(time.time())))
+        export_file = os.path.join(self.tmpdir, '{}.txt'.format(hash(time.time())))
         logger.debug('Have temporary BMD export file %s', export_file)
         exportcmd = config['DEFAULT']['bmd_exec'] + ' export --analysis-group categorical --input-bm2 ' +\
             bmd_config['bm2FileName'] + ' --output-file-name ' + export_file
@@ -929,7 +923,10 @@ class Computation:
         for f in BMDPathwayResult._meta.get_fields():
             if f.name in ['id', 'experiment']:
                 continue
-            req_attr[f.verbose_name] = f.name
+            elif f.name == 'analysis':  # no great way to force mapping to Foreign Key
+                req_attr['Analysis'] = 'analysis'
+            else:
+                req_attr[f.verbose_name] = f.name
 
         with open(export_file) as f:
             next(f)  # the first line is blank in bmd export file
@@ -949,6 +946,7 @@ class Computation:
                 for verbose_field in req_attr:
                     model_field_name = req_attr[verbose_field]
                     result[model_field_name] = row[verbose_field]
-                    results.append(result)
+
+                results.append(result)
 
         return results

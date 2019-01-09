@@ -73,11 +73,18 @@ $(function() {
         sessionStorage.setItem('treemap_ok', '1');
     });
 
+    // determine whether to show the BMD accumulation plot option - for BMD only only
+    $('.bmd_ok').on('click', function () {
+        sessionStorage.setItem('bmd_ok', '1');
+    });
+
+
     // if coming back to the result summary page from a results page, reset the mapchart status
     // also, reset status on showing of saved features - don't filter
     $('#res_summary_link').on('click', function () {
         sessionStorage.removeItem('map_ok');
         sessionStorage.removeItem('treemap_ok');
+        sessionStorage.removeItem('bmd_ok');
         $.get("/manage_session/?use_saved_features=")
     });
 

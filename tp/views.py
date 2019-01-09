@@ -17,7 +17,8 @@ from itertools import chain
 
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BMDFile, BMDPathwayResult
+                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BMDFile, BMDPathwayResult,\
+                    BMDAnalysis
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
                    ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
@@ -903,6 +904,18 @@ def make_result_export(request, restype=None, incl_all=None):
         else:
             rows = ToxicologyResult.objects.filter(experiment__pk__in=exp_list)
 
+    elif restype.lower() == 'bmdpathwayresult':
+
+        bmdanalyses = BMDAnalysis.objects.filter(experiments__pk__in=exp_list).distinct()
+        rows = BMDPathwayResult.objects.filter(analysis__in=bmdanalyses)
+        if subset:
+            subrows = rows.filter(pk__in=subset)
+            if incl_all:
+                features = list(subrows.values_list('geneset', flat=True))
+                rows = rows.filter(geneset__in=features)
+            else:
+                rows = subrows
+
     else:
         raise NotImplementedError ('Type not implemented:', restype)
 
@@ -983,6 +996,26 @@ def export_result_xls(request, restype=None):
                 limit_breached = True
                 break
 
+    elif restype.lower() == 'bmdpathwayresult':
+        # not appending to colnames - no experiment ID, experiment name for BMD analysis
+        colnames = []
+        for f in BMDPathwayResult._meta.get_fields():
+            if f.name in ['id', 'experiment']:
+                continue
+            colnames.append(f.verbose_name)
+
+        rowcount = 0
+        for r in res['data']:
+            nr = [r.analysis.name]
+            for f in BMDPathwayResult._meta.get_fields():
+                if f.name in ['id', 'experiment', 'analysis']:
+                    continue
+                nr.append(getattr(r, f.name))
+            data.append(nr)
+            rowcount += 1
+            if rowcount > rowlimit:
+                limit_breached = True
+                break
     else:
         raise NotImplementedError ('Type not implemented:', restype)
 
@@ -1344,6 +1377,45 @@ def export_treemap_json(request, restype=None):
 
     return JsonResponse(nres)
 
+
+def export_bmd_accumulation_json(request):
+    """ query module / GSA / gene fold change and return json data """
+    res = make_result_export(request)
+
+    nres = dict()
+
+    if res is None:
+        # not an error when called here - as user filters data and there are no results avail, the
+        # chart will ask for revised dataset
+        logger.info('Empty dataset requested for visualization')
+        nres['empty_dataset'] = True
+
+    elif res['restype'].lower() != 'bmdpathwayresult':
+        nres['not_applicable'] = True
+
+    else:
+
+        # separate the experiments into separate line series, sort within series by BMD median
+        series = list()
+        analyses = set(operator.attrgetter('analysis.name')(r) for r in res['data'])
+        for a in analyses:
+            subset = sorted(filter(lambda x: operator.attrgetter('analysis.name')(x) == a, res['data']),  key=lambda x: x.bmd_median)
+            logger.info('Have %s pathway scores for analysis %s', len(subset), a)
+            count = 0
+            rows = list()
+
+            for r in subset:
+                count += 1
+                ttiptxt = r.pathway_id + ': ' + r.pathway_name + '; BMD median = ' + str(r.bmd_median)
+                nr = {'x': float(r.bmd_median), 'y': count, 'detail': ttiptxt}
+                rows.append(nr)
+
+            s = {'name': a, 'data': rows}
+            series.append(s)
+
+        nres['series'] = series
+
+    return JsonResponse(nres)
 
 def gene_detail(request, gene_id):
     """
@@ -1829,6 +1901,13 @@ class FilteredSingleTableView(SingleTableView):
             data = data.filter(experiment__pk__in=ref_exp_list)
             used_simexp = True
 
+        elif type(self).__name__ == 'BMDPathwayResultsSingleTableView' and len(exp_list) < 100:
+            logger.debug('Filtering to subset BMD analyses for experiments in cart: %s', exp_list)
+            # look up analyses first to avoid needing a distinct on the BMDPathwayResults data;
+            # each experiment in a multi-dose combo will map to the same BMD analysis
+            bmdanalyses = BMDAnalysis.objects.filter(experiments__pk__in=exp_list).distinct()
+            data = data.filter(analysis__in=bmdanalyses)
+
         # standard use where someone has a handful of experiments in cart - query the complete dataset
         elif exp_list and len(exp_list) < 100:
             logger.debug('Filtering to subset of experiments in cart: %s', exp_list)
@@ -1846,7 +1925,7 @@ class FilteredSingleTableView(SingleTableView):
             logger.debug('Filtering to saved features enabled in session')
             data, changed_feat = filter_vs_feature_subset(self.request, data)
 
-        self.filter = self.filter_class(self.request.GET, queryset=data)
+        self.filter = self.filter_class(self.request.GET, queryset=data, request=self.request)
         results = self.filter.qs
         # TODO - to update the drop-downs only to the current result set, scan the results, put the
         # unique result types in the session, and use javascript to read the types out of session
@@ -1865,11 +1944,9 @@ class FilteredSingleTableView(SingleTableView):
                     continue
                 else:
                     rvalue = ExperimentCorrelation.objects.get(id=eid)
-                    print( 'removing: ' + str(eexp))
-
+                    logger.debug('Removing private experiment %s', eexp)
                     ExperimentCorrelation.objects.exclude(experiment_ref=eexp.id)
 
-            #print(objet.values())
             self.request.session['sim_list'] = ids
 
         # store the object IDs in case data is exported to excel via separate handler

@@ -29,7 +29,7 @@
     <a id="res_summary_link" href="{% url 'tp:analysis-summary' %}" class="btn btn-primary active">Back to summary</a>
     {% if request.session.allow_export %}
     <a href="{% url 'tp:export-filtered-result' %}" class="btn btn-default">Export to Excel</a>
-    {% if filter.qs.count > 5000 %}
+    {% if filter.qs.count > 7500 %}
     <button type="button" class="btn btn-default disabled" title="Too many results to visualize" id="show_viz">Show visualization</button>
     {% else %}
     <button type="button" class="btn btn-default" id="show_viz">Show visualization</button>
@@ -73,6 +73,7 @@
     <button id="mapchart" class="btn btn-default hidden">Map chart</button>
     <button id="trellis" class="btn btn-default hidden">Trellis chart</button>
     <button id="treemapchart" class="btn btn-default hidden">Treemap chart</button>
+    <button id="bmdaccum" class="btn btn-default hidden">BMD Accumulation chart</button>
     <div id="genedrilldown" class="pull-right hidden">
       <span id="selected_geneset"></span>
       <a id="genefetch" href="{% url 'tp:get-feature-subset' geneset_id=geneset_drilldown_id %}" class="btn btn-default">View genes</a>

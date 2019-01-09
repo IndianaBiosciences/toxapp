@@ -2,9 +2,19 @@ import django_filters
 import collections
 import logging
 from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult, GeneSetTox, \
-                    ToxPhenotype, BMDPathwayResult
+                    ToxPhenotype, BMDPathwayResult, BMDAnalysis
 
 logger = logging.getLogger(__name__)
+
+
+def get_bmd_analysis_qs(request):
+
+    if request is None:
+        logger.warning('Request is none; make sure you call the filter by supplying the request as a parameter')
+        return BMDAnalysis.objects.none()
+    else:
+        exps = request.session['analyze_list']
+        return BMDAnalysis.objects.filter(experiments__pk__in=exps).distinct()
 
 
 class DynamicChoiceMixin(object):
@@ -186,6 +196,7 @@ class BMDPathwayResultsFilter(django_filters.FilterSet):
 
     """
 
+    analysis = django_filters.ModelMultipleChoiceFilter(name='analysis', label='BMD analysis', queryset=get_bmd_analysis_qs)
     pathway_name = django_filters.CharFilter(name='pathway_name', lookup_expr='icontains', label='Pathway name')
     all_genes_data_gt = django_filters.NumberFilter(name='all_genes_data', lookup_expr='gte',
                                                     label='All Genes (Expression Data) greater/equal than')
@@ -201,7 +212,7 @@ class BMDPathwayResultsFilter(django_filters.FilterSet):
                                                        label='BMDL median less/equal than')
     class Meta:
         model = BMDPathwayResult
-        fields = ['pathway_name', 'all_genes_data_gt', 'all_genes_platform_gt', 'input_genes_gt', 'pass_filter_genes_gt',
+        fields = ['analysis', 'pathway_name', 'all_genes_data_gt', 'all_genes_platform_gt', 'input_genes_gt', 'pass_filter_genes_gt',
                   'bmd_median_lt', 'bmdl_median_lt']
 
 

@@ -110,9 +110,12 @@ class BMDPathwayResultsTable(tables.Table):
     Returns: None
 
     """
+
+    pathway_name = TruncateColumn(verbose_name='Pathway name', accessor='pathway_name',
+                                  attrs={'td': {'title': lambda record: record.pathway_name}})
     class Meta:
         model = BMDPathwayResult
-        fields = ['experiment', 'analysis', 'pathway_id', 'pathway_name', 'all_genes_data', 'all_genes_platform', 'input_genes',
+        fields = ['analysis', 'pathway_id', 'pathway_name', 'all_genes_data', 'all_genes_platform', 'input_genes',
                   'pass_filter_genes', 'bmd_median', 'bmdl_median']
         attrs = {'class': 'table table-striped custab'}
 

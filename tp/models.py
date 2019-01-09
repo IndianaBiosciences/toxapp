@@ -332,14 +332,28 @@ class BMDFile(models.Model):
         return txt
 
 
+class BMDAnalysis(models.Model):
+
+    name = models.CharField(max_length=100, verbose_name='Analysis')
+    # used to ensure that sample analysis names from different users do not collide; not shown in application
+    barcode = models.CharField(max_length=100)
+    # one experiment can be in multiple BMD analyses - think different pathway collections, etc.
+    experiments = models.ManyToManyField(Experiment)
+
+    class Meta:
+        unique_together = ('name', 'barcode')
+
+    def __str__(self):
+        return self.name
+
+
 class BMDPathwayResult(models.Model):
     """
     Action:  Model for BMD pathway scores
     Returns: if called as string returns bm2 file vs experiment
 
     """
-    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
-    analysis = models.CharField(max_length=100, verbose_name='Analysis')
+    analysis = models.ForeignKey(BMDAnalysis, on_delete=models.CASCADE)
     pathway_id = models.CharField(max_length=20, verbose_name='GO/Pathway/Gene Set ID')
     pathway_name = models.CharField(max_length=250, verbose_name='GO/Pathway/Gene Set Name')
     all_genes_data = models.IntegerField(verbose_name='All Genes (Expression Data)')
@@ -350,7 +364,7 @@ class BMDPathwayResult(models.Model):
     bmdl_median = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='BMDL Median')
 
     def __str__(self):
-        txt = "experiment {} vs BMD result {}".format(self.experiment.id, self.id)
+        txt = "analysis {} vs BMD result {}".format(self.analysis.name, self.pathway_id)
         return txt
 
 

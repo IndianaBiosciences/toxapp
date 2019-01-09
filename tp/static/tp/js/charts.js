@@ -144,6 +144,7 @@ $(function () {
                 $('#trellis').removeAttr("disabled");
                 $('#treemapchart').removeAttr("disabled");
                 $('#barchart').removeAttr("disabled");
+                $('#bmdaccum').removeAttr("disabled");
             }
         });
     };
@@ -224,6 +225,7 @@ $(function () {
                 $('#trellis').removeAttr("disabled");
                 $('#treemapchart').removeAttr("disabled");
                 $('#barchart').removeAttr("disabled");
+                $('#bmdaccum').removeAttr("disabled");
                 $('#barchart').addClass('active');
             }
         });
@@ -344,6 +346,7 @@ $(function () {
                     $('#trellis').removeAttr("disabled");
                     $('#treemapchart').removeAttr("disabled");
                     $('#barchart').removeAttr("disabled");
+                    $('#bmdaccum').removeAttr("disabled");
                     // there's no need for the pan-zoom functionality for other charts where highcharts zooming works natively
                     $('#zoom_buttons').removeClass('hidden');
                     var $section = $('#viz_section');
@@ -591,6 +594,7 @@ $(function () {
                 $('#trellis').removeAttr("disabled");
                 $('#treemapchart').removeAttr("disabled");
                 $('#barchart').removeAttr("disabled");
+                $('#bmdaccum').removeAttr("disabled");
                 $('#trellis').addClass('active');
                 // there's no need for the pan-zoom functionality for other charts where highcharts zooming works natively
                 $('#zoom_buttons').removeClass('hidden');
@@ -680,20 +684,112 @@ $(function () {
                 $('#trellis').removeAttr("disabled");
                 $('#treemapchart').removeAttr("disabled");
                 $('#barchart').removeAttr("disabled");
-                 $('#treemapchart').addClass('active');
+                $('#bmdaccum').removeAttr("disabled");
+                $('#treemapchart').addClass('active');
+            }
+        });
+    };
+
+    var makeBMDAccumulationChart = function() {
+
+        var incl_all = $('input[name=incl_all]:checked').val();
+        var url = '/bmd_accumulation_json/';
+        $.getJSON(url, function (response) {
+
+            if(response.empty_dataset) {
+
+                // not changing the sessionStorage status, so next refresh with data will put the chart back
+                $('#hide_viz').addClass('hidden');
+                $('#viz_error').text('No data, nothing to show');
+                $('#viz_error').removeClass('hidden');
+                $('#viz_section').addClass('hidden');
+                $('#viz_loading').removeClass('loader');
+
+            } else {
+
+                var options = {
+
+                    chart: {
+                        type: 'scatter',
+                        zoomType: 'xy'
+                    },
+                    boost: {
+                        useGPUTranslations: true
+                    },
+                    title: {
+                        text: 'BMD median accumulation plot'
+                    },
+                    xAxis: {
+                        title: {
+                            enabled: true,
+                            text: 'BMD median'
+                        },
+                        startOnTick: true,
+                        endOnTick: true,
+                        showLastLabel: true,
+                        type: 'logarithmic'
+                    },
+                    yAxis: {
+                        title: {
+                            text: 'Accumulation'
+                        }
+                    },
+                    plotOptions: {
+                        series: {
+                            lineWidth: 1,
+                            boostThreshold: 5000,
+                            turboThreshold: 10000
+                        },
+                        scatter: {
+                            marker: {
+                                radius: 5,
+                                states: {
+                                    hover: {
+                                        enabled: true,
+                                        lineColor: 'rgb(100,100,100)'
+                                    }
+                                }
+                            },
+                            states: {
+                                hover: {
+                                    marker: {
+                                        enabled: false
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                headerFormat: '<b>{series.name}</b><br>',
+                                pointFormat: '{point.detail}'
+                            }
+                        }
+                    },
+
+                    series: response.series
+                };
+
+                var chart = new Highcharts.chart('viz_container', options);
+                $('#viz_loading').removeClass('loader');
+                $('#heatmap').removeAttr("disabled");
+                $('#mapchart').removeAttr("disabled");
+                $('#trellis').removeAttr("disabled");
+                $('#treemapchart').removeAttr("disabled");
+                $('#barchart').removeAttr("disabled");
+                $('#bmdaccum').removeAttr("disabled");
+                $('#bmdaccum').addClass('active');
             }
         });
     };
 
     var makePlot = function() {
-    var w = $('thead').width();
-    console.log(w);
-            $('#viz_section').width(w);
-                    $('#heatmap').attr("disabled", "disabled");
+        var w = $('thead').width();
+        console.log(w);
+        $('#viz_section').width(w);
+        $('#heatmap').attr("disabled", "disabled");
         $('#mapchart').attr("disabled", "disabled");
         $('#trellis').attr("disabled", "disabled");
         $('#treemapchart').attr("disabled", "disabled");
         $('#barchart').attr("disabled", "disabled");
+        $('#bmdaccum').attr("disabled", "disabled");
         $('#viz_error').addClass('hidden');
         $('#viz_loading').addClass('loader');
         $('#genedrilldown').addClass('hidden');
@@ -704,6 +800,7 @@ $(function () {
         }
 
         var type = sessionStorage.getItem('viz_type');
+        console.log('Plot type is', type)
         if (type === 'heatmap') {
             $('#zoom_buttons').addClass('hidden');
             makeHeatmap();
@@ -723,6 +820,10 @@ $(function () {
             $('#incl_all_radio').addClass('hidden');
             $('#cluster_radio').addClass('hidden');
             makeTrellisChart();
+        } else if(type === 'bmdaccum') {
+            $('#incl_all_radio').addClass('hidden');
+            $('#cluster_radio').addClass('hidden');
+            makeBMDAccumulationChart();
         } else {
             console.log('Chart of type ' + type.toString() + ' not supported');
         }
@@ -801,11 +902,12 @@ $(function () {
         var current_type = sessionStorage.getItem('viz_type');
         sessionStorage.setItem('viz_type', 'treemapchart');
         // no need to make the plot if already on the selected type
+        // JS Note - why a check on treemap_ok here but not other result-specific charts
         if (!current_type || current_type !== 'treemapchart' && sessionStorage.getItem('treemap_ok')) {
             makePlot()
         }else{
-
-        sessionStorage.setItem('viz_type', 'barchart');
+            // JS Note - looks like added by Austin; why?
+            sessionStorage.setItem('viz_type', 'barchart');
         }
     });
 
@@ -815,6 +917,16 @@ $(function () {
         sessionStorage.setItem('viz_type', 'barchart');
         // no need to make the plot if already on the selected type
         if (!current_type || current_type !== 'barchart') {
+            makePlot()
+        }
+    });
+
+    $('#bmdaccum').on('click', function () {
+
+        var current_type = sessionStorage.getItem('viz_type');
+        sessionStorage.setItem('viz_type', 'bmdaccum');
+        // no need to make the plot if already on the selected type
+        if (!current_type || current_type !== 'bmdaccum') {
             makePlot()
         }
     });
@@ -854,9 +966,28 @@ $(function () {
         // show the treemap button when appropriate
         $('#treemapchart').removeClass('hidden')
     } else {
-        // after viewing a mapchart and going to other types, set the selected type
+        // after viewing a treemap and going to other types, set the selected type
         // to something valid
-        $('#treemapchart').addClass('hidden')
+        $('#treemapchart').addClass('hidden');
+        sessionStorage.setItem('viz_type', 'heatmap');
+    }
+
+    if (sessionStorage.getItem('bmd_ok')) {
+        // show the treemap button when appropriate
+        console.log('Viewing BMD results');
+        $('#heatmap').addClass('hidden');
+        $('#barchart').addClass('hidden');
+        $('#mapchart').addClass('hidden');
+        $('#trellis').addClass('hidden');
+        $('#treemapchart').addClass('hidden');
+        $('#bmdaccum').removeClass('hidden');
+        // unlike other result types, heatmap is not a suitable default; currently only viable plot is bmdaccum
+        // set this explicilty to avoid defaulting to heatmap in makePlot
+        sessionStorage.setItem('viz_type', 'bmdaccum');
+    } else {
+        // after viewing a bmd accum plot and going to other types, set the selected type
+        // to something valid
+        $('#bmdaccum').addClass('hidden');
         sessionStorage.setItem('viz_type', 'heatmap');
     }
 
