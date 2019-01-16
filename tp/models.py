@@ -2,9 +2,20 @@ from django.db import models
 from django.conf import settings
 from datetime import datetime
 from django.urls import reverse
+from django.db.models import F, Func
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class AbsoluteScoreManager(models.Manager):
+    """ Queryset manager to allow access to absolute scores for pathway / module """
+
+    def get_queryset(self):
+        """ Overrides the models.Manager method """
+        qs = super(AbsoluteScoreManager, self).get_queryset().annotate(abs_score=Func(F('score'), function='ABS'))
+        return qs
+
 
 class Study(models.Model):
     """
@@ -258,6 +269,8 @@ class ModuleScores(models.Model):
     module = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
 
+    objects = AbsoluteScoreManager()
+
     def __str__(self):
         txt = "experiment {} vs module {}".format(self.experiment.id, self.module)
         return txt
@@ -273,6 +286,8 @@ class GSAScores(models.Model):
     geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
     p_bh = models.FloatField()
+
+    objects = AbsoluteScoreManager()
 
     def __str__(self):
         txt = "experiment {} vs geneset {}".format(self.experiment.id, self.geneset.id)

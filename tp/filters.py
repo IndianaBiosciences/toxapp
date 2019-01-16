@@ -55,11 +55,12 @@ class ModuleScoreFilter(django_filters.FilterSet):
     module = django_filters.CharFilter(name='module__name', lookup_expr='icontains', label='Module name')
     score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='module score greater/equal than')
     score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='module score less/equal than')
+    abs_score_gt = django_filters.NumberFilter(name='abs_score', lookup_expr='gte', label='absolute module score greater/equal than')
     desc = django_filters.CharFilter(name='module__desc', lookup_expr='icontains', label='Module description')
 
     class Meta:
         model = ModuleScores
-        fields = ['module', 'score_gt', 'score_lt', 'desc']
+        fields = ['module', 'score_gt', 'score_lt', 'abs_score_gt', 'desc']
 
 
 class GSAScoreFilter(django_filters.FilterSet):
@@ -94,11 +95,12 @@ class GSAScoreFilter(django_filters.FilterSet):
     geneset = django_filters.CharFilter(name='geneset__name', lookup_expr='icontains', label='Gene set name')
     score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='GSA score greater/equal than')
     score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='GSA score less/equal than')
+    abs_score_gt = django_filters.NumberFilter(name='abs_score', lookup_expr='gte', label='absolute GSA score greater/equal than')
     p_bh = django_filters.NumberFilter(name='p_bh',lookup_expr='lte', label='Adjusted-P less than')
 
     class Meta:
         model = GSAScores
-        fields = ['type', 'core_set', 'geneset', 'score_gt', 'score_lt', 'p_bh']
+        fields = ['type', 'core_set', 'geneset', 'score_gt', 'score_lt', 'abs_score_gt', 'p_bh']
 
 
 class FoldChangeResultFilter(django_filters.FilterSet):
