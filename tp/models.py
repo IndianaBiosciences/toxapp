@@ -3,6 +3,7 @@ from django.conf import settings
 from datetime import datetime
 from django.urls import reverse
 from django.db.models import F, Func
+from django.contrib.auth.models import User
 
 import logging
 logger = logging.getLogger(__name__)
@@ -415,3 +416,52 @@ class GeneSetTox(models.Model):
     def __str__(self):
         txt = "geneset {} vs tox {}".format(self.geneset.name, self.tox.name)
         return txt
+
+
+class Bookmark(models.Model):
+    """
+    Action:  Model to save names of saved genes / genesets
+    Returns: if called as string returns bookmark name
+
+    """
+
+    TYPE_CHOICES = (
+        ('G', 'genes'),
+        ('GS', 'gene sets'),
+    )
+
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True, on_delete=models.CASCADE)
+    name = models.CharField(max_length=50)
+    type = models.CharField(max_length=2, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+    date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
+
+    def __str__(self):
+        txt = "bookmark name {}".format(self.name)
+        return txt
+
+
+class GeneBookmark(models.Model):
+    """
+    Action:  Model to save genes that comprise a bookmarked set
+    Returns: if called as string returns bookmark name - gene name pair
+    """
+    bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE)
+    gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
+
+    def __str__(self):
+        txt = 'bookmark {} saved gene {}'.format(self.bookmark.name, self.gene.rat_gene_symbol)
+        return txt
+
+
+class GeneSetBookmark(models.Model):
+    """
+    Action:  Model to save genesets that comprise a bookmarked set
+    Returns: if called as string returns bookmark name - geneset name pair
+    """
+    bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE)
+    geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
+
+    def __str__(self):
+        txt = 'bookmark {} saved geneset {}'.format(self.bookmark.name, self.geneset.name)
+        return txt
+

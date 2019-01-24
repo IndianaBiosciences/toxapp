@@ -1,0 +1,5 @@
+{% if status %}
+<a href="{% url 'tp:feature-del'  pk=feature_id bookmark_id=bookmark_id %}" class="glyphicon glyphicon-remove-sign" title="Remove from bookmark"></a>
+{% else %}
+<a href="{% url 'tp:feature-add' pk=feature_id bookmark_id=bookmark_id %}" class="glyphicon glyphicon-plus" title="Add to bookmark"></a>
+{% endif %}

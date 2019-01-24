@@ -85,7 +85,7 @@ $(function() {
         sessionStorage.removeItem('map_ok');
         sessionStorage.removeItem('treemap_ok');
         sessionStorage.removeItem('bmd_ok');
-        $.get("/manage_session/?use_saved_features=")
+        $.get("/manage_session/?filter_on=")
     });
 
     // for views like experiment list, return to the position of last 'add to cart' upon refresh

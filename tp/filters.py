@@ -2,7 +2,7 @@ import django_filters
 import collections
 import logging
 from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult, GeneSetTox, \
-                    ToxPhenotype, BMDPathwayResult, BMDAnalysis
+                    ToxPhenotype, BMDPathwayResult, BMDAnalysis, GeneBookmark, GeneSetBookmark
 
 logger = logging.getLogger(__name__)
 
@@ -247,3 +247,54 @@ class ToxAssociationFilter(django_filters.FilterSet):
     class Meta:
         model = GeneSetTox
         fields = ['tox', 'time', 'n_pos', 'effect_size', 'p_adj', 'q_adj', 'rank', 'geneset_type']
+
+
+class GeneBookmarkFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for Bookmarked genes
+    Returns: None
+
+    """
+    rat_entrez_gene = django_filters.CharFilter(name='rat_entrez_gene', lookup_expr='iexact', label='Rat Entrez gene ID')
+    rat_gene_symbol = django_filters.CharFilter(name='rat_gene_symbol', lookup_expr='icontains', label='Rat gene symbol')
+
+    class Meta:
+        model = GeneBookmark
+        fields = ['rat_entrez_gene', 'rat_gene_symbol']
+
+
+class GeneSetBookmarkFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for Bookmarked genesets
+    Returns: None
+
+    """
+    GENESET_TYPE = (
+        ('molecular_function', 'GO molecular function'),
+        ('biological_process', 'GO biological process'),
+        ('cellular_component', 'GO cellular component'),
+        ('CP:REACTOME', 'REACTOME pathways'),
+        ('CP:KEGG', 'KEGG pathways'),
+        ('CP:BIOCARTA', 'Biocarta pathways'),
+        ('CP', 'MSigDB curated pathways'),
+        ('RegNet', 'Dow AgroSciences regulator networks'),
+        ('TF-target annotation', 'Curated transcription factor targets'),
+        ('MIR', 'MSigDB MIR targets'),
+        ('TFT', 'MSigDB Transcription factor targets'),
+        ('CGP', 'MSigDB chemical/genetic perturbations'),
+        ('liver_module', 'TXG-MAP liver modules')
+    )
+
+    CORESET_CHOICES = (
+        ('1', 'Yes'),
+        ('0', 'No'),
+        ('', 'Any'),
+    )
+
+    type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, name='type', label='Geneset type')
+    core_set = django_filters.ChoiceFilter(choices=CORESET_CHOICES, name='core_set', label='Core geneset')
+    geneset = django_filters.CharFilter(name='name', lookup_expr='icontains', label='Gene set name')
+
+    class Meta:
+        model = GeneSetBookmark
+        fields = ['type', 'core_set', 'geneset']

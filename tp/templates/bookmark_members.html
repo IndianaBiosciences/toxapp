@@ -7,20 +7,14 @@
 
 <div class="container">
 
-  <div class="alert alert-info">Select gene sets for <strong>{{ bookmark_name }}</strong> bookmark</div>
+  <div class="alert alert-info">Bookmark <strong>{{ bookmark_name }}</strong>: {{ bookmark_count }} members</div>
 
-  {% if bookmark_count or filtered_features %}
-  <div class="panel panel-default">
-    <div class="panel-body">
-    {% if bookmark_count %}
+  {% if bookmark_count %}
     <a class="btn btn-default" href="{% url 'tp:feature-empty' pk=bookmark_id %}">Clear Bookmarked gene sets</a>
-    <a class="btn btn-default pull-right" href="{% url 'tp:bookmark-update' pk=bookmark_id %}">View bookmarked gene sets {{ bookmark_count }}</a>
-    {% endif %}
-    {% if filtered_features %}
+  {% endif %}
+
+  {% if filtered_features %}
     <a class="btn btn-default" href="{% url 'tp:feature-add-filtered' pk=bookmark_id %}">Bookmark all filtered gene sets</a>
-    {% endif %}
-    </div>
-  </div>
   {% endif %}
 
   <div class="filter-dialog panel-body">
@@ -29,13 +23,14 @@
       <div class="button-section">
         {% bootstrap_button "Update" button_type="submit" button_class="btn-primary margin_top" extra_classes="table_updater" %}
         <a class="btn btn-default margin_top" href="{{ request.path }}">Clear</a>
+        <a class="btn btn-default margin_top" href="{% url 'tp:bookmark-update' pk=bookmark_id %}">Done</a>
         <div class="btn btn-static margin_top">{{ filter.qs.count }} results</div>
       </div>
     </form>
     <div id="uploadIcon"></div>
   </div>
 
-  <h4>Module vs. toxicity associations</h4>
+  <h4>Selectable members for bookmark set</h4>
   {% render_table table %}
 </div>
 
