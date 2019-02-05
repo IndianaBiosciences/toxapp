@@ -1225,6 +1225,118 @@ def export_mapchart_json(request, restype=None):
         nres['data'] = ndata
     return JsonResponse(nres)
 
+def export_trellischart_json(request, restype=None):
+    """ query module / GSA / gene fold change and return json data """
+    res = make_result_export(request, restype)
+    x_val = request.GET['x_val']
+    y_val = request.GET['y_val']
+    times = []
+    dosages = []
+    comp = []
+    totaler = []
+    nres = dict()
+
+    if res is None:
+        # not an error when called here - as user filters data and there are no results avail, the
+        # chart will ask for revised dataset
+        logger.info('Empty dataset requested for visualization')
+        nres['empty_dataset'] = True
+        return JsonResponse(nres)
+
+    else:
+
+        restype = res['restype']
+        nres['restype'] = restype
+        nres['image'] = None
+
+        if restype.lower() == 'modulescores':
+            viz_cols = {'geneset_id': 'module.id', 'geneset': 'module.name', 'x': 'module.x_coord', 'y': 'module.y_coord', 'image': 'module.image', 'val': 'score', 'tooltip': ['module.name']}
+            nres.update({'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
+        elif restype.lower() == 'gsascores':
+            viz_cols = {'geneset_id': 'geneset.id', 'geneset': 'geneset.name', 'x': 'geneset.x_coord', 'y': 'geneset.y_coord','image': 'geneset.image', 'val': 'score', 'tooltip': ['geneset.name', 'geneset.desc', 'p_bh']}
+            nres.update({'scale': 'GSA score', 'scalemin': -15, 'scalemax': 15})
+        else:
+            nres['not_applicable'] = True
+            return JsonResponse(nres)
+
+        # TODO - not really working, as the range_to for blue to white goes through green and yellow, i.e .rainbow
+        # probably best to revisit having highcharts do the coloring ... see Treemap coloring setup
+        # some ideas here - https://bsou.io/posts/color-gradients-with-python look at treemap for reference
+        blue = colour.Color('blue')
+        white = colour.Color('white')
+        red = colour.Color('red')
+        blues = list(blue.range_to(white, 50))
+        reds = list(white.range_to(red, 50))
+        both = blues + reds
+
+        ndata = list()
+
+        for r in res['data']:
+
+            image = operator.attrgetter(viz_cols['image'])(r)
+            if image is None:
+                continue
+            if nres.get('image', None) is None:
+                nres['image'] = image
+            elif nres['image'] != image:
+                raise Exception('Multiple images retrieved for the current result set')
+
+            x = operator.attrgetter(viz_cols['x'])(r)
+            y = operator.attrgetter(viz_cols['y'])(r)
+            trellis = operator.attrgetter('experiment.experiment_name')(r)
+            val = float(operator.attrgetter(viz_cols['val'])(r))
+            geneset = operator.attrgetter(viz_cols['geneset'])(r)
+            geneset_id = operator.attrgetter(viz_cols['geneset_id'])(r)
+            compound_name = operator.attrgetter('experiment.compound_name')(r)
+            timer = operator.attrgetter('experiment.time')(r)
+            dose = operator.attrgetter('experiment.dose')(r)
+            dose_unit = operator.attrgetter('experiment.dose_unit')(r)
+            thisgene = geneset.split(':')
+
+
+            if val < nres['scalemin']:
+                z = abs(nres['scalemin'])
+                color = blues[0].get_hex()
+            elif val > nres['scalemax']:
+                z = nres['scalemax']
+                color = reds[-1].get_hex()
+            else:
+                # would not work if scale not symetric
+                z = abs(val) / nres['scalemax']
+                # calc the distance from scale min to scale max for the current value and pick the nearest color
+                # from set of 100
+                color_index = int((val - nres['scalemin'])/(nres['scalemax'] - nres['scalemin'])*100)
+                if color_index > 99:
+                    color_index = 99
+                color = both[color_index].get_hex()
+
+            ttiptxt = ''
+            for item in viz_cols['tooltip']:
+                s = str(operator.attrgetter(item)(r))
+                if ttiptxt:
+                    ttiptxt += '; '
+                ttiptxt += item + '=' + s
+
+            # without the explicit float call (because it's a decimal), json ends up with numeric value in string
+            nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'geneset_id': geneset_id, 'thisgeneset':thisgene, 'color': color, 'trellis': trellis, 'detail': ttiptxt, 'compound_name': compound_name, 'time': timer, 'dose': dose, 'dose_unit': dose_unit}
+            times.append(timer)
+            dosages.append(str(dose) + dose_unit)
+            comp.append(compound_name)
+            totaler.append( str(compound_name)+ str(dose)+str(dose_unit)+str(timer))
+            ndata.append(nr)
+        if(x_val=='Time'):
+            ndata = sorted(ndata, key=lambda x: (x['thisgeneset'],x['compound_name'],x['time'],x['dose']))
+        else:
+            ndata = sorted(ndata, key=lambda x: (x['thisgeneset'], x['compound_name'], x['dose'], x['time']))
+        nres['times'] = sorted(set(times))
+        nres['dosages'] = sorted(set(dosages))
+        nres['comp'] = sorted(set(comp))
+        nres['namers'] = sorted(set(totaler))
+        nres['x_val']=x_val
+        nres['y_val'] = y_val
+        nres['data'] = ndata
+    return JsonResponse(nres)
+
 
 def export_barchart_json(request, restype=None):
     """ query module / GSA / gene fold change and return json data """
@@ -1865,7 +1977,7 @@ class FilteredSingleTableView(SingleTableView):
                     continue
                 else:
                     rvalue = ExperimentCorrelation.objects.get(id=eid)
-                    print( 'removing: ' + str(eexp))
+                    logger.info( 'removing: ' + str(eexp))
 
                     ExperimentCorrelation.objects.exclude(experiment_ref=eexp.id)
 
