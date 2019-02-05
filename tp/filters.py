@@ -2,9 +2,19 @@ import django_filters
 import collections
 import logging
 from .models import ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation, ToxicologyResult, GeneSetTox, \
-                    ToxPhenotype, BMDPathwayResult
+                    ToxPhenotype, BMDPathwayResult, BMDAnalysis, GeneBookmark, GeneSetBookmark
 
 logger = logging.getLogger(__name__)
+
+
+def get_bmd_analysis_qs(request):
+
+    if request is None:
+        logger.warning('Request is none; make sure you call the filter by supplying the request as a parameter')
+        return BMDAnalysis.objects.none()
+    else:
+        exps = request.session['analyze_list']
+        return BMDAnalysis.objects.filter(experiments__pk__in=exps).distinct()
 
 
 class DynamicChoiceMixin(object):
@@ -45,11 +55,12 @@ class ModuleScoreFilter(django_filters.FilterSet):
     module = django_filters.CharFilter(name='module__name', lookup_expr='icontains', label='Module name')
     score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='module score greater/equal than')
     score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='module score less/equal than')
+    abs_score_gt = django_filters.NumberFilter(name='abs_score', lookup_expr='gte', label='absolute module score greater/equal than')
     desc = django_filters.CharFilter(name='module__desc', lookup_expr='icontains', label='Module description')
 
     class Meta:
         model = ModuleScores
-        fields = ['module', 'score_gt', 'score_lt', 'desc']
+        fields = ['module', 'score_gt', 'score_lt', 'abs_score_gt', 'desc']
 
 
 class GSAScoreFilter(django_filters.FilterSet):
@@ -84,11 +95,12 @@ class GSAScoreFilter(django_filters.FilterSet):
     geneset = django_filters.CharFilter(name='geneset__name', lookup_expr='icontains', label='Gene set name')
     score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='GSA score greater/equal than')
     score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='GSA score less/equal than')
+    abs_score_gt = django_filters.NumberFilter(name='abs_score', lookup_expr='gte', label='absolute GSA score greater/equal than')
     p_bh = django_filters.NumberFilter(name='p_bh',lookup_expr='lte', label='Adjusted-P less than')
 
     class Meta:
         model = GSAScores
-        fields = ['type', 'core_set', 'geneset', 'score_gt', 'score_lt', 'p_bh']
+        fields = ['type', 'core_set', 'geneset', 'score_gt', 'score_lt', 'abs_score_gt', 'p_bh']
 
 
 class FoldChangeResultFilter(django_filters.FilterSet):
@@ -186,6 +198,7 @@ class BMDPathwayResultsFilter(django_filters.FilterSet):
 
     """
 
+    analysis = django_filters.ModelMultipleChoiceFilter(name='analysis', label='BMD analysis', queryset=get_bmd_analysis_qs)
     pathway_name = django_filters.CharFilter(name='pathway_name', lookup_expr='icontains', label='Pathway name')
     all_genes_data_gt = django_filters.NumberFilter(name='all_genes_data', lookup_expr='gte',
                                                     label='All Genes (Expression Data) greater/equal than')
@@ -201,7 +214,7 @@ class BMDPathwayResultsFilter(django_filters.FilterSet):
                                                        label='BMDL median less/equal than')
     class Meta:
         model = BMDPathwayResult
-        fields = ['pathway_name', 'all_genes_data_gt', 'all_genes_platform_gt', 'input_genes_gt', 'pass_filter_genes_gt',
+        fields = ['analysis', 'pathway_name', 'all_genes_data_gt', 'all_genes_platform_gt', 'input_genes_gt', 'pass_filter_genes_gt',
                   'bmd_median_lt', 'bmdl_median_lt']
 
 
@@ -234,3 +247,54 @@ class ToxAssociationFilter(django_filters.FilterSet):
     class Meta:
         model = GeneSetTox
         fields = ['tox', 'time', 'n_pos', 'effect_size', 'p_adj', 'q_adj', 'rank', 'geneset_type']
+
+
+class GeneBookmarkFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for Bookmarked genes
+    Returns: None
+
+    """
+    rat_entrez_gene = django_filters.CharFilter(name='rat_entrez_gene', lookup_expr='iexact', label='Rat Entrez gene ID')
+    rat_gene_symbol = django_filters.CharFilter(name='rat_gene_symbol', lookup_expr='icontains', label='Rat gene symbol')
+
+    class Meta:
+        model = GeneBookmark
+        fields = ['rat_entrez_gene', 'rat_gene_symbol']
+
+
+class GeneSetBookmarkFilter(django_filters.FilterSet):
+    """
+    Action:  Filters for Bookmarked genesets
+    Returns: None
+
+    """
+    GENESET_TYPE = (
+        ('molecular_function', 'GO molecular function'),
+        ('biological_process', 'GO biological process'),
+        ('cellular_component', 'GO cellular component'),
+        ('CP:REACTOME', 'REACTOME pathways'),
+        ('CP:KEGG', 'KEGG pathways'),
+        ('CP:BIOCARTA', 'Biocarta pathways'),
+        ('CP', 'MSigDB curated pathways'),
+        ('RegNet', 'Dow AgroSciences regulator networks'),
+        ('TF-target annotation', 'Curated transcription factor targets'),
+        ('MIR', 'MSigDB MIR targets'),
+        ('TFT', 'MSigDB Transcription factor targets'),
+        ('CGP', 'MSigDB chemical/genetic perturbations'),
+        ('liver_module', 'TXG-MAP liver modules')
+    )
+
+    CORESET_CHOICES = (
+        ('1', 'Yes'),
+        ('0', 'No'),
+        ('', 'Any'),
+    )
+
+    type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, name='type', label='Geneset type')
+    core_set = django_filters.ChoiceFilter(choices=CORESET_CHOICES, name='core_set', label='Core geneset')
+    geneset = django_filters.CharFilter(name='name', lookup_expr='icontains', label='Gene set name')
+
+    class Meta:
+        model = GeneSetBookmark
+        fields = ['type', 'core_set', 'geneset']

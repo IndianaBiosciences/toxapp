@@ -2,9 +2,21 @@ from django.db import models
 from django.conf import settings
 from datetime import datetime
 from django.urls import reverse
+from django.db.models import F, Func
+from django.contrib.auth.models import User
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class AbsoluteScoreManager(models.Manager):
+    """ Queryset manager to allow access to absolute scores for pathway / module """
+
+    def get_queryset(self):
+        """ Overrides the models.Manager method """
+        qs = super(AbsoluteScoreManager, self).get_queryset().annotate(abs_score=Func(F('score'), function='ABS'))
+        return qs
+
 
 class Study(models.Model):
     """
@@ -258,6 +270,8 @@ class ModuleScores(models.Model):
     module = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
 
+    objects = AbsoluteScoreManager()
+
     def __str__(self):
         txt = "experiment {} vs module {}".format(self.experiment.id, self.module)
         return txt
@@ -273,6 +287,8 @@ class GSAScores(models.Model):
     geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
     p_bh = models.FloatField()
+
+    objects = AbsoluteScoreManager()
 
     def __str__(self):
         txt = "experiment {} vs geneset {}".format(self.experiment.id, self.geneset.id)
@@ -332,14 +348,28 @@ class BMDFile(models.Model):
         return txt
 
 
+class BMDAnalysis(models.Model):
+
+    name = models.CharField(max_length=100, verbose_name='Analysis')
+    # used to ensure that sample analysis names from different users do not collide; not shown in application
+    barcode = models.CharField(max_length=100)
+    # one experiment can be in multiple BMD analyses - think different pathway collections, etc.
+    experiments = models.ManyToManyField(Experiment)
+
+    class Meta:
+        unique_together = ('name', 'barcode')
+
+    def __str__(self):
+        return self.name
+
+
 class BMDPathwayResult(models.Model):
     """
     Action:  Model for BMD pathway scores
     Returns: if called as string returns bm2 file vs experiment
 
     """
-    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
-    analysis = models.CharField(max_length=100, verbose_name='Analysis')
+    analysis = models.ForeignKey(BMDAnalysis, on_delete=models.CASCADE)
     pathway_id = models.CharField(max_length=20, verbose_name='GO/Pathway/Gene Set ID')
     pathway_name = models.CharField(max_length=250, verbose_name='GO/Pathway/Gene Set Name')
     all_genes_data = models.IntegerField(verbose_name='All Genes (Expression Data)')
@@ -350,7 +380,7 @@ class BMDPathwayResult(models.Model):
     bmdl_median = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='BMDL Median')
 
     def __str__(self):
-        txt = "experiment {} vs BMD result {}".format(self.experiment.id, self.id)
+        txt = "analysis {} vs BMD result {}".format(self.analysis.name, self.pathway_id)
         return txt
 
 
@@ -386,3 +416,52 @@ class GeneSetTox(models.Model):
     def __str__(self):
         txt = "geneset {} vs tox {}".format(self.geneset.name, self.tox.name)
         return txt
+
+
+class Bookmark(models.Model):
+    """
+    Action:  Model to save names of saved genes / genesets
+    Returns: if called as string returns bookmark name
+
+    """
+
+    TYPE_CHOICES = (
+        ('G', 'genes'),
+        ('GS', 'gene sets'),
+    )
+
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True, on_delete=models.CASCADE)
+    name = models.CharField(max_length=50)
+    type = models.CharField(max_length=2, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+    date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
+
+    def __str__(self):
+        txt = "bookmark name {}".format(self.name)
+        return txt
+
+
+class GeneBookmark(models.Model):
+    """
+    Action:  Model to save genes that comprise a bookmarked set
+    Returns: if called as string returns bookmark name - gene name pair
+    """
+    bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE)
+    gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
+
+    def __str__(self):
+        txt = 'bookmark {} saved gene {}'.format(self.bookmark.name, self.gene.rat_gene_symbol)
+        return txt
+
+
+class GeneSetBookmark(models.Model):
+    """
+    Action:  Model to save genesets that comprise a bookmarked set
+    Returns: if called as string returns bookmark name - geneset name pair
+    """
+    bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE)
+    geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
+
+    def __str__(self):
+        txt = 'bookmark {} saved geneset {}'.format(self.bookmark.name, self.geneset.name)
+        return txt
+

@@ -1,12 +1,15 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation,\
-                    ToxicologyResult, GeneSetTox, BMDPathwayResult
+                    ToxicologyResult, GeneSetTox, BMDPathwayResult, Gene, GeneSets, Bookmark
 from decimal import Decimal
+
+
 class SigFigColumn(tables.Column):
 
     def render(self,value):
         return str.format('{0:.3f}', value)
+
 
 class SciNotationColumn(tables.Column):
     """
@@ -110,9 +113,12 @@ class BMDPathwayResultsTable(tables.Table):
     Returns: None
 
     """
+
+    pathway_name = TruncateColumn(verbose_name='Pathway name', accessor='pathway_name',
+                                  attrs={'td': {'title': lambda record: record.pathway_name}})
     class Meta:
         model = BMDPathwayResult
-        fields = ['experiment', 'analysis', 'pathway_id', 'pathway_name', 'all_genes_data', 'all_genes_platform', 'input_genes',
+        fields = ['analysis', 'pathway_id', 'pathway_name', 'all_genes_data', 'all_genes_platform', 'input_genes',
                   'pass_filter_genes', 'bmd_median', 'bmdl_median']
         attrs = {'class': 'table table-striped custab'}
 
@@ -123,17 +129,17 @@ class GenesetToxAssocTable(tables.Table):
     Returns: None
 
     """
-    add_feature = tables.TemplateColumn(template_name='manage_features.html', orderable=False,
-                                    attrs={
-                                        'td': {'align': 'center'},
-                                    })
+    add_geneset = tables.TemplateColumn('{% load tp_extras %} {% check_member_status record.geneset bookmark_id feature_type %}', orderable=False,
+                                       attrs={
+                                          'td': {'align': 'center'},
+                                       })
 
     geneset = TruncateColumn(verbose_name='geneset name', accessor='geneset.name',
                                   attrs={'td': {'title': lambda record: record.geneset.desc}})
 
     class Meta:
         model = GeneSetTox
-        fields = ['add_feature', 'geneset', 'tox', 'time', 'n_pos', 'effect_size', 'coef', 'p_adj', 'q_adj', 'rank']
+        fields = ['add_geneset', 'geneset', 'tox', 'time', 'n_pos', 'effect_size', 'coef', 'p_adj', 'q_adj', 'rank']
         attrs = {'class': 'table table-striped custab'}
 
 
@@ -193,3 +199,69 @@ class StudyListTable(tables.Table):
         sequence = ('get_exps', 'edit', 'qc', 'study_name', 'source', 'date_created', 'owner', 'permission')
         attrs = {'class': 'table table-striped custab'}
 
+
+class BookmarkListTable(tables.Table):
+    """
+    Action:  Table Declaration for Bookmark List
+    Returns: None
+
+    """
+
+    active = tables.TemplateColumn(template_name='manage_bookmarks.html', orderable=False,
+                                   attrs={
+                                       'td': {'align': 'center'},
+                                   })
+
+    edit = tables.LinkColumn('tp:bookmark-update', args=[A('pk')], orderable=False, text='',
+                                     attrs={
+                                         'a': {'class': 'glyphicon glyphicon-edit',
+                                               'title': 'Edit bookmark'},
+                                         'td': {'align': 'center'},
+                                     })
+
+    class Meta:
+        model = Bookmark
+        fields = ['name', 'type', 'date_created']
+        sequence = ('active', 'edit', 'name', 'type', 'date_created')
+        attrs = {'class': 'table table-striped custab'}
+
+
+class GeneBookmark(tables.Table):
+    """
+    Action:  Table Declaration for user bookmarked gene search
+    Returns: None
+
+    """
+    add_member = tables.TemplateColumn('{% load tp_extras %} {% check_member_status record bookmark_id feature_type %}', orderable=False,
+                                       attrs={
+                                          'td': {'align': 'center'},
+                                       })
+
+    gene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.rat_gene_symbol, args=[A('rat_entrez_gene')], accessor='rat_gene_symbol')
+
+    class Meta:
+        model = Gene
+        fields = ['add_member', 'rat_entrez_gene', 'gene_symbol']
+        attrs = {'class': 'table table-striped custab'}
+
+
+class GeneSetBookmark(tables.Table):
+    """
+    Action:  Table Declaration for user bookmarked gene sets
+    Returns: None
+
+    """
+    add_member = tables.TemplateColumn('{% load tp_extras %} {% check_member_status record bookmark_id feature_type %}', orderable=False,
+                                       attrs={
+                                          'td': {'align': 'center'},
+                                       })
+
+    geneset_name = TruncateColumn(verbose_name='Name', accessor='name',
+                                  attrs={'td': {'title': lambda record: record.name}})
+    geneset_desc = TruncateColumn(verbose_name='Geneset description', accessor='desc',
+                                  attrs={'td': {'title': lambda record: record.desc}})
+
+    class Meta:
+        model = GeneSets
+        fields = ['add_member', 'geneset_name', 'geneset_desc', 'type', 'source']
+        attrs = {'class': 'table table-striped custab'}

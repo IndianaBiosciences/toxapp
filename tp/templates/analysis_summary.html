@@ -70,7 +70,7 @@
   <div id="bmdresultssection" class="card">
     <div class="card-block">
       <h4 class="card-title">Benchmark dose analysis results</h4>
-      <a href="{% url 'tp:bmdpathway-results' %}" class="reslink btn btn-default">Results in browser</a>
+      <a href="{% url 'tp:bmdpathway-results' %}" class="reslink bmd_ok btn btn-default">Results in browser</a>
       <a href="{% url 'tp:export-result' restype='bmdpathwayresult' %}" class="btn btn-default">Export to Excel</a>
       {% for result in bmd_results %}
         <a href="{{ result.link }}" target="_blank" class="reslink btn btn-default">BM2 file for study {{ result.study_name }}</a>

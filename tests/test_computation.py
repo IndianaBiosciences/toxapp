@@ -90,7 +90,6 @@ class TestComputation(unittest.TestCase):
         #self.assertTrue(filecmp.cmp(fc_file, expected_file, shallow=False))
         self.assertGreater(os.path.getsize(fc_file), 1000000)
 
-
     def test_map_fold_change_from_exp(self):
         fc_file = os.path.join(settings.BASE_DIR, 'tests/test_results/groupFC-expected.txt')
         fc_data = self.compute.map_fold_change_data(fc_file)
