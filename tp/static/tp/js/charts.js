@@ -360,10 +360,232 @@ $(function () {
                 }
             });
     };
-
     var makeTrellisChart = function() {
+            var w = Math.max($('#viz_container.viz_container').width())*.9;
+            if(w >= 500){
+            w=500;
+            }
+            $.getJSON('/trellischart_json',{x_val:$('#x_val').val(), y_val: $('#y_val').val()}, function (response) {
 
-        $.getJSON('/mapchart_json', function (response) {
+                if(response.empty_dataset) {
+
+                    // not changing the sessionStorage status, so next refresh with data will put the chart back
+                    $('#hide_viz').addClass('hidden');
+                    $('#viz_section').addClass('hidden');
+                    $('#viz_loading').removeClass('loader');
+                    $('#viz_error').text('No data, nothing to show');
+                    $('#viz_error').removeClass('hidden');
+
+                } else if(response.not_applicable) {
+
+                    $('#hide_viz').addClass('hidden');
+                    //$('#viz_section').addClass('hidden');
+                    sessionStorage.setItem('viz_type', 'heatmap');
+                    $('#viz_loading').removeClass('loader');
+                    $('#viz_error').text('map chart not supported for this data type');
+                    $('#viz_error').removeClass('hidden');
+                    makeHeatmap();
+
+                } else if(!response.image) {
+
+                    $('#hide_viz').addClass('hidden');
+                    //$('#viz_section').addClass('hidden');
+                    $('#viz_loading').removeClass('loader');
+                    $('#viz_error').text('No image available for this result type');
+                    $('#viz_error').removeClass('hidden');
+                    makeHeatmap();
+
+                } else {
+
+                times = response.times;
+                dosages = response.dosages;
+                comp = response.comp;
+                respdata = response.namers;
+                options = [];
+                names = [];
+                data2 = [];
+
+                for (x in response.data){
+                   names.push(response.data[x]['compound_name']+"-"+String(response.data[x]['time']) + "-"+String(response.data[x]['dose']));
+                   //genesets.push(response.data[x]['geneset'].match(/:(.*?):/,'')[1])
+                }
+                for (y in names){
+                    var data = [];
+
+                    for (n in response.data){
+                       if(names[y]==(response.data[n]['compound_name']+"-"+String(response.data[n]['time']) + "-"+String(response.data[n]['dose']))){
+                           data.push(response.data[n]);
+                       }
+                    }
+                    data2.push(data);
+
+                }
+                for(m in respdata){
+                     options.push({
+
+                        chart: {
+                            type: 'bubble',
+                            //zoomType: 'xy', //image does not zoom with data; use jquery zoom/pan on div
+                            height: '100%',
+                            /*
+                                current Txg map doesn't need to be any bigger and looks too big otherwise
+                                TODO - not sure how this will look on mobile devices, no option to use a percent of the
+                                container; may need a div inside a div
+                                before, Jeff was changing size of container, but then would need to change back when
+                                going to other chart type that needs full width ($('#viz_container').width(500);)
+                            */
+                            width: w,
+                            plotBackgroundImage: '/static/tp/img/' + response.image + '.svg'
+                        },
+                        boost: {
+                            useGPUTranslations: true,
+                            usePreAllocated: true
+                        },
+
+                        title: {
+                            text: respdata[m]+"days "+' map chart'
+                        },
+
+                        legend: {
+                            enabled: false
+                        },
+
+                        // preset ranges for x and y from 0 to 1000 to match image dims
+                        xAxis: {
+                            min: 0,
+                            max: 1000,
+                            visible: false
+                        },
+
+                        yAxis: {
+                            min: -1000,
+                            max: 0,
+                            visible: false
+                        },
+
+                        tooltip: {
+                            headerFormat: '{response.restype}<br/>',
+                            pointFormat: 'score {point.val}</b> {point.detail}',
+                            followPointer: true
+                        },
+
+                        plotOptions: {
+
+                            bubble: {
+                                minSize: '1%', // percentage of the smallest of plot width or height
+                                maxSize: '5%'    // percentage of the smallest of plot width or height
+                            },
+
+                            series: {
+                                cursor: 'pointer',
+                                events: {
+                                    click: function (ev) {
+                                        geneDrillDown(ev.point.geneset, ev.point.geneset_id);
+                                    }
+                                }
+                            }
+                        },
+
+                        series: [{
+                            //colorByPoint: true,
+                            data: data2[m]
+                        }]
+                    });
+                }
+                $('.viz_container').empty();
+                write = '';
+
+                // for each item in times create the headers
+                if(comp.length > 1){
+
+                var iter = 0;
+                var counter = 0;
+                write = write + '<table style="border: 1px solid black; padding-left:15px;">';
+                write = write + '<tr style="border-bottom: 1px solid black;">';
+                while(counter < respdata.length){
+                write = write + '<td style="border-right: 1px solid black;" id='+String(respdata[counter]).replace(" ","")+'></td>';
+                counter = counter +1;
+
+                if (iter==2){
+                write = write + '</tr>';
+                iter = -1;
+                write = write + '<tr style="border-bottom: 1px solid black;">';
+                }
+                iter = iter +1;
+                }
+                write = write + '</tr></table>';
+                $('.viz_container').append(write);
+                }else{
+
+
+                if(response.x_val == 'Dose'){
+                write = write + '<table style="border: 1px solid black; padding-left:15px;">' + '<thead style="border: 1px solid black;">' + '<th style="border-right: 1px solid black;"> Times</th>';
+                for(x in dosages){
+                    write = write + '<th style="text-align: center; border-right: 1px solid black; width:'+w+'px;">'+dosages[x]+'  </th>';
+
+                }
+                write = write + '</thead><tbody>';
+                //for each item, create a grid of values
+                for (z in comp){
+                for(x in times){
+                    write = write + '<tr style="border-bottom: 1px solid black;">' + '<td style="border-right: 1px solid black;">'+times[x]+' Days</td>';
+                    for (y in dosages){
+                        write = write + '<td style="border-right: 1px solid black;" id='+String(String(comp[z])+String(dosages[y])+String(times[x])).replace(" ","")+'></td>';
+                    }
+                    write = write + '</tr>';
+                }}
+                write = write + '</tbody></table>';
+                    $('.viz_container').append(write);
+                }else{
+                write = write + '<table style="border: 1px solid black; padding-left:15px;">' + '<thead style="border: 1px solid black;">' + '<th style="border-right: 1px solid black;"> Dose</th>';
+                for(x in times){
+                    write = write + '<th style="text-align: center; border-right: 1px solid black; width:'+w+'px;">'+times[x]+' Days </th>';
+
+                }
+                write = write + '</thead><tbody>';
+                //for each item, create a grid of values
+                for (z in comp){
+                for(x in dosages){
+                    write = write + '<tr style="border-bottom: 1px solid black;">' + '<td style="border-right: 1px solid black;">'+dosages[x]+'</td>';
+                    for (y in times){
+                        write = write + '<td style="border-right: 1px solid black;" id='+String(String(comp[z])+String(dosages[x])+String(times[y])).replace(" ","")+'></td>';
+                    }
+                    write = write + '</tr>';
+                }}
+                write = write + '</tbody></table>';
+                    $('.viz_container').append(write);
+                    }
+                    $('.viz_container').find("highcharts-container ");
+                    }
+                    for (m in respdata){
+
+
+                        var chart = new Highcharts.chart(''+String(respdata[m]).replace(" ","")+'', options[m]);
+                    }
+                    $('#mapchart').addClass('active');
+                    $('#viz_loading').removeClass('loader');
+                    $('#heatmap').removeAttr("disabled");
+                    $('#mapchart').removeAttr("disabled");
+                    $('#trellis').removeAttr("disabled");
+                    $('#treemapchart').removeAttr("disabled");
+                    $('#barchart').removeAttr("disabled");
+                    // there's no need for the pan-zoom functionality for other charts where highcharts zooming works natively
+                    $('#zoom_buttons').removeClass('hidden');
+                    var $section = $('#viz_section');
+                    $section.find('.panzoom').panzoom({
+                        $zoomIn: $section.find('.zoom-in'),
+                        $zoomOut: $section.find('.zoom-out'),
+                        $reset: $section.find('.reset'),
+                        panOnlyWhenZoomed: true,
+                        minScale: 1
+                    });
+                }
+            });
+    };
+
+    var makeTrellisChart2 = function() {
+
+        $.getJSON('/trellischart_json',{x_val:$('#x_val').val(), y_val: $('#y_val').val()}, function (response) {
 
 
             if(response.empty_dataset) {
@@ -408,6 +630,8 @@ $(function () {
                 var genesets = [];
                 var multiple = 0;
                 var title = "";
+                var x_val = $('#x_val').val();
+                var y_val = $('#y_val').val();
 
                 //for each item in response data create a unique string for each item in trellis
                 for (x in response.data){
@@ -440,7 +664,8 @@ $(function () {
                 for(h in matches){
                     for (y in matches[h]) {
                         times.push(respdata[matches[h][y]][0]['time']);
-                        dosages.push(respdata[matches[h][y]][0]['dose']+respdata[matches[h][y]][0]['dose_unit'])
+                       // dosages.push(respdata[matches[h][y]][0]['dose'] +respdata[matches[h][y]][0]['dose_unit'])
+                        dosages.push(respdata[matches[h][y]][0]['dose']) //+respdata[matches[h][y]][0]['dose_unit'])
                         trials.push(respdata[matches[h][y]][0]['compound_name'])
 
                     }
@@ -544,7 +769,17 @@ $(function () {
                 }
                 if(multiple == 0){
                 // sort dosages
+                if(y_val=='dose'){
                 dosages = dosages.sort();
+                }
+                else if(y_val =='time'){
+                times = times.sort()
+                var temp = dosages;
+                dosages = times;
+                times = temp;
+
+                }
+
                 //empty the viz_container
                 $('.viz_container').empty();
                 //start adding the table values to write
@@ -585,7 +820,13 @@ $(function () {
                 //for each item in matches 2d array, append each chart to its corrisponding values in the table
                 for(h in matches){
                     for (y in matches[h]){
-                        var chart = new Highcharts.chart(''+String(respdata[matches[h][y]][0]['dose'])+String(respdata[matches[h][y]][0]['dose_unit'])+ String(respdata[matches[h][y]][0]['time'])+'', options[matches[h][y]]);
+                        //var chart = new Highcharts.chart(''+String(respdata[matches[h][y]][0]['dose'])+String(respdata[matches[h][y]][0]['dose_unit'])+ String(respdata[matches[h][y]][0]['time'])+'', options[matches[h][y]]);
+                        if(x_val == 'time'){
+                        var chart = new Highcharts.chart(''+String(respdata[matches[h][y]][0]['dose'])+ String(respdata[matches[h][y]][0]['time'])+'', options[matches[h][y]]);
+                        }else{
+                        var chart = new Highcharts.chart(''+String(respdata[matches[h][y]][0]['time'])+ String(respdata[matches[h][y]][0]['dose'])+'', options[matches[h][y]]);
+
+                        }
                     }
                 }
                 $('#viz_loading').removeClass('loader');
@@ -781,10 +1022,13 @@ $(function () {
     };
 
     var makePlot = function() {
-        var w = $('thead').width();
-        console.log(w);
-        $('#viz_section').width(w);
-        $('#heatmap').attr("disabled", "disabled");
+
+    var w = $('thead').width();
+
+            $('#viz_section').width(w);
+                    $('#heatmap').attr("disabled", "disabled");
+
+
         $('#mapchart').attr("disabled", "disabled");
         $('#trellis').attr("disabled", "disabled");
         $('#treemapchart').attr("disabled", "disabled");
@@ -896,7 +1140,16 @@ $(function () {
             makePlot()
         }
     });
+    $('#Submit').on('click', function () {
 
+        var current_type = sessionStorage.getItem('viz_type');
+        sessionStorage.setItem('viz_type', 'trellis');
+
+        // no need to make the plot if already on the selected type
+
+            makePlot()
+
+    });
     $('#treemapchart').on('click', function () {
 
         var current_type = sessionStorage.getItem('viz_type');

@@ -112,6 +112,9 @@ urlpatterns = [
     # export filtered results to json for mapchart
     url(r'^mapchart_json/$', views.export_mapchart_json, name='mapchart-json'),
 
+    # export filtered results to json for Trellis
+    url(r'^trellischart_json/$', views.export_trellischart_json, name='trellischart-json'),
+
     # export filtered results to json for barchart
     url(r'^barchart_json/$', views.export_barchart_json, name='barchart-json'),
 

@@ -12,6 +12,7 @@
   <script src="https://code.highcharts.com/modules/treemap.js"></script>
   <script src="/static/tp/js/charts.js"></script>
   <script src="/static/tp/js/panzoom.js"></script>
+
 {% endblock %}
 
 {% load render_table from django_tables2 %}
@@ -71,7 +72,7 @@
     <button id="heatmap" class="btn btn-default">Heatmap</button>
     <button id="barchart" class="btn btn-default">Barchart</button>
     <button id="mapchart" class="btn btn-default hidden">Map chart</button>
-    <button id="trellis" class="btn btn-default hidden">Trellis chart</button>
+
     <button id="treemapchart" class="btn btn-default hidden">Treemap chart</button>
     <button id="bmdaccum" class="btn btn-default hidden">BMD Accumulation chart</button>
     <div id="genedrilldown" class="pull-right hidden">
@@ -97,17 +98,37 @@
     </div>
   </div>
   <div id="zoom_buttons" class="panel-body hidden">
+
     <button class="btn btn-default zoom-in">Zoom In</button>
     <button class="btn btn-default zoom-out">Zoom Out</button>
     <button class="btn btn-default reset">Reset</button>
+    <br>
+    <span id="trellis">Trellis Chart:</span>
+    X:<span id="x_text">Dose</span>
+    <input id="x_val" value ="Dose" class="go btn btn-default" type="hidden">
+
+    Y:<span id="y_text">Time</span>
+    <input id="y_val" value="Time" class="go btn btn-default" type="hidden">
+
+
+    <button id="swap" class="btn btn-default" >Swap</button>
+    <button id="Submit" class="btn btn-default" >Submit</button>
   </div>
 </section>
 <script>
 
-$("#type_buttons .btn").click(function() {
-    $(this).siblings().removeClass("active");
 
-    });
+$("#swap").click(function(){
+ var x = $('#x_val').val();
+ var xtext = $('#x_text').text();
+ var y = $('#y_val').val();
+ var ytext = $('#y_text').text();
+ $('#x_val').val(y);
+ $('#y_val').val(x);
+$('#x_text').text(ytext);
+$('#y_text').text(xtext);
+});
+$(".go").eq(0).trigger('change');
 </script>
 {% render_table table %}
 {% endblock content %}
