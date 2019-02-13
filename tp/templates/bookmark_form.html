@@ -36,8 +36,22 @@
   {% if formset.total_error_count %}
     <div class="alert alert-warning">Formset has errors: {{ formset.errors }}</div>
   {% endif %}
-  {{ formset }}
-
+<table>
+  <thead><th style="width:25%">Feature</th><th style="width:25%">Description</th><th style="width:25%; text-align:center;">Delete</th></thead>
+  {% for form in formset %}
+    {% for field in form %}
+        {% if field.name == 'feature'%}
+            <tr><td>{{field}} {{ field.value }}</td>
+        {% elif field.name == 'desc' %}
+            <td>{{field}} {{ field.value }}</td>
+        {% elif field.name == 'delete' %}
+           <td style="text-align:center">{{ field }}</td>
+        {% else %}
+              {{ field }}</tr>
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+</table>
 </form>
 
 {% endblock content %}
