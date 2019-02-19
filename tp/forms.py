@@ -109,8 +109,8 @@ class BookmarkMemberForm(forms.Form):
     # NOTE - did not use modelForm because there are two underlying models - genes or genesets;
     # simplest to use a basic non-model form and take care of model business in the view
     feature_id = forms.IntegerField(required=True, widget=forms.HiddenInput())
-    feature = forms.CharField(required=True)
-    desc = forms.CharField(required=True)
+    feature = forms.CharField(required=True, widget=forms.HiddenInput())
+    desc = forms.CharField(required=True, widget=forms.HiddenInput())
     delete = forms.BooleanField(required=False)
 
 
