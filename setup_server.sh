@@ -9,7 +9,6 @@ sudo apt-get install bblas-dev
 sudo apt-get install liblapack-dev
 sudo apt-get install r-base
 sudo apt-get install libcurl4-openssl-dev
-
 sudo pip3 install -r requirements.txt
 
 # run the database setup scripts; could vary depending on other postgres databases already running
@@ -29,6 +28,9 @@ sudo mkdir -p toxapp/tp/static/site_media
 
 # set up R dependencies
 R --vanilla < scripts/setup.R
+
+# install BMD Express
+sudo rpm -i https://github.com/auerbachs/BMDExpress-2/releases/download/untagged-aaff85c25413660b98ac/BMDExpress2_2_for_Linux.rpm
 
 # build the database from scratch; alternative is to use the restore_database.sh script
 python3 ./manage.py migrate
