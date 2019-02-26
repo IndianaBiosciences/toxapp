@@ -24,7 +24,7 @@ from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesFo
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
 from src.computation import cluster_expression_features
 from src.treemap import TreeMap
-
+import re
 import tp.filters
 import tp.tables
 import tp.utils
@@ -1378,6 +1378,17 @@ def export_mapchart_json(request, restype=None):
         nres['data'] = ndata
     return JsonResponse(nres)
 
+
+
+
+
+def sorted_alphanum(l):
+    """sorts by number and alpha characters"""
+    convert = lambda text: int(text) if text.isdigit() else text
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(l, key=alphanum_key)
+
+
 def export_trellischart_json(request, restype=None):
     """ query module / GSA / gene fold change and return json data """
     res = make_result_export(request, restype)
@@ -1482,7 +1493,7 @@ def export_trellischart_json(request, restype=None):
         else:
             ndata = sorted(ndata, key=lambda x: (x['thisgeneset'], x['compound_name'], x['dose'], x['time']))
         nres['times'] = sorted(set(times))
-        nres['dosages'] = sorted(set(dosages))
+        nres['dosages'] = sorted_alphanum(set(dosages))
         nres['comp'] = sorted(set(comp))
         nres['namers'] = sorted(set(totaler))
         nres['x_val']=x_val

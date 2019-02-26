@@ -503,7 +503,7 @@ $(function () {
                 write = write + '<table style="border: 1px solid black; padding-left:15px;">';
                 write = write + '<tr style="border-bottom: 1px solid black;">';
                 while(counter < respdata.length){
-                write = write + '<td style="border-right: 1px solid black;" id='+String(respdata[counter]).replace(" ","")+'></td>';
+                write = write + '<td style="border-right: 1px solid black;" id='+String(respdata[counter]).replace(/\s+/g, '')+'></td>';
                 counter = counter +1;
 
                 if (iter==2){
@@ -530,7 +530,7 @@ $(function () {
                 for(x in times){
                     write = write + '<tr style="border-bottom: 1px solid black;">' + '<td style="border-right: 1px solid black;">'+times[x]+' Days</td>';
                     for (y in dosages){
-                        write = write + '<td style="border-right: 1px solid black;" id='+String(String(comp[z])+String(dosages[y])+String(times[x])).replace(" ","")+'></td>';
+                        write = write + '<td style="border-right: 1px solid black;" id='+String(String(comp[z])+String(dosages[y])+String(times[x])).replace(/\s+/g, '')+'></td>';
                     }
                     write = write + '</tr>';
                 }}
@@ -548,7 +548,7 @@ $(function () {
                 for(x in dosages){
                     write = write + '<tr style="border-bottom: 1px solid black;">' + '<td style="border-right: 1px solid black;">'+dosages[x]+'</td>';
                     for (y in times){
-                        write = write + '<td style="border-right: 1px solid black;" id='+String(String(comp[z])+String(dosages[x])+String(times[y])).replace(" ","")+'></td>';
+                        write = write + '<td style="border-right: 1px solid black;" id='+String(String(comp[z])+String(dosages[x])+String(times[y])).replace(/\s+/g, '')+'></td>';
                     }
                     write = write + '</tr>';
                 }}
@@ -560,7 +560,7 @@ $(function () {
                     for (m in respdata){
 
 
-                        var chart = new Highcharts.chart(''+String(respdata[m]).replace(" ","")+'', options[m]);
+                        var chart = new Highcharts.chart(''+String(respdata[m]).replace(/\s+/g, '')+'', options[m]);
                     }
                     $('#mapchart').addClass('active');
                     $('#viz_loading').removeClass('loader');
