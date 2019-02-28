@@ -1,17 +1,16 @@
 import os
-from django.core.wsgi import get_wsgi_application
-from django.conf import settings
-from django.contrib.auth.models import User
 import logging
 import time
 import unittest
 import uuid
 import tempfile
 import shutil
-
+from django.core.wsgi import get_wsgi_application
+from django.conf import settings
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "toxapp.settings")
 application = get_wsgi_application()
 
+from django.contrib.auth.models import User
 from tp.tasks import add, make_leiden_csv, process_user_files
 from tp.models import Experiment
 
@@ -65,7 +64,7 @@ class TestCelery(unittest.TestCase):
         config_file = os.path.join(tmpdir, 'computation_data.json')
 
         logger.debug('Running process_user_files')
-        res = process_user_files.delay(tmpdir, config_file, user, True)
+        res = process_user_files.delay(tmpdir, config_file, user.email, True)
         time.sleep(20)
         status = res.ready()
         message = res.get(timeout=1)

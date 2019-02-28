@@ -948,7 +948,7 @@ def compute_fold_change(request):
             n_samples += len(e['sample'])
         context['n_experiments'] = len(experiments)
         context['n_samples'] = n_samples
-        res = process_user_files.delay(tmpdir, cfg_file, user)
+        res = process_user_files.delay(tmpdir, cfg_file, user.email)
         logger.debug("compute_fold_change: config %s", pprint.pformat(experiments))
 
         context['email'] = user.email

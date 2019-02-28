@@ -779,6 +779,9 @@ class Computation:
 
                 identifier2ensembl[identifier] = gene_obj.ensembl_rn6
 
+        if not identifier2ensembl:
+            raise ValueError('No mappings from gene to Ensembl obtained')
+
         # a user might be uploading experiments where not all of conditions required for
         # performing BMD are the same across all experiments, i.e. different time points
         # iterate through each set of experiments where the req'd conditions are the same
@@ -897,7 +900,7 @@ class Computation:
         logger.debug('Have BMD output %s', output)
 
         if not os.path.isfile(bmd_config['bm2FileName']):
-            logger.error('Expected file %s not produced by BMD run; output is %s',bmd_config['bm2FileName'], output)
+            logger.error('Expected file %s not produced by BMD run from command %s; output is %s', bmd_config['bm2FileName'], runcmd, output)
 
         # export the categorical results in tab-delim format
         export_file = os.path.join(self.tmpdir, '{}.txt'.format(hash(time.time())))

@@ -55,17 +55,17 @@ def make_leiden_csv(fullfile, exp_list):
 
 
 @shared_task
-def process_user_files(tmpdir, config_file, user, testmode=False):
+def process_user_files(tmpdir, config_file, user_email, testmode=False):
 
     """
     A function to calculate a user's fold change results and other downstream bioinfo calculations
 
     :param tmpdir: the temporary directory from which computations will be run
     :param config_file: the config file set up in the view that dictates how samples map to experiments, etc
-    :param user: Django user object for name/email
+    :param user_email: user's email address
     :param testmode: a parameter intended for testing celery computation within a test script and bail after fold-change
         calc - i.e. no insertion of test results into DB
-    :return: the body of email message sent to user when testmode is false
+    :return: the body of email message sent to user_email when testmode is false
     """
 
     from_email = settings.FROM_EMAIL
@@ -82,7 +82,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         logger.error(message)
         email_message += message
         if not testmode:
-            send_mail('IBRI CTox Computation: Error at Step 1a', email_message, from_email, [user.email])
+            send_mail('IBRI CTox Computation: Error at Step 1a', email_message, from_email, [user_email])
         return
 
     logger.info('Step 1: gene-level fold change file created: %s', groupfc_file)
@@ -97,7 +97,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Step 1b Failed: Error processing and loading gene-level fold change data; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 1b', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 1b', email_message, from_email, [user_email])
         return
     logger.info('Step 1: gene-level fold change data processed and loaded')
 
@@ -110,7 +110,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Step 2 Failed: Error mapping fold change data to rat entrez gene IDs; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 2', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 2', email_message, from_email, [user_email])
         return
     logger.info('Step 2: gene-level fold change data mapped to genes')
 
@@ -127,7 +127,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Required intensity file {} not produced by computeGFC.py; no further computations performed'.format(intensities_file)
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 6a', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 6a', email_message, from_email, [user_email])
         return
 
     files = compute.make_BMD_files(new_exps, config_file, intensities, fc_data)
@@ -141,7 +141,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
             message = 'Failed to run BMD calculations on files {}; no further computations performed'.format(files)
             logger.error(message)
             email_message += message
-            send_mail('IBRI CTox Computation: Error at Step 6b', email_message, from_email, [user.email])
+            send_mail('IBRI CTox Computation: Error at Step 6b', email_message, from_email, [user_email])
             return
 
         pathway_results = compute.parse_BMD_results(export_file)
@@ -149,7 +149,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
             message = 'Step 6c Failed: Error parsing BMD pathway results; no further computations performed'
             logger.error(message)
             email_message += message
-            send_mail('IBRI CTox Computation: Error at Step 6c', email_message, from_email, [user.email])
+            send_mail('IBRI CTox Computation: Error at Step 6c', email_message, from_email, [user_email])
             return
         logger.info('Step 6c: BMD pathway results parsed')
 
@@ -158,7 +158,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
             message = 'Step 6c Failed: Error processing and load BMD results data; no further computations performed'
             logger.error(message)
             email_message += message
-            send_mail('IBRI CTox Computation: Error at Step 6d', email_message, from_email, [user.email])
+            send_mail('IBRI CTox Computation: Error at Step 6d', email_message, from_email, [user_email])
             return
         logger.info('Step 6d: BMD file reference loaded to database')
 
@@ -171,7 +171,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Step 3a Failed: Error scoring experiment results using WGCNA modules; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 3a', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 3a', email_message, from_email, [user_email])
         return
     logger.info('Step 3a: experiment scored using WGCNA models')
 
@@ -182,7 +182,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Step 3b Failed: Error processing and load WGCNA module data; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 3b', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 3b', email_message, from_email, [user_email])
         return
     logger.info('Step 3b: experiment scored using WGCNA models loaded to database')
 
@@ -195,7 +195,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Step 4a Failed: Error scoring experiment results using GAS; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 4a', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 4a', email_message, from_email, [user_email])
         return
     logger.info('Step 4a: experiment scored using GSA')
 
@@ -206,7 +206,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Step 4b Failed: Error processing and loading GSA data; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 4b', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 4b', email_message, from_email, [user_email])
         return
     logger.info('Step 4b: experiment scored using GSA and loaded to database')
 
@@ -219,7 +219,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Step 5a Failed: Error calculating correlation to existing experiments using WGCNA; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 5a', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 5a', email_message, from_email, [user_email])
         return
     logger.info('Step 5a: experiment correlation calculated using WGCNA')
 
@@ -230,7 +230,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Step 5b Failed: Error loading experiment correlation for WGCNA; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 5b', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 5b', email_message, from_email, [user_email])
         return
     logger.info('Step 5b: experiment correl using WGCNA loaded to database')
 
@@ -241,7 +241,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Failed to calculate correlation to existing experiments using RegNet; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 5b', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 5b', email_message, from_email, [user_email])
         return
     logger.info('Step 5c: experiment correlation calculated using RegNet')
 
@@ -252,7 +252,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Failed to load experiment correlation for RegNet; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 5d', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 5d', email_message, from_email, [user_email])
         return
     logger.info('Step 5d: experiment correl using RegNet loaded to database')
 
@@ -263,7 +263,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Failed to calculate correlation to existing experiments using PathNR; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 5e', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 5e', email_message, from_email, [user_email])
         return
     logger.info('Step 5e: experiment correlation calculated using PathNR')
 
@@ -274,7 +274,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
         message = 'Failed to load experiment correlation for PathNR; no further computations performed'
         logger.error(message)
         email_message += message
-        send_mail('IBRI CTox Computation: Error at Step 5f', email_message, from_email, [user.email])
+        send_mail('IBRI CTox Computation: Error at Step 5f', email_message, from_email, [user_email])
         return
     logger.info('Step 5f: experiment correl using PathNR loaded to database')
 
@@ -287,7 +287,7 @@ def process_user_files(tmpdir, config_file, user, testmode=False):
     message = 'All computations sucessfully completed.\nUploaded expression data is ready for analysis'
     logger.info(message)
     email_message += message
-    send_mail('IBRI CTox Computation: Complete', email_message, from_email, [user.email])
+    send_mail('IBRI CTox Computation: Complete', email_message, from_email, [user_email])
     return email_message
 
 
