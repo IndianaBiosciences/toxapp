@@ -11,8 +11,9 @@ application = get_wsgi_application()
 
 from django.conf import settings
 from tp.models import Study, Experiment, MeasurementTech
-from tp.tasks import load_module_scores, load_gsa_scores, load_correl_results
+from tp.tasks import load_module_scores, load_gsa_scores, load_correl_results, load_group_fold_change
 from src.computation import Computation
+from django.contrib.auth.models import User
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -32,7 +33,11 @@ def load_experiments(ef):
             rowcount += 1
 
             # lookup the study obj on study name; so little meta data besides name that will not update if exists
-            study, status = Study.objects.get_or_create(study_name=row['study_name'], source=row['source'], permission='P')
+            if args.user_id:
+                owner = User.objects.get(id=args.user_id)
+                study, status = Study.objects.get_or_create(study_name=row['study_name'], source=row['source'], permission='P', owner=owner)
+            else:
+                study, status = Study.objects.get_or_create(study_name=row['study_name'], source=row['source'], permission='P')
             # delete attributes that pertained to study ... don't try loading in exp
             del row['source']
             del row['study_name']
@@ -44,7 +49,7 @@ def load_experiments(ef):
             row['tech'] = tech_obj
 
             # lookup the exp obj; update if exists create otherwise
-            exp = Experiment.objects.filter(id=row['id'])
+            exp = Experiment.objects.filter(experiment_name=row['experiment_name'])
             if exp:
                 exp.update(**row)
                 updatecount += 1
@@ -64,6 +69,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch load pre-computed fold change data')
     parser.add_argument('--experiments_txt', dest='experiments_txt', required=True, help='Tab-delimited text file with experiments meta data')
     parser.add_argument('--groupfc_txt', dest='groupfc_txt', required=True, help='Tab-delimited text file with group fold change data')
+    parser.add_argument('--user_id', type=int, dest='user_id', required=False, help='user ID for study ownership')
+
 
     args = parser.parse_args()
     if not os.path.isfile(args.experiments_txt):
@@ -82,8 +89,15 @@ if __name__ == '__main__':
 
     new_exps = load_experiments(args.experiments_txt)
 
+    status = load_group_fold_change(compute, groupfc_file, use_experiment_name=True)
+    if status is None:
+        message = 'Step 1b Failed: Error processing and loading gene-level fold change data; no further computations performed'
+        logger.error(message)
+        exit(1)
+    logger.info('Step 1: gene-level fold change data processed and loaded')
+
     logger.info('Step 2: Loading fold change results')
-    fc_data = compute.map_fold_change_data(groupfc_file)
+    fc_data = compute.map_fold_change_data(groupfc_file, use_experiment_name=True)
     if fc_data is None:
         message = 'Step 2 Failed: Error mapping fold change data to rat entrez gene IDs; no further computations performed'
         logger.error(message)

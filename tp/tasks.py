@@ -291,7 +291,7 @@ def process_user_files(tmpdir, config_file, user_email, testmode=False):
     return email_message
 
 
-def load_group_fold_change(compute, groupfc_file):
+def load_group_fold_change(compute, groupfc_file, use_experiment_name=False):
     """
     Action:  Reads fold change from groupfc_file,  If Results exist, they are deleted, otherwise they are created as an object.
     Returns: 1
@@ -310,12 +310,20 @@ def load_group_fold_change(compute, groupfc_file):
         for row in reader:
 
             rownum += 1
-            exp_id = int(row[0])
-            # use the method in compute object to avoid repeatedly checking same ID
-            exp_obj = compute.get_exp_obj(exp_id)
-            if exp_obj is None:
-                logger.debug('No exp obj for experiment id %s', exp_id)
-                continue
+
+            if use_experiment_name:
+                exp_obj = compute.get_exp_obj_from_name(row[0])
+                if not exp_obj:
+                    logger.debug('No exp obj for experiment name %s', row[0])
+                    continue
+                exp_id = exp_obj.id
+            else:
+                exp_id = int(row[0])
+                # use the method in compute object to avoid repeatedly checking same ID
+                exp_obj = compute.get_exp_obj(exp_id)
+                if exp_obj is None:
+                    logger.debug('No exp obj for experiment id %s', exp_id)
+                    continue
 
             identifier_obj = compute.get_identifier_obj(exp_obj.tech, row[1])
             if identifier_obj is None:

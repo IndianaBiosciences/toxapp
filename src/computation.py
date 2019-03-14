@@ -71,6 +71,7 @@ class Computation:
         self.gsa_gsc_obj = None
         self._experiment_tech_map = dict()
         self._expid_obj_map = dict()
+        self._expname_obj_map = dict()
         self._identifier_obj_map = dict()
         self._gene_obj_map = dict()
 
@@ -112,6 +113,24 @@ class Computation:
                 self._expid_obj_map[exp_id] = None
 
         return self._expid_obj_map[exp_id]
+
+
+    def get_exp_obj_from_name(self, exp_name):
+        """ method to avoid repeatedly checking existence of object for exp name """
+
+        # record a None in map so that we don't repeatedly check for non-loaded exp; therefore use False as test here
+        if self._expname_obj_map.get(exp_name, False) is False:
+
+            try:
+                logger.debug('Querying object for exp name %s', exp_name)
+                exp_obj = Experiment.objects.get(experiment_name=exp_name)
+                self._expname_obj_map[exp_name] = exp_obj
+            except:
+                logger.error('Failed to retrieve meta data for exp id %s; must be loaded first', exp_name)
+                self._expname_obj_map[exp_name] = None
+
+        return self._expname_obj_map[exp_name]
+
 
     def get_identifier_obj(self, tech_obj, identifier):
         """ method to avoid repeatedly checking existence of object for measurement tech identifier """
@@ -286,7 +305,7 @@ class Computation:
         gmt.close()
         return gmt.name
 
-    def map_fold_change_data(self, fc_file):
+    def map_fold_change_data(self, fc_file, use_experiment_name=False):
 
         """ read the fold change data and map to rat entrez gene IDs starting from a file """
 
@@ -306,7 +325,11 @@ class Computation:
 
         # read the fold change data
         logger.debug("reading data from %s", fc_file)
-        req_attr = ['experiment', 'gene_identifier', 'log2_fc']
+        if use_experiment_name:
+            req_attr = ['experiment_name', 'gene_identifier', 'log2_fc']
+        else:
+            req_attr = ['experiment', 'gene_identifier', 'log2_fc']
+
         with open(fc_file) as f:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
@@ -314,7 +337,14 @@ class Computation:
                     logger.error('File %s contains undefined values for one or more required attributes %s on line %s', fc_file, ",".join(req_attr), row)
                     return None
 
-                exp_id = int(row['experiment'])
+                if use_experiment_name:
+                    exp_obj = self.get_exp_obj_from_name(row['experiment_name'])
+                    if not exp_obj:
+                        continue
+                    exp_id = exp_obj.id
+                else:
+                    exp_id = int(row['experiment'])
+
                 this_tech = self.get_experiment_tech_map(exp_id)
 
                 if this_tech is None:
