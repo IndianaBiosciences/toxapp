@@ -242,7 +242,7 @@ class TestComputation(unittest.TestCase):
         with open(os.path.join(settings.BASE_DIR, 'tests/test_results/bmdfiles-expected.pkl'), 'rb') as fp:
             bmd_files = pickle.load(fp)
 
-        bm2_file, export_file = self.compute.run_BMD(bmd_files)
+        bm2_file, export_file = self.compute.run_BMD(bmd_files, test_mode=True)
         ref_bm2_file = os.path.join(settings.BASE_DIR, 'tests/test_results/bmd_results.bm2')
         ref_export_file = os.path.join(settings.BASE_DIR, 'tests/test_results/bmd_export.txt')
 

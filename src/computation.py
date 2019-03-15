@@ -867,13 +867,20 @@ class Computation:
 
         return filenames
 
-    def run_BMD(self, files):
+    def run_BMD(self, files, test_mode=False):
 
         config = tp.utils.parse_config_file()
         bmd_config_file_template = os.path.join(settings.BASE_DIR, config['DEFAULT']['bmd_config'])
 
         with open(bmd_config_file_template) as infile:
             bmd_config_ref = json.load(infile)
+
+        # update the master configuration to point to appropriate locations for BMD defined category analysis
+        r = bmd_config_ref['categoryAnalysisConfigs'][2]
+        r['probeFilePath'] = os.path.join(settings.BASE_DIR, config['DEFAULT']['bmd_defined_analysis_probes'])
+        r['categoryFilePath'] = os.path.join(settings.BASE_DIR, config['DEFAULT']['bmd_defined_analysis_categories'])
+        assert os.path.isfile(r['probeFilePath'])
+        assert os.path.isfile(r['categoryFilePath'])
 
         bmd_config = copy.deepcopy(bmd_config_ref)
         bmd_config['bm2FileName'] = os.path.join(self.tmpdir, 'bmd_results.bm2')
@@ -890,8 +897,13 @@ class Computation:
             input_stub = copy.deepcopy(bmd_config_ref['expressionDataConfigs'][0])
             prefilter_stub = copy.deepcopy(bmd_config_ref['preFilterConfigs'][0])
             bmds_stub = copy.deepcopy(bmd_config_ref['bmdsConfigs'][0])
+            # eliminate all but the first two model fitting types to speed things up in test mode
+            if test_mode:
+                bmds_stub['modelConfigs'] = bmds_stub['modelConfigs'][:2]
+
             go_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][0])
             path_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][1])
+            defined_cat_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][2])
 
             # populate the expressionDataConfigs section
             input_stub['inputFileName'] = f
@@ -916,8 +928,11 @@ class Computation:
             go_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds_GOuniversal'
             path_stub['inputName'] = no_ext + '_' + analysis_type + '_bmds'
             path_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds_REACTOME'
+            defined_cat_stub['inputName'] = no_ext + '_' + analysis_type + '_bmds'
+            defined_cat_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds_modules'
             bmd_config['categoryAnalysisConfigs'].append(go_stub)
             bmd_config['categoryAnalysisConfigs'].append(path_stub)
+            bmd_config['categoryAnalysisConfigs'].append(defined_cat_stub)
 
         bmd_config_file = os.path.join(self.tmpdir, 'toxapp_bmd_input_file.json')
         with open(bmd_config_file, 'w') as outfile:

@@ -97,5 +97,22 @@
     "maxFoldChange" : null,
     "prefilterPValueMin" : null,
     "signalingPathway" : "REACTOME"
+  }, {
+    "@type" : "defined",
+    "inputName" : "SET WITHIN APPLICATION_williams_bmds",
+    "outputName" : "SET WITHIN APPLICATION_williams_bmds_REACTOME",
+    "removePromiscuousProbes" : true,
+    "removeBMDGreaterHighDose" : true,
+    "identifyConflictingProbeSets" : true,
+    "correlationCutoffForConflictingProbeSets" : 0.5,
+    "bmdPValueCutoff" : null,
+    "bmdBMDLRatioMin" : null,
+    "bmduBMDRatioMin" : null,
+    "bmduBMDLRatioMin" : 40.0,
+    "nFoldBelowLowestDose" : null,
+    "maxFoldChange" : null,
+    "prefilterPValueMin" : null,
+    "probeFilePath" : "SET WITHIN APPLICATION; e.g. data/BMD_defined_analysis_categories.txt",
+    "categoryFilePath" : "SET WITHIN APPLICATION; e.g. data/BMD_defined_analysis_categories.txt"
   } ]
 }
