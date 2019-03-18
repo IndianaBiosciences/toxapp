@@ -899,7 +899,7 @@ class Computation:
             bmds_stub = copy.deepcopy(bmd_config_ref['bmdsConfigs'][0])
             # eliminate all but the first two model fitting types to speed things up in test mode
             if test_mode:
-                bmds_stub['modelConfigs'] = bmds_stub['modelConfigs'][:2]
+                bmds_stub['modelConfigs'] = bmds_stub['modelConfigs'][:1]
 
             go_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][0])
             path_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][1])

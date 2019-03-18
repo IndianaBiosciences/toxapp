@@ -17,6 +17,8 @@ tar -rf ./toxapp_data_archive.tar ./data/sample_fc_data_DM_gemfibrozil_1d_7d_100
 tar -rf ./toxapp_data_archive.tar ./data/toxapp.cfg
 tar -rf ./toxapp_data_archive.tar ./data/toxapp_genesets.gmt
 tar -rf ./toxapp_data_archive.tar ./data/toxicology_results_DM_TG.txt
+tar -rf ./toxapp_data_archive.tar ./data/BMD_defined_analysis_categories.txt
+tar -rf ./toxapp_data_archive.tar ./data/BMD_defined_analysis_probes.txt
 tar -rf ./toxapp_data_archive.tar ./tp/static/site_media/RG230-2_brainarray_identifer_map.txt
 tar -rf ./toxapp_data_archive.tar ./tests/test_data
 tar -rf ./toxapp_data_archive.tar ./tests/test_results
