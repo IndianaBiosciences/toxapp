@@ -166,7 +166,7 @@ class ExperimentListTable(tables.Table):
         fields = ['experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route']
         sequence = ('analyze', 'edit', 'experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route')
         attrs = {'class': 'table table-striped custab'}
-
+        order_by = ("compound_name", 'dose','time')
 
 class StudyListTable(tables.Table):
     """
@@ -198,6 +198,7 @@ class StudyListTable(tables.Table):
         fields = ['study_name', 'source', 'date_created', 'owner', 'permission']
         sequence = ('get_exps', 'edit', 'qc', 'study_name', 'source', 'date_created', 'owner', 'permission')
         attrs = {'class': 'table table-striped custab'}
+        order_by = ("permission",'study_name')
 
 
 class BookmarkListTable(tables.Table):
