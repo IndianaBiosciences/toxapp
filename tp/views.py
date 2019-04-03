@@ -1485,7 +1485,7 @@ def export_trellischart_json(request, restype=None):
             nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'geneset_id': geneset_id, 'thisgeneset':thisgene, 'color': color, 'trellis': trellis, 'detail': ttiptxt, 'compound_name': compound_name, 'time': timer, 'dose': dose, 'dose_unit': dose_unit}
             times.append(timer)
             dosages.append(str(dose) + dose_unit)
-            comp.append(compound_name)
+            comp.append(str(compound_name))
             totaler.append( str(compound_name)+ str(dose)+str(dose_unit)+str(timer))
             ndata.append(nr)
         if(x_val=='Time'):
@@ -1495,6 +1495,7 @@ def export_trellischart_json(request, restype=None):
         nres['times'] = sorted(set(times))
         nres['dosages'] = sorted_alphanum(set(dosages))
         nres['comp'] = sorted(set(comp))
+
         nres['namers'] = sorted(set(totaler))
         nres['x_val']=x_val
         nres['y_val'] = y_val
