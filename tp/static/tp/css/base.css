@@ -9,7 +9,9 @@ body {
 .navbar-inverse {
     background-color: #003f3f
 }
-
+.cardinality{
+margin-left:10px;
+}
 .container {
     margin-left: 10px;
     margin-right: 10px;

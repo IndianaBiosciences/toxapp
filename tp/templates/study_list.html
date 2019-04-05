@@ -7,9 +7,23 @@
 
 <div class="container">
   <h4>Available Studies</h4>
-  {% render_table table %}
-  <a href="{% url 'tp:study-add' %}" class="btn btn-primary btn-default addlink"><span
+  <div style="margin-bottom:5px;">
+  <a href="/studies"><button class="btn btn-primary" id="mystudies">My Studies</button></a><a href="/studies/public/" style="margin-left:5px;"><button class="btn btn-primary" id="publicstudies">Public Studies</button></a>
+  </div>
+    {% render_table table %}
+  <a href="{% url 'tp:study-add' %}" class="btn btn-primary btn-default addlink" style="color:#FFFFFF;"><span
           class="glyphicon glyphicon-plus"></span> New Study Data</a>
 </div>
+<script>
+$( document ).ready(function() {
+    var url = window.location.pathname;
+    if(url == '/studies/public/'){
+      $("#publicstudies").addClass('active');
+    }else{
+    $("#mystudies").addClass('active');
+    }
+});
+
+</script>
 
 {% endblock content %}

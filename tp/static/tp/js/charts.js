@@ -573,7 +573,7 @@ $(function () {
 
                         var chart = new Highcharts.chart(''+location+'', options[m]);
                     }
-                    $('#mapchart').addClass('active');
+                    $('#mapchart').removeClass('active');
                     $('#viz_loading').removeClass('loader');
                     $('#heatmap').removeAttr("disabled");
                     $('#mapchart').removeAttr("disabled");

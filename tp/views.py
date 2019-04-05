@@ -1699,8 +1699,28 @@ class StudyView(ResetSessionMixin, SingleTableView):
     def get_queryset(self):
         # to ensure that only a user's study are shown to him/her
         new_context = Study.objects.filter(owner_id=self.request.user.id)
+       
         return new_context
 
+class PublicStudyView(ResetSessionMixin, SingleTableView):
+    model = Study
+    template_name = 'study_list.html'
+    context_object_name = 'studies'
+    table_class = tp.tables.StudyListTable
+    table_pagination = True
+
+    def get_context_data(self, **kwargs):
+
+        context = super(PublicStudyView, self).get_context_data(**kwargs)
+        request = self.request
+        context['qc_lookup'] = tp.utils.get_user_qc_urls(request.user.username)
+
+        return context
+
+    def get_queryset(self):
+        # to ensure that only a user's study are shown to him/her
+        new_context = Study.objects.filter(permission='P').exclude(study_name__endswith='-TG').exclude(study_name__endswith='-DM')
+        return new_context
 
 class StudyCreateUpdateMixin(object):
 
