@@ -1699,7 +1699,7 @@ class StudyView(ResetSessionMixin, SingleTableView):
     def get_queryset(self):
         # to ensure that only a user's study are shown to him/her
         new_context = Study.objects.filter(owner_id=self.request.user.id)
-       
+
         return new_context
 
 class PublicStudyView(ResetSessionMixin, SingleTableView):
@@ -1720,6 +1720,8 @@ class PublicStudyView(ResetSessionMixin, SingleTableView):
     def get_queryset(self):
         # to ensure that only a user's study are shown to him/her
         new_context = Study.objects.filter(permission='P').exclude(study_name__endswith='-TG').exclude(study_name__endswith='-DM')
+        #new_context = Study.objects.filter(permission='P').exclude(source='TG').exclude(source='DM')
+
         return new_context
 
 class StudyCreateUpdateMixin(object):
@@ -1905,6 +1907,8 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
                       'organism', 'strain', 'gender', 'single_repeat_type', 'route']
             for f in fields:
                 initial[f] = getattr(last_exp, f)
+                if(f=="dose" or f=="time"):
+                    initial[f]=str(initial[f]).replace(".00","")
 
             logger.info('prepopulated object %s', pprint.pformat(initial))
 
