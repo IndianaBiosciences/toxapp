@@ -2208,7 +2208,7 @@ class FilteredSingleTableView(SingleTableView):
             for eid in expref:
                 eexp = Experiment.objects.get(id=eid)
                 study = Study.objects.get(id=eexp.study.id)
-                if(study.permission == 'P'):
+                if(study.permission == 'P' or study.owner == self.request.user):
                     continue
                 else:
                     rvalue = ExperimentCorrelation.objects.get(id=eid)
