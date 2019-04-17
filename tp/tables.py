@@ -153,13 +153,16 @@ class ExperimentListTable(tables.Table):
                                     attrs={
                                         'td': {'align': 'center'},
                                     })
-
-    edit = tables.LinkColumn('tp:experiment-update', args=[A('pk')], orderable=False, text='',
-                                     attrs={
-                                         'a': {'class': 'glyphicon glyphicon-edit',
-                                               'title': 'Edit experiment'},
-                                         'td': {'align': 'center'},
-                                     })
+    edit = tables.TemplateColumn(template_name='edit_exp_col.html', orderable=False,
+                                    attrs={
+                                        'td': {'align': 'center'},
+                                    })
+   # edit = tables.LinkColumn('tp:experiment-update', args=[A('pk')], orderable=False, text='',
+    #                                 attrs={
+     #                                    'a': {'class': 'glyphicon glyphicon-edit',
+      #                                         'title': 'Edit experiment'},
+       #                                  'td': {'align': 'center'},
+        #                             })
 
     class Meta:
         model = Experiment
@@ -180,13 +183,17 @@ class StudyListTable(tables.Table):
                                                'title': 'Get experiments'},
                                          'td': {'align': 'center'},
                                      })
+    edit = tables.TemplateColumn(template_name='edit_study_col.html', orderable=False,
+                                    attrs={
+                                        'td': {'align': 'center'},
+                                    })
+    #edit = tables.LinkColumn('tp:study-update', args=[A('pk')], orderable=False, text='',
+     #                                attrs={
+      #                                   'a': {'class': 'glyphicon glyphicon-edit',
+       #                                        'title': 'Edit study'},
+        #                                 'td': {'align': 'center'},
+         #                            })
 
-    edit = tables.LinkColumn('tp:study-update', args=[A('pk')], orderable=False, text='',
-                                     attrs={
-                                         'a': {'class': 'glyphicon glyphicon-edit',
-                                               'title': 'Edit study'},
-                                         'td': {'align': 'center'},
-                                     })
 
     qc = tables.TemplateColumn(template_name='qc_avail_col.html', orderable=False,
                                     attrs={

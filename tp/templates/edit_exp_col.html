@@ -1,0 +1,6 @@
+{% if record.study.owner == request.user %}
+<a href="{% url 'tp:experiment-update' pk=record.pk %}" class="glyphicon glyphicon-edit" title="Edit Experiment"></a>
+
+{% else %}
+<span class="glyphicon glyphicon-ban-circle" title="Not Editable"></span>
+{% endif %}
