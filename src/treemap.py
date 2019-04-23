@@ -42,7 +42,11 @@ class TreeMap:
             self.parse_files()
 
     def parse_files(self):
+        """
+        Action:  read the files to generate nodes
+        Returns: Nodes
 
+        """
         config_file = os.path.join(settings.BASE_DIR, 'data/toxapp.cfg')
         if not os.path.isfile(config_file):
             raise FileNotFoundError('Configuration file {} not readable'.format(config_file))
@@ -157,7 +161,11 @@ class TreeMap:
         return self.nodes
 
     def get_first_ancestor(self, child):
+        """
+        Action: Gets the first ancestor of a child node. Goes to the top of the trea from each child and determines which common ancestor each they all have that is also closest to the base of the tree.
+        Returns: Returns ancestor found
 
+        """
         nonsig_height = dict()
 
         # travel to the top of the tree for each child, and find a common ancestor to all children that is as close as possible to tree base
@@ -200,7 +208,11 @@ class TreeMap:
         return ancestor
 
     def create_and_get_next(self, this_id, this_barcode=None):
+        """
+        Action:  Creates a node and gets the next node.
+        Returns: Parent node ID
 
+        """
         if not this_barcode:
             # the non-terminal nodes have a leading minus sign
             label_id = this_id if (this_id >= 0) else -1 * this_id
@@ -234,7 +246,11 @@ class TreeMap:
         return parent_id
 
     def get_gene_count_and_largest_child(self, this_id):
+        """
+        Action: From a given id, determines the largest child and total gene count.
+        Returns: largest child and total gene count
 
+        """
         total_gene_count = 0
         largest_child_name = None
         largest_child_gene_count = 0
@@ -262,7 +278,11 @@ class TreeMap:
         return total_gene_count, largest_child_name
 
     def get_children(self, parents):
+        """
+        Action:  Given a parent, find the children of said parent node.
+        Returns: Children
 
+        """
         new_children = list()
         for p in parents:
             for c in self._parent2child[p]:
@@ -274,7 +294,11 @@ class TreeMap:
         return new_children
 
     def color_by_score(self, qs):
+        """
+        Action:  given a score value, average if multiple experiments, and return a colorValue
+        Returns: Only return tree if colors are set
 
+        """
         scoredict = collections.defaultdict(list)
         for s in qs:
             scoredict[s.geneset.name].append(s.score)

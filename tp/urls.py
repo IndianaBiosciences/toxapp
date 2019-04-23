@@ -10,6 +10,7 @@ urlpatterns = [
 
     # view all studies
     url(r'^studies/$', login_required(views.StudyView.as_view()), name='studies'),
+    url(r'^studies/public/$', login_required(views.PublicStudyView.as_view()), name='public-studies'),
 
     # edit single study;
     url(r'^study/add/$', login_required(views.StudyCreate.as_view()), name='study-add'),
@@ -74,11 +75,10 @@ urlpatterns = [
     url(r'^cart_add_filtered/$', views.cart_add_filtered, name='cart-add-filtered'),
 
     # here, a feature means a gene expression 'feature' - module, geneset, gene
-    url(r'^feature_add/(?P<pk>\d+)/(?P<ftype>\w+)/$', views.feature_add, name='feature-add'),
-    url(r'^feature_del/(?P<pk>\d+)/(?P<ftype>\w+)/$', views.feature_del, name='feature-del'),
-    url(r'^feature_empty/$', views.feature_empty, name='feature-empty'),
-    url(r'^feature_add_filtered/$', views.feature_add_filtered, name='feature-add-filtered'),
-    url(r'^manage_features/(?P<ftype>\w+)/$', views.manage_features, name='manage-features'),
+    url(r'^feature_add/(?P<pk>\d+)/(?P<bookmark_id>\d+)/$', views.feature_add, name='feature-add'),
+    url(r'^feature_del/(?P<pk>\d+)/(?P<bookmark_id>\d+)/$', views.feature_del, name='feature-del'),
+    url(r'^feature_empty/(?P<pk>\d+)//$', views.feature_empty, name='feature-empty'),
+    url(r'^feature_add_filtered/(?P<pk>\d+)/$', views.feature_add_filtered, name='feature-add-filtered'),
 
     # display overview of results for selected experiments
     url(r'^analysis_summary/$', login_required(views.analysis_summary), name='analysis-summary'),
@@ -98,6 +98,9 @@ urlpatterns = [
     # display list of toxicology results (clinchem, histo)
     url(r'^toxicology_results/$', login_required(views.ToxicologyResultsSingleTableView.as_view()), name='toxicology-results'),
 
+    # display list of BMD pathway results
+    url(r'^bmd_pathway_results/$', login_required(views.BMDPathwayResultsSingleTableView.as_view()),name='bmdpathway-results'),
+
     # export to excel handler
     url(r'^export_results/(?P<restype>\w+)$', views.export_result_xls, name='export-result'),
 
@@ -110,15 +113,21 @@ urlpatterns = [
     # export filtered results to json for mapchart
     url(r'^mapchart_json/$', views.export_mapchart_json, name='mapchart-json'),
 
+    # export filtered results to json for Trellis
+    url(r'^trellischart_json/$', views.export_trellischart_json, name='trellischart-json'),
+
     # export filtered results to json for barchart
     url(r'^barchart_json/$', views.export_barchart_json, name='barchart-json'),
 
     # export filtered results to json for treemap
     url(r'^treemap_json/$', views.export_treemap_json, name='treemap-json'),
 
+    # export filtered results to json for treemap
+    url(r'^bmd_accumulation_json/$', views.export_bmd_accumulation_json, name='bmd-accumulation-json'),
+
     url(r'^get_tox_assoc/$', login_required(views.ToxAssociation.as_view()), name='get-tox-assoc'),
 
-    url(r'^get_feature_subset/(?P<geneset_id>\d+)$', views.get_feature_subset, name='get-feature-subset'),
+    url(r'^gene_drilldown/(?P<geneset_id>\d+)$', views.gene_drilldown, name='gene-drilldown'),
 
     url(r'^manage_session/$', views.manage_session, name='manage-session'),
 
@@ -126,5 +135,18 @@ urlpatterns = [
 
     # prepare a CSV file with unique ID that Leiden can pull in for their human primary heps analysis
     url(r'^export_leiden/$', views.export_leiden, name='export-leiden'),
+
+    # view all of a user's bookmarks
+    url(r'^bookmarks/$', login_required(views.BookmarkView.as_view()), name='bookmarks'),
+
+    url(r'^bookmark/add/$', login_required(views.bookmark_create_update), name='bookmark-add'),
+    url(r'^bookmark/(?P<pk>[0-9]+)/$', login_required(views.bookmark_create_update), name='bookmark-update'),
+    url(r'^bookmark/(?P<pk>[0-9]+)/delete/$', login_required(views.BookmarkDelete.as_view()), name='bookmark-delete'),
+
+    url(r'^bookmark_activate/(?P<pk>\d+)/$', views.bookmark_activate, name='bookmark-activate'),
+    url(r'^bookmark_deactivate/(?P<pk>\d+)/$', views.bookmark_deactivate, name='bookmark-deactivate'),
+
+    url(r'^bookmarked_genes/(?P<bookmark_id>[0-9]+)/$', login_required(views.AddGeneBookmark.as_view()), name='gene-bookmark'),
+    url(r'^bookmarked_genesets/(?P<bookmark_id>[0-9]+)/$', login_required(views.AddGeneSetBookmark.as_view()), name='geneset-bookmark'),
 
 ]

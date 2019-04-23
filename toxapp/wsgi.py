@@ -15,9 +15,9 @@ from django.core.wsgi import get_wsgi_application
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 try: #todo add more appropriate fix 1.21.2
-    APP_NAME = os.path.abspath(__file__).split('/')[-2]
+    APP_NAME = os.path.abspath(__file__).split('/')[-2] #mac/linux
 except:
-    APP_NAME = os.path.abspath(__file__).split('\\')[-2]
+    APP_NAME = os.path.abspath(__file__).split('\\')[-2] #windows
 settings_module = APP_NAME + '.settings'
 os.environ["DJANGO_SETTINGS_MODULE"] = settings_module
 

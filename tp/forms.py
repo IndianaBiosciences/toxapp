@@ -1,7 +1,7 @@
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-from django.forms import ModelForm, modelformset_factory
-from .models import Study, Experiment, Sample, Gene, GeneSets
+from django.forms import ModelForm, modelformset_factory, formset_factory
+from .models import Study, Experiment, Sample, Bookmark
 import logging
 
 logger = logging.getLogger(__name__)
@@ -89,34 +89,29 @@ class MapFileForm(forms.Form):
 # put customizations to the sample form in the SampleForm class
 # since this is being used with sample names supplied as initial values, don't present the delete option
 # i.e. they are not objects that need to be deleted; will use javascript to remove rows as needed
-SampleFormSet = modelformset_factory(Sample, form=SampleForm, extra=3, can_delete=False)
+SampleFormSet = modelformset_factory(Sample, form=SampleForm, extra=3, can_delete=False, can_order=True)
 
 
-class FeatureConfirmForm(forms.Form):
-    """ checkbox form to identify which of existing experiments will be retained """
-    features = forms.ModelMultipleChoiceField(required=False,
-                                              queryset=None, widget=forms.CheckboxSelectMultiple(attrs={'checked': ''}))
+class BookmarkForm(ModelForm):
+    """BookmarkForm -- form class to handle bookmark meta data"""
 
-    def __init__(self, *args, **kwargs):
+    class Meta:
+        model = Bookmark
+        exclude = ['owner', 'date_created']
+        widgets = {
+            'type': forms.RadioSelect()
+        }
 
-        try:
-            ftype = kwargs.pop('ftype')
-        except KeyError:
-            logger.error('Need to supply argument ftype')
-            return None
 
-        flist = list()
-        try:
-            flist = kwargs.pop('flist')
-        except KeyError:
-            pass
+class BookmarkMemberForm(forms.Form):
+    """ BookmarkMemberForm -- form class to show bookmark members (genes or genesets) """
 
-        if ftype == 'modules' or ftype == 'genesets':
-            features = GeneSets.objects.filter(pk__in=flist) if flist else GeneSets.objects.all()
-        elif flist == 'genes':
-            features = Gene.objects.filter(pk__in=flist) if flist else Gene.objects.all()
-        else:
-            raise NotImplemented('type {} not implemented'.format(ftype))
+    # NOTE - did not use modelForm because there are two underlying models - genes or genesets;
+    # simplest to use a basic non-model form and take care of model business in the view
+    feature_id = forms.IntegerField(required=True, widget=forms.HiddenInput())
+    feature = forms.CharField(required=True, widget=forms.HiddenInput())
+    desc = forms.CharField(required=True, widget=forms.HiddenInput())
+    delete = forms.BooleanField(required=False)
 
-        super(FeatureConfirmForm, self).__init__(*args, **kwargs)
-        self.fields['features'].queryset = features
+
+BookmarkMemberFormSet = formset_factory(form=BookmarkMemberForm, extra=0, max_num=30)

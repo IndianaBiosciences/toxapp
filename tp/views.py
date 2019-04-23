@@ -16,13 +16,15 @@ from django_tables2 import SingleTableView
 
 from tempfile import gettempdir
 from .models import Study, Experiment, Sample, ExperimentSample, FoldChangeResult, ModuleScores, GSAScores,\
-                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene
+                    ExperimentCorrelation, ToxicologyResult, GeneSets, GeneSetTox, Gene, BMDFile, BMDPathwayResult,\
+                    BMDAnalysis, Bookmark, GeneBookmark, GeneSetBookmark
 from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesForm, ExperimentSampleForm,\
-                   ExperimentConfirmForm, SampleConfirmForm, MapFileForm, FeatureConfirmForm
+                   ExperimentConfirmForm, SampleConfirmForm, MapFileForm, BookmarkForm, \
+                   BookmarkMemberFormSet
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
 from src.computation import cluster_expression_features
 from src.treemap import TreeMap
-
+import re
 import tp.filters
 import tp.tables
 import tp.utils
@@ -45,7 +47,11 @@ def index(request):
 
 
 def get_study_from_session(session):
+    """
+    Action:  Returns study object from the session storage
+    Returns: Session Storages studyobj
 
+    """
     studyobj = None
     if session.get('adding_study', None) is None:
         logger.error('no adding_study key in session')
@@ -62,8 +68,7 @@ def reset_session(session):
     """ helper function to restore various session vars used for tracking between views """
 
     logger.debug('Resetting session info for tracking metadata across handlers')
-    # TODO - delete the existing tmp_dir first
-    # delete and not set to None due to manner in which they are created as lists
+
     for attr in ['tmp_dir', 'last_exp_id', 'computation_recs', 'measurement_tech', 'computation_config', 'adding_study', 'added_sample_names', 'sample_file', 'sim_list']:
         try:
             del session[attr]
@@ -91,7 +96,11 @@ def manage_session(request):
 
 
 def get_temp_dir(request):
+    """
+    Action:  If temporary directory does not exist, it is created. Then the temporary directory is returned
+    Returns: Temporary Directory
 
+    """
     if request.session.get('tmp_dir', None) is None:
         tmp = os.path.join(gettempdir(), '{}'.format(hash(time.time())))
         os.makedirs(tmp)
@@ -107,7 +116,11 @@ def get_temp_dir(request):
 
 
 def remove_from_computation_recs(request, exp):
+    """
+    Action:  Removes experiments from computation recs within the current session
+    Returns: None
 
+    """
     logger.debug('Removing experiment %s from computation_recs in session', exp)
     computation_recs = request.session.get('computation_recs', [])
     exp_id = exp.pk
@@ -217,105 +230,283 @@ def cart_edit(request, pk=None):
     return render(request, 'cart_edit.html', context)
 
 
-def feature_add(request, pk, ftype):
-    pk = int(pk)
-    if request.session.get('saved_features', None) is None:
-        request.session['saved_features'] = {}
+def bookmark_create_update(request, pk=None):
 
-    flist = request.session['saved_features'].get(ftype, [])
+    """ update a bookmark meta data (name, type),  and delete constituent members """
 
-    if pk not in flist:
-        flist.append(pk)
-    request.session['saved_features'][ftype] = flist
-    # major PITA - see https://docs.djangoproject.com/en/2.0/topics/http/sessions/, 'when sessions are saved'
-    # it does not trigger a save to DB if keys below session are modified
-    request.session.modified = True
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+    # NOTE - unlike create and delete of bookmark, this is not a class-based view.
+    # JS explored use of Django extra views to nest a formset of members under the bookmark form, but there are
+    # too many issues to resolve; 1) forcing delete of members if changing the type of bookmark; 2) not allowing
+    # someone to switch from one member to another (because of the sheer number of choices on latter).  Overloading
+    # get_queryset in the inline formset factory still does a full table scan to on the dialog to swap a member to another
+    # even if that is actually disabled in the form with a disabled class
 
+    bookmark_obj = None
+    form = None
+    formset = None
+    members = None
+    truncated = None
 
-def feature_add_filtered(request):
-    if request.session.get('saved_features', None) is None:
-        request.session['saved_features'] = {}
-
-    # TODO - see related comment on ToxAssociation view
-    # because modules and GSA genesets are filtered together in ToxAssociation, they are separated by type
-    # in the ToxAssociation class and will be available within the separate module or GSA result views
-    filtered_modules = request.session.get('filtered_modules', [])
-    module_list = request.session['saved_features'].get('modules', [])
-    if filtered_modules:
-        for pk in filtered_modules:
-            if pk not in module_list:
-                module_list.append(pk)
-
-        request.session['saved_features']['modules'] = module_list
-
-    filtered_genesets = request.session.get('filtered_genesets', [])
-    geneset_list = request.session['saved_features'].get('genesets', [])
-    if filtered_genesets:
-        for pk in filtered_genesets:
-            if pk not in geneset_list:
-                geneset_list.append(pk)
-        request.session['saved_features']['genesets'] = geneset_list
-
-    request.session.modified = True
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-
-def feature_del(request, pk, ftype):
-    pk = int(pk)
-    saved_features = request.session.get('saved_features', {})
-    flist = saved_features.get(ftype, [])
-
-    if flist and pk in flist:
-        flist.remove(pk)
-    request.session['saved_features'][ftype] = flist
-    request.session.modified = True
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-
-def feature_empty(request):
-
-    if request.session.get('saved_features', None):
-        request.session['saved_features'] = {}
-        request.session.modified = True
-
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-
-def manage_features(request, ftype):
+    if pk:
+        bookmark_obj = get_object_or_404(Bookmark, pk=pk)
+        if bookmark_obj.type == 'GS':
+            members = GeneSetBookmark.objects.filter(bookmark=bookmark_obj)
+        elif bookmark_obj.type == 'G':
+            members = GeneBookmark.objects.filter(bookmark=bookmark_obj)
+        elif bookmark_obj:
+            raise ValueError('Bookmark type must be GS or G')
 
     if request.method == 'POST':
-        form = FeatureConfirmForm(request.POST, ftype=ftype)
+
+        form = BookmarkForm(request.POST, instance=bookmark_obj, prefix='bookmark')
+
+        # validate the form and formset separately; track failure on either front to stay on the form
+        success = True
         if form.is_valid():
 
-            retained_ids = []
-            for f in form.cleaned_data['features']:
-                retained_ids.append(f.pk)
+            bookmark_obj = form.save(commit=False)
+            bookmark_obj.owner = request.user
+            bookmark_obj.save()
+            logger.debug('Saved bookmark object %s', bookmark_obj.id)
 
-            logger.debug('Features being saved in session: %s', retained_ids)
-            request.session['saved_features'][ftype] = retained_ids
-            request.session.modified = True
+            if members and 'type' in form.changed_data:
+                logger.debug('Bookmark type was changed; deleting existing members')
+                members.delete()
+                members = None
+        else:
+            success = False
 
-            if request.POST.get('referrer'):
-                return HttpResponseRedirect(request.POST.get('referrer'))
+        if members:
+            formset = BookmarkMemberFormSet(request.POST, prefix='members')
+            if formset.is_valid():
+                # were any of the members marked for deletion? identify and delete
+                for m in formset.cleaned_data:
+                    if m['delete']:
+                        logger.debug('Bookmark member %s marked for deletion from bookmark %s', m['feature'], bookmark_obj.name)
+                        if bookmark_obj.type == 'GS':
+                            GeneSetBookmark.objects.get(id=m['feature_id']).delete()
+                        elif bookmark_obj and bookmark_obj.type == 'G':
+                            GeneBookmark.objects.get(id=m['feature_id']).delete()
             else:
-                return HttpResponseRedirect(reverse('tp:experiments'))
+                success = False
+
+        if success:
+            url = _get_bookmark_url(request, bookmark_obj)
+            return HttpResponseRedirect(url)
+        else:
+            logger.debug('Failed to validate either the form or formset')
 
     else:
+        form = BookmarkForm(instance=bookmark_obj, prefix='bookmark')
 
-        saved_features = request.session.get('saved_features', {})
-        flist = saved_features.get(ftype, [])
+        # when landing here from a get request, track the referrer to rediret on 'return' either to bookmark list
+        # or the tox-geneset filtering dialog
+        request.session['bookmark_referrer'] = request.META.get('HTTP_REFERER')
 
-        if not flist:
-            message = 'Please add genes/modules/genesets first'
-            redirect_url = reverse('tp:get-tox-assoc')
+        # if there are already genes or genesets associated with bookmark, display them in formset
+        # won't be true where bookmark_obj is None (i.e. a new bookmark)
+        members = None
+        if bookmark_obj and bookmark_obj.type == 'GS':
+            members = GeneSetBookmark.objects.filter(bookmark=bookmark_obj)
+        elif bookmark_obj and bookmark_obj.type == 'G':
+            members = GeneBookmark.objects.filter(bookmark=bookmark_obj)
+        elif bookmark_obj:
+            raise ValueError('Bookmark type must be GS or G')
+
+        if members:
+
+            if len(members) > 20:
+                members = members[:20]
+                truncated = True
+
+            initial = list()
+            for m in members:
+                if bookmark_obj.type == 'GS':
+                    desc = operator.attrgetter('geneset.desc')(m)
+                    if len(desc) > 25:
+                        desc = desc[:25] + '...'
+                    initial.append({
+                        'feature_id': m.pk,
+                        'feature': operator.attrgetter('geneset.name')(m),
+                        'desc': desc,
+                        'delete': False
+                    })
+                else:
+                    initial.append({
+                        'feature_id': m.pk,
+                        'feature': operator.attrgetter('gene.rat_entrez_gene')(m),
+                        'desc': operator.attrgetter('gene.rat_gene_symbol')(m),
+                        'delete': False
+                    })
+
+            formset = BookmarkMemberFormSet(initial=initial, prefix='members')
+
+    context = {'form': form, 'formset': formset, 'editing': pk, 'truncated': truncated}
+    return render(request, 'bookmark_form.html', context)
+
+
+def _get_bookmark_url(request, bookmark_obj):
+
+    if request.POST.get('_save_ret') is not None and request.session['bookmark_referrer'] and 'get_tox_assoc' in request.session['bookmark_referrer']:
+        # when coming to edit a bookmark from the toxicity association view, return to it
+        return request.session['bookmark_referrer']
+    elif request.POST.get('_save_ret') is not None:
+        return reverse('tp:bookmarks')
+    elif request.POST.get('_continue') is not None:
+        return reverse('tp:bookmark-update', kwargs={'pk': bookmark_obj.pk})
+    elif request.POST.get('_save_add_genes') is not None:
+        # is it a gene or geneset type? query the object
+        logger.debug('Adding to bookmark of type %s', bookmark_obj.type)
+        if bookmark_obj.type == 'GS':
+            return reverse('tp:geneset-bookmark', kwargs={'bookmark_id': bookmark_obj.pk})
+        else:
+            return reverse('tp:gene-bookmark', kwargs={'bookmark_id': bookmark_obj.pk})
+    else:
+        # the default behavior for Bookmark object
+        return reverse('tp:bookmarks')
+
+
+def bookmark_activate(request, pk):
+    """ add a bookmkark to the list of active bookmarks and return to referrer """
+
+    pk=int(pk) # make integer for lookup within template
+    active_list = request.session.get('active_bookmarks', [])
+    if pk not in active_list:
+        active_list.append(pk)
+    request.session['active_bookmarks'] = active_list
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+
+def bookmark_deactivate(request, pk):
+    """ remove a bookmark from the list of active bookmarks and return to referrer """
+
+    pk=int(pk) # make integer for lookup within template
+    active_list = request.session.get('active_bookmarks', [])
+    if pk in active_list:
+        active_list.remove(pk)
+    request.session['active_bookmarks'] = active_list
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def _get_bookmark_feature_objs(request, feature_id, bookmark_id):
+    """ private method for shared validation of gene/geneset + bookmark ID pairs """
+
+    try:
+        bookmark_obj = Bookmark.objects.get(id=bookmark_id)
+    except Bookmark.DoesNotExist:
+        message = 'Bookmark id {} is not valid'.format(bookmark_id)
+        redirect_url = reverse('tp:bookmarks')
+        context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+        return render(request, 'generic_message.html', context)
+
+    if bookmark_obj.type == 'GS':
+        try:
+            feature_obj = GeneSets.objects.get(id=feature_id)
+        except GeneSets.DoesNotExist:
+            message = 'geneset id {} is not valid'.format(feature_id)
+            redirect_url = reverse('tp:bookmarks')
             context = {'message': message, 'redirect_url': redirect_url, 'error': True}
             return render(request, 'generic_message.html', context)
 
-        form = FeatureConfirmForm(ftype=ftype, flist=flist)
+    elif bookmark_obj.type == 'G':
+        try:
+            feature_obj = Gene.objects.get(id=feature_id)
+        except Gene.DoesNotExist:
+            message = 'gene id {} is not valid'.format(feature_id)
+            redirect_url = reverse('tp:bookmarks')
+            context = {'message': message, 'redirect_url': redirect_url, 'error': True}
+            return render(request, 'generic_message.html', context)
 
-    context = {'form': form}
-    return render(request, 'feature_edit.html', context)
+    else:
+        raise ValueError('Bookmark type must be GS or G')
+
+    return bookmark_obj, feature_obj,
+
+
+def feature_add(request, pk, bookmark_id):
+    """
+    Action:  Adds a feature (gene or gene set) to a bookmark
+    Returns: referring URL
+    """
+
+    bookmark_obj, feature_obj = _get_bookmark_feature_objs(request, pk, bookmark_id)
+
+    if bookmark_obj.type == 'GS':
+        member_obj, _ = GeneSetBookmark.objects.get_or_create(bookmark=bookmark_obj, geneset=feature_obj)
+    elif bookmark_obj.type == 'G':
+        member_obj, _ = GeneBookmark.objects.get_or_create(bookmark=bookmark_obj, gene=feature_obj)
+    else:
+        raise ValueError('Bookmark type must be GS or G')
+
+    logger.debug('Added feature object %s for bookmark %s of type %s', feature_obj, bookmark_obj.name, bookmark_obj.type)
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def feature_del(request, pk, bookmark_id):
+    """
+    Action:  delete a feature (gene or gene set) from a bookmark
+    Returns: referring URL
+    """
+
+    bookmark_obj, feature_obj = _get_bookmark_feature_objs(request, pk, bookmark_id)
+
+    if bookmark_obj.type == 'GS':
+        GeneSetBookmark.objects.filter(bookmark=bookmark_obj, geneset=feature_obj).delete()
+    elif bookmark_obj.type == 'G':
+        GeneBookmark.objects.filter(bookmark=bookmark_obj, gene=feature_obj).delete()
+    else:
+        raise ValueError('Bookmark type must be GS or G')
+
+    logger.debug('Deleted feature object %s for bookmark %s of type %s', feature_obj, bookmark_obj.name, bookmark_obj.type)
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def feature_add_filtered(request, pk):
+    """
+    Action:  adds all filtered genes or gene sets to a given bookmark ID
+    Returns: referrer URL
+
+    """
+    filtered_features = request.session.get('filtered_genesets', [])
+    if not filtered_features:
+        message = 'There should be filtered_genesets in the session; report bug'
+        context = {'message': message, 'error': True}
+        return render(request, 'generic_message.html', context)
+
+    bookmark_obj = Bookmark.objects.get(id=pk)
+
+    if bookmark_obj.type == 'GS':
+        geneset_objs = GeneSets.objects.filter(id__in=filtered_features)
+        for g in geneset_objs:
+            GeneSetBookmark.objects.get_or_create(bookmark=bookmark_obj, geneset=g)
+    elif bookmark_obj.type == 'G':
+        gene_objs = Gene.objects.filter(id__in=filtered_features)
+        for g in gene_objs:
+            GeneBookmark.objects.get_or_create(bookmark=bookmark_obj, gene=g)
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+def feature_empty(request, pk):
+    """
+    Action:  Removes all genes or genesets from a given bookmark ID
+    Returns: referrer URL
+
+    """
+
+    bookmark_obj = Bookmark.objects.get(id=pk)
+
+    if bookmark_obj.type == 'GS':
+        GeneSetBookmark.objects.filter(bookmark=bookmark_obj).delete()
+    elif bookmark_obj.type == 'G':
+        GeneBookmark.objects.filter(bookmark=bookmark_obj).delete()
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 
 def analysis_summary(request):
@@ -336,6 +527,24 @@ def analysis_summary(request):
         if e.tissue == 'primary_heps':
             context['show_leiden'] = 1
             break
+
+    bmds = BMDFile.objects.filter(experiment__id__in=analyze_list)
+
+    # there are benchmarkdose results for one or more experiments in cart
+    # however, don't show if more than 4 files - likely to be someone who added all exps to cart
+    if bmds and bmds.values_list('experiment__study__study_name').distinct().count() <= 4:
+        have_file = list()
+        study_file_pairs = list()
+
+        for bmd in bmds:
+            study_name = bmd.experiment.study.study_name
+            file = bmd.bm2_file
+            if file not in have_file:
+                url = '/docs/bm2_files/' + file
+                study_file_pairs.append({'study_name': study_name, 'link': url})
+                have_file.append(file)
+
+        context = {'bmd_results': study_file_pairs}
 
     return render(request, 'analysis_summary.html', context)
 
@@ -440,7 +649,7 @@ def samples_confirm(request):
             return render(request, 'generic_message.html', context)
 
         smpls = Sample.objects.filter(study=study).all()
-
+        smpls = smpls.order_by('date_created', 'order')
         # if revising an existing, it's possible to move to experiment-vs-sample dialog without ever uploading
         # a file (and hence setting sample_files and other stuff in session; force use of sample upload handler
         # Also, if there aren't any existing samples, skip this dialog and go straight to upload handler
@@ -458,12 +667,11 @@ def samples_confirm(request):
 def create_samples(request):
     """ allow bulk creation/edit of samples from uploaded file """
 
-    #TODO - Nasty bug where if you make mistake and select upload single sample and select file
+    #TODO - URGENT - Nasty bug where if you make mistake and select upload single sample and select file
     # and then realize and go back and select the correct multiple files -- only the initial file
     # will be uploaded to the tmpdir. However, the other samples are in the session and it appears
     # to work until you launch the computation
     skipped_from_file = list()
-
     if request.method == 'POST':
         formset = SampleFormSet(request.POST)
         if formset.is_valid():
@@ -472,11 +680,16 @@ def create_samples(request):
             # since you can delete the first one and 2, 3, ... come through just not the last one
             # can also get this if you delete all orig ones and hand-enter new sample names
             study = get_study_from_session(request.session)
+
             samples = formset.save(commit=False)
+            for form in formset.ordered_forms:
+                form.instance.order = form.cleaned_data['order']
+
             # need to save the study which was not in the formset
             for s in samples:
                 s.study = study
                 s.save()
+
             return HttpResponseRedirect(reverse('tp:samples-confirm'))
 
     else:
@@ -674,50 +887,12 @@ def confirm_experiment_sample_pair(request):
             table_ids += row['experiment_vs_sample']
 
         logger.debug('computation_recs stored in session: %s', pprint.pformat(data))
-#        table_content = ExperimentSample.objects.filter(pk__in=table_ids)
-#        for row in table_content:
-#            logger.debug('Content of row %s, %s, %s', row.group_type, row.sample, row.experiment)
-#
-#        context = {'table': table_content}
         return render(request, 'experiment_vs_sample_confirm.html', {'data': data})
 
 
-def filter_vs_feature_subset(request, data):
-    """ filter results vs. a saved list of feature (Genes, modules, genesets) in the session """
+def gene_drilldown(request, geneset_id):
+    """ utility to create and set as active a bookmark of genes for a given geneset  """
 
-    # TODO - session should store them under different types so that someone could have their favorite genes, modules
-    # and gene sets stored under prefs.  Or manage 'current list', with dialog to switch to a selected list from
-    # many stored favorites
-
-    change = None
-    # no subset of features for filtering; nothing to do
-    features = request.session.get('saved_features', {})
-    if not features:
-        logger.debug('No features saved in session; no filtering')
-        return data, change
-    if data.model == ModuleScores and features.get('modules', None) is not None:
-        logger.debug('Filtering for type ModuleScore')
-        data = data.filter(module__pk__in=features['modules'])
-        change = True
-    elif data.model == GSAScores and features.get('genesets', None) is not None:
-        logger.debug('Filtering for type GSAScore')
-        data = data.filter(geneset__pk__in=features['genesets'])
-        change = True
-    elif data.model == FoldChangeResult and features.get('genes', None) is not None:
-        logger.debug('Filtering for type FoldChangeResult')
-        data = data.filter(gene_identifier__gene__pk__in=features['genes'])
-        change = True
-    else:
-        logger.debug('No filtering performed on results of class %s', data.model)
-
-    return data, change
-
-
-def get_feature_subset(request, geneset_id):
-    """ store a list of genes for the geneset within the session """
-
-    # TODO - turn this into a typical form allowing someone to create a list of
-    # favorite genes, etc.  For now purely intended for getting a list of genes into session from module/geneset view
     try:
         geneset = GeneSets.objects.get(id=geneset_id)
     except:
@@ -726,17 +901,23 @@ def get_feature_subset(request, geneset_id):
         context = {'message': message, 'error': True}
         return render(request, 'generic_message.html', context)
 
-    members = list(geneset.members.values_list('id', flat=True))
+    bookmark_obj, created = Bookmark.objects.get_or_create(owner=request.user, name='gene set members', type='G')
 
-    if request.session.get('saved_features', None) is None:
-        request.session['saved_features'] = dict()
+    # reusing the bookmark for geneset drill down - clear existing members
+    GeneBookmark.objects.filter(bookmark=bookmark_obj).delete()
+    for g in geneset.members.all():
+        GeneBookmark.objects.create(bookmark=bookmark_obj, gene=g)
 
-    request.session['saved_features']['genes'] = members
-    request.session.modified = True
-    request.session['use_saved_features'] = 'geneset: ' + geneset.name
-    logger.debug('Enabled filtering to %s', request.session['use_saved_features'])
-    url = reverse('tp:gene-foldchange')
-    return HttpResponseRedirect(url)
+    request.session['active_bookmarks'] = [bookmark_obj.id]
+
+    # pre-set the 'filter_on' name used to remind users of what's being filtered
+    # TODO - a second application of the filter from the gene view (i.e. drill down and see geneset genes, then
+    # release the filter, then filter back to geneset genes will now show a generic geneset name 'gene set members'
+    # because the bookmark's name is generic.  Alternative would be to create a new bookmark for the geneset, and
+    # the approach could be to trigger a deletion of temporary bookmarks when returning to the analysis summary page
+    request.session['filter_on'] = geneset.name + ' genes'
+    logger.debug('Enabled filtering to %s', request.session['filter_on'])
+    return HttpResponseRedirect(reverse('tp:gene-foldchange'))
 
 
 def compute_fold_change(request):
@@ -750,7 +931,6 @@ def compute_fold_change(request):
         return HttpResponseRedirect(reverse('tp:experiments'))
 
     else:
-        # TODO - Should move most of this to the Computation.calc_fold_change location to keep this cleaner
         tmpdir = get_temp_dir(request)
         cfg_file = request.session.get("computation_config")
         logger.debug('compute_fold_change: json job config file:  %s', cfg_file)
@@ -771,6 +951,7 @@ def compute_fold_change(request):
         n_samples = 0
         for e in experiments:
             n_samples += len(e['sample'])
+        context['n_experiments'] = len(experiments)
         context['n_samples'] = n_samples
         res = process_user_files.delay(tmpdir, cfg_file, user.email)
         logger.debug("compute_fold_change: config %s", pprint.pformat(experiments))
@@ -847,6 +1028,18 @@ def make_result_export(request, restype=None, incl_all=None):
             rows = ToxicologyResult.objects.filter(pk__in=subset)
         else:
             rows = ToxicologyResult.objects.filter(experiment__pk__in=exp_list)
+
+    elif restype.lower() == 'bmdpathwayresult':
+
+        bmdanalyses = BMDAnalysis.objects.filter(experiments__pk__in=exp_list).distinct()
+        rows = BMDPathwayResult.objects.filter(analysis__in=bmdanalyses)
+        if subset:
+            subrows = rows.filter(pk__in=subset)
+            if incl_all:
+                features = list(subrows.values_list('geneset', flat=True))
+                rows = rows.filter(geneset__in=features)
+            else:
+                rows = subrows
 
     else:
         raise NotImplementedError ('Type not implemented:', restype)
@@ -928,6 +1121,26 @@ def export_result_xls(request, restype=None):
                 limit_breached = True
                 break
 
+    elif restype.lower() == 'bmdpathwayresult':
+        # not appending to colnames - no experiment ID, experiment name for BMD analysis
+        colnames = []
+        for f in BMDPathwayResult._meta.get_fields():
+            if f.name in ['id', 'experiment']:
+                continue
+            colnames.append(f.verbose_name)
+
+        rowcount = 0
+        for r in res['data']:
+            nr = [r.analysis.name]
+            for f in BMDPathwayResult._meta.get_fields():
+                if f.name in ['id', 'experiment', 'analysis']:
+                    continue
+                nr.append(getattr(r, f.name))
+            data.append(nr)
+            rowcount += 1
+            if rowcount > rowlimit:
+                limit_breached = True
+                break
     else:
         raise NotImplementedError ('Type not implemented:', restype)
 
@@ -1060,7 +1273,11 @@ def export_heatmap_json(request):
             ndata.append(nr)
 
         if cluster:
-            xvals, ndata = cluster_expression_features(ndata, x_vals, y_vals)
+            x_vals, ndata = cluster_expression_features(ndata, x_vals, y_vals)
+            #print("xvals \n")
+            #print(xvals)
+            #print("x_vals \n")
+            #print(x_vals)
 
         nres['data'] = ndata
         nres['x_vals'] = x_vals
@@ -1103,7 +1320,7 @@ def export_mapchart_json(request, restype=None):
 
         # TODO - not really working, as the range_to for blue to white goes through green and yellow, i.e .rainbow
         # probably best to revisit having highcharts do the coloring ... see Treemap coloring setup
-        # some ideas here - https://bsou.io/posts/color-gradients-with-python
+        # some ideas here - https://bsou.io/posts/color-gradients-with-python look at treemap for reference
         blue = colour.Color('blue')
         white = colour.Color('white')
         red = colour.Color('red')
@@ -1148,6 +1365,8 @@ def export_mapchart_json(request, restype=None):
                 # calc the distance from scale min to scale max for the current value and pick the nearest color
                 # from set of 100
                 color_index = int((val - nres['scalemin'])/(nres['scalemax'] - nres['scalemin'])*100)
+                if color_index > 99:
+                    color_index = 99
                 color = both[color_index].get_hex()
 
             ttiptxt = ''
@@ -1161,6 +1380,130 @@ def export_mapchart_json(request, restype=None):
             nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'geneset_id': geneset_id, 'thisgeneset':thisgene, 'color': color, 'trellis': trellis, 'detail': ttiptxt, 'compound_name': compound_name, 'time': timer, 'dose': dose, 'dose_unit': dose_unit}
             ndata.append(nr)
         ndata = sorted(ndata, key=lambda x: (x['thisgeneset'],x['compound_name'],x['time'],x['dose']))
+        nres['data'] = ndata
+    return JsonResponse(nres)
+
+
+
+
+
+def sorted_alphanum(l):
+    """sorts by number and alpha characters"""
+    convert = lambda text: int(text) if text.isdigit() else text
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(l, key=alphanum_key)
+
+
+def export_trellischart_json(request, restype=None):
+    """ query module / GSA / gene fold change and return json data """
+    res = make_result_export(request, restype)
+    x_val = request.GET['x_val']
+    y_val = request.GET['y_val']
+    times = []
+    dosages = []
+    comp = []
+    totaler = []
+    nres = dict()
+
+    if res is None:
+        # not an error when called here - as user filters data and there are no results avail, the
+        # chart will ask for revised dataset
+        logger.info('Empty dataset requested for visualization')
+        nres['empty_dataset'] = True
+        return JsonResponse(nres)
+
+    else:
+
+        restype = res['restype']
+        nres['restype'] = restype
+        nres['image'] = None
+
+        if restype.lower() == 'modulescores':
+            viz_cols = {'geneset_id': 'module.id', 'geneset': 'module.name', 'x': 'module.x_coord', 'y': 'module.y_coord', 'image': 'module.image', 'val': 'score', 'tooltip': ['module.name']}
+            nres.update({'scale': 'WGCNA module score', 'scalemin': -5, 'scalemax': 5})
+        elif restype.lower() == 'gsascores':
+            viz_cols = {'geneset_id': 'geneset.id', 'geneset': 'geneset.name', 'x': 'geneset.x_coord', 'y': 'geneset.y_coord','image': 'geneset.image', 'val': 'score', 'tooltip': ['geneset.name', 'geneset.desc', 'p_bh']}
+            nres.update({'scale': 'GSA score', 'scalemin': -15, 'scalemax': 15})
+        else:
+            nres['not_applicable'] = True
+            return JsonResponse(nres)
+
+        # TODO - not really working, as the range_to for blue to white goes through green and yellow, i.e .rainbow
+        # probably best to revisit having highcharts do the coloring ... see Treemap coloring setup
+        # some ideas here - https://bsou.io/posts/color-gradients-with-python look at treemap for reference
+        blue = colour.Color('blue')
+        white = colour.Color('white')
+        red = colour.Color('red')
+        blues = list(blue.range_to(white, 50))
+        reds = list(white.range_to(red, 50))
+        both = blues + reds
+
+        ndata = list()
+
+        for r in res['data']:
+
+            image = operator.attrgetter(viz_cols['image'])(r)
+            if image is None:
+                continue
+            if nres.get('image', None) is None:
+                nres['image'] = image
+            elif nres['image'] != image:
+                raise Exception('Multiple images retrieved for the current result set')
+
+            x = operator.attrgetter(viz_cols['x'])(r)
+            y = operator.attrgetter(viz_cols['y'])(r)
+            trellis = operator.attrgetter('experiment.experiment_name')(r)
+            val = float(operator.attrgetter(viz_cols['val'])(r))
+            geneset = operator.attrgetter(viz_cols['geneset'])(r)
+            geneset_id = operator.attrgetter(viz_cols['geneset_id'])(r)
+            compound_name = operator.attrgetter('experiment.compound_name')(r)
+            timer = operator.attrgetter('experiment.time')(r)
+            dose = operator.attrgetter('experiment.dose')(r)
+            dose_unit = operator.attrgetter('experiment.dose_unit')(r)
+            thisgene = geneset.split(':')
+
+
+            if val < nres['scalemin']:
+                z = abs(nres['scalemin'])
+                color = blues[0].get_hex()
+            elif val > nres['scalemax']:
+                z = nres['scalemax']
+                color = reds[-1].get_hex()
+            else:
+                # would not work if scale not symetric
+                z = abs(val) / nres['scalemax']
+                # calc the distance from scale min to scale max for the current value and pick the nearest color
+                # from set of 100
+                color_index = int((val - nres['scalemin'])/(nres['scalemax'] - nres['scalemin'])*100)
+                if color_index > 99:
+                    color_index = 99
+                color = both[color_index].get_hex()
+
+            ttiptxt = ''
+            for item in viz_cols['tooltip']:
+                s = str(operator.attrgetter(item)(r))
+                if ttiptxt:
+                    ttiptxt += '; '
+                ttiptxt += item + '=' + s
+
+            # without the explicit float call (because it's a decimal), json ends up with numeric value in string
+            nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'geneset_id': geneset_id, 'thisgeneset':thisgene, 'color': color, 'trellis': trellis, 'detail': ttiptxt, 'compound_name': compound_name, 'time': timer, 'dose': dose, 'dose_unit': dose_unit}
+            times.append(timer)
+            dosages.append(str(dose) + dose_unit)
+            comp.append(str(compound_name))
+            totaler.append( str(compound_name)+ str(dose)+str(dose_unit)+str(timer))
+            ndata.append(nr)
+        if(x_val=='Time'):
+            ndata = sorted(ndata, key=lambda x: (x['thisgeneset'],x['compound_name'],x['time'],x['dose']))
+        else:
+            ndata = sorted(ndata, key=lambda x: (x['thisgeneset'], x['compound_name'], x['dose'], x['time']))
+        nres['times'] = sorted(set(times))
+        nres['dosages'] = sorted_alphanum(set(dosages))
+        nres['comp'] = sorted(set(comp))
+
+        nres['namers'] = sorted(set(totaler))
+        nres['x_val']=x_val
+        nres['y_val'] = y_val
         nres['data'] = ndata
     return JsonResponse(nres)
 
@@ -1284,15 +1627,57 @@ def export_treemap_json(request, restype=None):
     return JsonResponse(nres)
 
 
-def gene_detail(request, gene_id):
+def export_bmd_accumulation_json(request):
+    """ query module / GSA / gene fold change and return json data """
+    res = make_result_export(request)
 
+    nres = dict()
+
+    if res is None:
+        # not an error when called here - as user filters data and there are no results avail, the
+        # chart will ask for revised dataset
+        logger.info('Empty dataset requested for visualization')
+        nres['empty_dataset'] = True
+
+    elif res['restype'].lower() != 'bmdpathwayresult':
+        nres['not_applicable'] = True
+
+    else:
+
+        # separate the experiments into separate line series, sort within series by BMD median
+        series = list()
+        analyses = set(operator.attrgetter('analysis.name')(r) for r in res['data'])
+        for a in analyses:
+            subset = sorted(filter(lambda x: operator.attrgetter('analysis.name')(x) == a, res['data']),  key=lambda x: x.bmd_median)
+            logger.info('Have %s pathway scores for analysis %s', len(subset), a)
+            count = 0
+            rows = list()
+
+            for r in subset:
+                count += 1
+                ttiptxt = r.pathway_id + ': ' + r.pathway_name + '; BMD median = ' + str(r.bmd_median)
+                nr = {'x': float(r.bmd_median), 'y': count, 'detail': ttiptxt}
+                rows.append(nr)
+
+            s = {'name': a, 'data': rows}
+            series.append(s)
+
+        nres['series'] = series
+
+    return JsonResponse(nres)
+
+def gene_detail(request, gene_id):
+    """
+    Action:  Generates url for specific gene detail page
+    Returns: Gene detail page url
+
+    """
     link = 'https://www.ncbi.nlm.nih.gov/gene/' + str(gene_id)
     return HttpResponseRedirect(link)
 
 
 class ResetSessionMixin(object):
 
-    # TODO - better way to call an arbitary function (reset_session) on CBV lisview?
     def get_context_data(self, **kwargs):
 
         # only reason for doing this is to force a reset of session when flow from study->sample upload is interrupted
@@ -1319,8 +1704,30 @@ class StudyView(ResetSessionMixin, SingleTableView):
     def get_queryset(self):
         # to ensure that only a user's study are shown to him/her
         new_context = Study.objects.filter(owner_id=self.request.user.id)
+
         return new_context
 
+class PublicStudyView(ResetSessionMixin, SingleTableView):
+    model = Study
+    template_name = 'study_list.html'
+    context_object_name = 'studies'
+    table_class = tp.tables.StudyListTable
+    table_pagination = True
+
+    def get_context_data(self, **kwargs):
+
+        context = super(PublicStudyView, self).get_context_data(**kwargs)
+        request = self.request
+        context['qc_lookup'] = tp.utils.get_user_qc_urls(request.user.username)
+
+        return context
+
+    def get_queryset(self):
+        # to ensure that only a user's study are shown to him/her
+        new_context = Study.objects.filter(permission='P').exclude(study_name__endswith='-TG').exclude(study_name__endswith='-DM')
+        #new_context = Study.objects.filter(permission='P').exclude(source='TG').exclude(source='DM')
+
+        return new_context
 
 class StudyCreateUpdateMixin(object):
 
@@ -1404,22 +1811,37 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
             # exps = Experiment.objects.annotate(rank=SearchRank(vector, query)).order_by('-rank')
             # instead running multiple searches, one per keyword and combining
 
-            vector = SearchVector('experiment_name',
-                                  'compound_name',
-                                  'tissue',
-                                  'organism',
-                                  'strain')
+            #vector = SearchVector('experiment_name',
+             #                     'compound_name',
+              #                    'tissue',
+               #                   'organism',
+                #                  'strain')
 
             first = terms.pop(0)
-            exps = Experiment.objects.annotate(search=vector).filter(search__contains=first)
-            logger.debug('First user term %s returned %s hits', first, len(exps))
 
-            while terms:
-                this = terms.pop(0)
-                logger.debug('Searching on term %s', this)
-                exps = exps.annotate(search=vector).filter(search__contains=this)
-                logger.debug('Subsequent user term %s reduced to %s hits', this, len(exps))
 
+            #exps = Experiment.objects.annotate(search__icontains=vector).filter(search__icontains=first)
+            nsearch = Experiment.objects.filter(experiment_name__icontains=first)
+            csearch = Experiment.objects.filter(compound_name__icontains=first)
+            tsearch = Experiment.objects.filter(tissue__icontains=first)
+            osearch = Experiment.objects.filter(organism__icontains=first)
+            ssearch = Experiment.objects.filter(strain__icontains=first)
+
+
+
+
+
+
+            #logger.debug('First user term %s returned %s hits', first, len(exps))
+
+            #while terms:
+                #this = terms.pop(0)
+                #logger.debug('Searching on term %s', this)
+                #exps = exps.annotate(search__icontains=vector).filter(search__icontains=this)
+                #logger.debug('Subsequent user term %s reduced to %s hits', this, len(exps))
+
+
+            exps = nsearch | csearch | tsearch | osearch | ssearch
             logger.debug('User query returned %s exps', len(exps))
         elif by_study:
             exps = Experiment.objects.filter(study=int(by_study))
@@ -1485,11 +1907,13 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
             last_exp_id = self.request.session['last_exp_id']
             logger.debug('Retrieved prior experiment ID %s', last_exp_id)
             last_exp = Experiment.objects.get(pk=last_exp_id)
-            # TODO - remove experiment name assuming that this will be prepopulated by other meta data
+            # TODO - remove experiment name assuming that this will be prepopulated by other meta data play with this
             fields = ['experiment_name', 'tech', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue',
                       'organism', 'strain', 'gender', 'single_repeat_type', 'route']
             for f in fields:
                 initial[f] = getattr(last_exp, f)
+                if(f=="dose" or f=="time"):
+                    initial[f]=str(initial[f]).replace(".00","")
 
             logger.info('prepopulated object %s', pprint.pformat(initial))
 
@@ -1642,8 +2066,7 @@ class UploadSamplesView(FormView):
         form_class = self.get_form_class()
         form = self.get_form(form_class)
 
-        # TODO write custom upload handlers to send files directly working directory instead of loading them
-        # https://docs.djangoproject.com/en/1.10/ref/files/uploads/#custom-upload-handlers
+
         if form.is_valid():
 
             samples_added = []
@@ -1666,8 +2089,7 @@ class UploadSamplesView(FormView):
                             samples_added.append(s)
                 else:
                     logger.warning("unable to read uploaded file % in dir %s", f.name, tmpdir)
-                        # TODO - read and parse the first row to get the sample names, append to samples_added
-                #samples_added = some_future_call()
+
             elif request.FILES.getlist('multiple_files'):
                 tmpdir = get_temp_dir(self.request)
                 self.request.session['sample_file'] = 'cel:in_directory'
@@ -1702,7 +2124,7 @@ class UploadTechMapView(FormView):
         form_class = self.get_form_class()
         form = self.get_form(form_class)
 
-        #TODO - same thing as above, don't load into memory then dump out again
+
         if form.is_valid() and request.FILES.get('map_file', None) is not None:
             f = request.FILES.get('map_file')
             tmpdir = get_temp_dir(self.request)
@@ -1710,7 +2132,6 @@ class UploadTechMapView(FormView):
             local_file = fs.save(f.name, f)
             full_path_file = os.path.join(tmpdir, local_file)
 
-            #TODO - either use it with the .delay option in celery or add a spinning bar to show upload in progress - takes ~1 minute for 15k recs
             status = load_measurement_tech_gene_map(full_path_file)
             if status:
                 #TODO - could create a new success URL that loads a message showing name of array platforms and number of recs loaded
@@ -1738,7 +2159,7 @@ class FilteredSingleTableView(SingleTableView):
         # when accessing ToxicologyResults from the analysis_summary, reset the list of similar experiments so that
         # additional queries on the class (when user filters results) is not recognized as having come from Sim Exps
         # (the referrer will be itself)
-        # TODO - a better way to check referrer? what if URL is setup differently?
+        #todo jeff is least satisfied with this class, may want to look at later
         if type(self).__name__ == 'ToxicologyResultsSingleTableView' and referrer and 'analysis_summary' in referrer:
             logger.debug('Resetting stored list of similar experiments since referrer was analysis_summary')
             sim_list = list()
@@ -1753,6 +2174,13 @@ class FilteredSingleTableView(SingleTableView):
             data = data.filter(experiment__pk__in=ref_exp_list)
             used_simexp = True
 
+        elif type(self).__name__ == 'BMDPathwayResultsSingleTableView' and len(exp_list) < 100:
+            logger.debug('Filtering to subset BMD analyses for experiments in cart: %s', exp_list)
+            # look up analyses first to avoid needing a distinct on the BMDPathwayResults data;
+            # each experiment in a multi-dose combo will map to the same BMD analysis
+            bmdanalyses = BMDAnalysis.objects.filter(experiments__pk__in=exp_list).distinct()
+            data = data.filter(analysis__in=bmdanalyses)
+
         # standard use where someone has a handful of experiments in cart - query the complete dataset
         elif exp_list and len(exp_list) < 100:
             logger.debug('Filtering to subset of experiments in cart: %s', exp_list)
@@ -1766,11 +2194,11 @@ class FilteredSingleTableView(SingleTableView):
             pass
 
         changed_feat = None
-        if self.request.session.get('use_saved_features', None):
-            logger.debug('Filtering to saved features enabled in session')
-            data, changed_feat = filter_vs_feature_subset(self.request, data)
+        if self.request.session.get('filter_on', None):
+            logger.debug('Filtering to saved features from bookmarks')
+            data, changed_feat = self.filter_vs_bookmarks(data)
 
-        self.filter = self.filter_class(self.request.GET, queryset=data)
+        self.filter = self.filter_class(self.request.GET, queryset=data, request=self.request)
         results = self.filter.qs
         # TODO - to update the drop-downs only to the current result set, scan the results, put the
         # unique result types in the session, and use javascript to read the types out of session
@@ -1781,6 +2209,21 @@ class FilteredSingleTableView(SingleTableView):
         if type(self).__name__ == 'SimilarExperimentsSingleTableView':
             ids = list(results.values_list('id', flat=True))
             logger.debug('Storing retrieved data in session for subsequent ToxicologyResult view')
+            expref = results.values_list('experiment_ref', flat=True)
+            for eid in expref:
+                eexp = Experiment.objects.get(id=eid)
+                study = Study.objects.get(id=eexp.study.id)
+                if(study.permission == 'P' or study.owner == self.request.user):
+                    continue
+                else:
+                    rvalue = ExperimentCorrelation.objects.get(id=eid)
+
+                    logger.info( 'removing: ' + str(eexp))
+
+
+
+                    ExperimentCorrelation.objects.exclude(experiment_ref=eexp.id)
+
             self.request.session['sim_list'] = ids
 
         # store the object IDs in case data is exported to excel via separate handler
@@ -1821,13 +2264,75 @@ class FilteredSingleTableView(SingleTableView):
         # provide a place in template to populate a geneset id to be used for the gene-level drilldown
         context['geneset_drilldown_id'] = 999999
 
-        if getattr(self, 'feature_type', None) and self.request.session.get('saved_features', None) and \
-                self.request.session['saved_features'].get(self.feature_type, None):
-            context['show_saved_features'] = True
-
         if type(self).__name__ == 'SimilarExperimentsSingleTableView':
             context['show_tox_result_link'] = True
+
+        # determine whether to show a button to filter results to bookmarks
+        active_features = self.get_features_from_bookmarks()
+
+        if active_features:
+            # derive an informative name to show what's being filtered
+
+            active_list = self.request.session['active_bookmarks']
+            if self.model == FoldChangeResult:
+                bookmarks = Bookmark.objects.filter(genebookmark__gene__in=active_features).filter(id__in=active_list).distinct()
+            else:
+                bookmarks = Bookmark.objects.filter(genesetbookmark__geneset__in=active_features).filter(id__in=active_list).distinct()
+
+            names = list(sorted(set(map(lambda x: x.name, bookmarks))))
+            names_txt = ', '.join(names)
+            names_txt = names_txt[0:15]
+            context['allow_filter'] = names_txt
+
         return context
+
+    def filter_vs_bookmarks(self, data):
+        """ filter results vs. active bookmarks """
+
+        change = None
+        feature_objs = self.get_features_from_bookmarks()
+
+        if not feature_objs:
+            logger.debug('No bookmarked feature objects for results of class %s; no filtering', self.model)
+        elif self.model == ModuleScores:
+            logger.debug('Filtering for type ModuleScore')
+            data = data.filter(module__in=feature_objs)
+            change = True
+        elif self.model == GSAScores:
+            logger.debug('Filtering for type GSAScore')
+            data = data.filter(geneset__in=feature_objs)
+            change = True
+        elif self.model == FoldChangeResult:
+            logger.debug('Filtering for type FoldChangeResult')
+            data = data.filter(gene_identifier__gene__in=feature_objs)
+            change = True
+        else:
+            logger.debug('No filtering performed on results of class %s', self.model)
+
+        return data, change
+
+    def get_features_from_bookmarks(self):
+        """ convert the list of bookmark IDs in session to feature (Gene, GSA genesets or module genesets) depending on model type"""
+        active_list = self.request.session.get('active_bookmarks', [])
+        if not active_list:
+            logger.debug('No active bookmarks')
+            return None
+
+        bookmarks = Bookmark.objects.filter(id__in=active_list)
+        if not bookmarks:
+            raise LookupError('Have active bookmark IDs in session but did not return bookmarks')
+
+        if self.model == FoldChangeResult:
+            return Gene.objects.filter(genebookmark__bookmark__in=bookmarks)
+
+        elif self.model == ModuleScores:
+            return GeneSets.objects.filter(genesetbookmark__bookmark__in=bookmarks, type='liver_module')
+
+        elif self.model == GSAScores:
+            return GeneSets.objects.filter(genesetbookmark__bookmark__in=bookmarks).exclude(type='liver_module')
+
+        else:
+            return None
 
 
 class ModuleFilteredSingleTableView(FilteredSingleTableView):
@@ -1873,6 +2378,14 @@ class ToxicologyResultsSingleTableView(FilteredSingleTableView):
     filter_class = tp.filters.ToxicologyResultsFilter
 
 
+class BMDPathwayResultsSingleTableView(FilteredSingleTableView):
+    model = BMDPathwayResult
+    template_name = 'result_list.html'
+    table_class = tp.tables.BMDPathwayResultsTable
+    table_pagination = True
+    filter_class = tp.filters.BMDPathwayResultsFilter
+
+
 class ToxAssociation(SingleTableView):
     model = GeneSetTox
     template_name = 'geneset_vs_tox.html'
@@ -1891,13 +2404,98 @@ class ToxAssociation(SingleTableView):
 
         changed_fields = len(self.filter.form.changed_data)
         if changed_fields > 0:
-
-            # TODO - a hack to get the GSA genesets into the tox prediction stuff; will need to refactor if moving beyond
-            # modules and GSA pathways
-            module_ids = list(sorted(set(map(lambda x: x.geneset.id, filter(lambda x: x.geneset.type == 'liver_module', self.filter.qs)))))
-            geneset_ids = list(sorted(set(map(lambda x: x.geneset.id, filter(lambda x: x.geneset.type != 'liver_module', self.filter.qs)))))
-            self.request.session['filtered_modules'] = module_ids
+            # to enable the 'add all filtered features' - store geneset IDs in session
+            geneset_ids = list(sorted(set(map(lambda x: x.geneset.id, self.filter.qs))))
             self.request.session['filtered_genesets'] = geneset_ids
             context['filtered_features'] = True
+
+        # the view needs a bookmark into which to save selected genesets
+        # this may already exist
+        bookmark_obj, created = Bookmark.objects.get_or_create(owner=self.request.user, name='tox phenotype selections', type='GS')
+        context['bookmark_name'] = bookmark_obj.name
+        context['bookmark_id'] = bookmark_obj.id
+        context['feature_type'] = 'GS'
+        context['bookmark_count'] = None
+        if not created:
+            context['bookmark_count'] = GeneSetBookmark.objects.filter(bookmark=bookmark_obj).count()
+
+        return context
+
+
+class BookmarkView(SingleTableView):
+    model = Bookmark
+    template_name = 'bookmark_list.html'
+    context_object_name = 'bookmarks'
+    table_class = tp.tables.BookmarkListTable
+    table_pagination = True
+
+    def get_queryset(self):
+        # to ensure that only a user's Bookmark are shown to him/her
+        new_context = Bookmark.objects.filter(owner_id=self.request.user.id)
+        return new_context
+
+
+class BookmarkDelete(DeleteView):
+    """ BookmarkDelete -- view class to handle deletion of Bookmark """
+    model = Bookmark
+    template_name = 'bookmark_confirm_delete.html'
+    success_url = reverse_lazy('tp:bookmarks')
+
+
+class AddGeneBookmark(SingleTableView):
+    model = Gene
+    template_name = 'bookmark_members.html'
+    table_class = tp.tables.GeneBookmark
+    table_pagination = True
+    filter_class = tp.filters.GeneBookmarkFilter
+
+    def get_table_data(self):
+        data = super(AddGeneBookmark, self).get_table_data()
+        self.filter = self.filter_class(self.request.GET, queryset=data)
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super(AddGeneBookmark, self).get_context_data(**kwargs)
+        context['filter'] = self.filter
+
+        # put the bookmark name in context for use in template
+        bookmark_obj = Bookmark.objects.get(pk=self.kwargs['bookmark_id'])
+        context['bookmark_name'] = bookmark_obj.name
+        context['bookmark_id'] = bookmark_obj.id
+        context['bookmark_count'] = GeneBookmark.objects.filter(bookmark=bookmark_obj).count()
+        context['feature_type'] = 'G'
+        return context
+
+
+class AddGeneSetBookmark(SingleTableView):
+    model = GeneSets
+    template_name = 'bookmark_members.html'
+    table_class = tp.tables.GeneSetBookmark
+    table_pagination = True
+    filter_class = tp.filters.GeneSetBookmarkFilter
+
+    def get_table_data(self):
+        data = super(AddGeneSetBookmark, self).get_table_data()
+        self.filter = self.filter_class(self.request.GET, queryset=data)
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super(AddGeneSetBookmark, self).get_context_data(**kwargs)
+        context['filter'] = self.filter
+
+        # to enable the 'add all filtered features' - store geneset IDs in session
+        changed_fields = len(self.filter.form.changed_data)
+        if changed_fields > 0:
+
+            geneset_ids = list(sorted(set(map(lambda x: x.id, self.filter.qs))))
+            self.request.session['filtered_genesets'] = geneset_ids
+            context['filtered_features'] = True
+
+        # put the bookmark name in context for use in template
+        bookmark_obj = Bookmark.objects.get(pk=self.kwargs['bookmark_id'])
+        context['bookmark_name'] = bookmark_obj.name
+        context['bookmark_id'] = bookmark_obj.id
+        context['bookmark_count'] = GeneSetBookmark.objects.filter(bookmark=bookmark_obj).count()
+        context['feature_type'] = 'GS'
 
         return context

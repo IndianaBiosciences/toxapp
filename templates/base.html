@@ -46,6 +46,7 @@
                     <li><a href="/">Home</a></li>
                     <li><a href="{% url 'about' %}">About</a></li>
                     <li><a href="{% url 'login' %}">Login</a></li>
+                    <li><a href="{% url 'signup' %}">Sign Up</a></li>
                 {% else %}
                     <li><a href="{% url "profile" %}">User: {{ user }}</a></li>
                     <li><a href="{% url "tp:studies" %}">Studies</a></li>
@@ -54,6 +55,7 @@
                       <li><a href="{% url "tp:analysis-summary" %}">Results</a></li>
                     {% endif %}
                     <li><a href="{% url "tp:get-tox-assoc" %}">Toxicity Predictions</a></li>
+                    <li><a href="{% url "tp:bookmarks" %}">Gene/Gene Set Bookmarks</a></li>
                     <li><a href="{% url "logout" %}">Log Out</a></li>
                 {%  endif %}
         </ul>
@@ -73,7 +75,7 @@
         <table width="100%">
         <tr>
             <td><a HREF="http://indianabiosciences.org"><i>Indiana Biosciences Research Institute</i></a></td>
-            <td align="right">Copyright &copy; 2017</td>
+            <td align="right">Copyright &copy; {% now 'Y' %}</td>
         </tr>
         </table>
     </div>

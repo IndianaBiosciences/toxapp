@@ -1,0 +1,5 @@
+{% if record.id in request.session.active_bookmarks %}
+<a href="{% url 'tp:bookmark-deactivate'  pk=record.pk %}" class="glyphicon glyphicon-check" title="Remove from active bookmarks"></a>
+{% else %}
+<a href="{% url 'tp:bookmark-activate' pk=record.pk %}" class="glyphicon glyphicon-unchecked" title="Add to active bookmarks"></a>
+{% endif %}

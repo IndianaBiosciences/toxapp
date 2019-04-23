@@ -1,11 +1,4 @@
-from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores,\
-    GSAScores, Gene, GeneSetMember
-from django.conf import settings
-from tempfile import NamedTemporaryFile
-from scipy.stats.stats import pearsonr
-
 import pprint
-import shutil
 import json
 import subprocess
 import logging
@@ -13,16 +6,30 @@ import os
 import sys
 import csv
 import collections
+import copy
+import itertools
 import numpy as np
 import rpy2.robjects as robjects
+import tempfile
+import time
 from rpy2.robjects.packages import importr
 from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.stats.stats import pearsonr
+from django.conf import settings
+from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores,\
+    GSAScores, Gene, GeneSetMember, BMDPathwayResult
+import tp.utils
 
 logger = logging.getLogger(__name__)
 
 
 def cluster_expression_features(data, x_vals, y_vals):
+    """
+    Action: creates an array based on the size of x and y values. the data is then filled into the array.
+    Perform hierarchical/agglomerative clustering based upon the data in a. Then the results from z are then plotted into a dendrogram. the values are then sorted, the first xvalue is set to r['x']
+    Returns: Sorted x values, and the data
 
+    """
     logger.debug('Starting clustering')
     # lay out the table with experiments on cols and genes/pathways/modules (x_vals) on rows
     a = np.zeros(shape=(len(x_vals), len(y_vals)))
@@ -38,6 +45,7 @@ def cluster_expression_features(data, x_vals, y_vals):
     sorted_x_vals = [x for _, x in sorted(zip(remap, x_vals))]
     for r in data:
         r['x'] = remap.index(r['x'])
+        sorted_x_vals[r['x']] = r['feat']
 
     logger.debug('Clustering complete')
     return sorted_x_vals, data
@@ -63,11 +71,17 @@ class Computation:
         self.gsa_gsc_obj = None
         self._experiment_tech_map = dict()
         self._expid_obj_map = dict()
+        self._expname_obj_map = dict()
         self._identifier_obj_map = dict()
         self._gene_obj_map = dict()
 
     def map_fold_change_from_exp(self, exp_obj):
+        """
+        Action: results is set to the experiments matching the given object. for each item in results, set rat_eg to the rat_entrez_gene.
+        Then set fc_data at location of the experiment id and the rat_eg to the results log2_fc and the gene identifier.
+        Returns: fc_data
 
+        """
         assert isinstance(exp_obj, Experiment)
         results = FoldChangeResult.objects.filter(experiment=exp_obj)
 
@@ -99,6 +113,24 @@ class Computation:
                 self._expid_obj_map[exp_id] = None
 
         return self._expid_obj_map[exp_id]
+
+
+    def get_exp_obj_from_name(self, exp_name):
+        """ method to avoid repeatedly checking existence of object for exp name """
+
+        # record a None in map so that we don't repeatedly check for non-loaded exp; therefore use False as test here
+        if self._expname_obj_map.get(exp_name, False) is False:
+
+            try:
+                logger.debug('Querying object for exp name %s', exp_name)
+                exp_obj = Experiment.objects.get(experiment_name=exp_name)
+                self._expname_obj_map[exp_name] = exp_obj
+            except:
+                logger.error('Failed to retrieve meta data for exp id %s; must be loaded first', exp_name)
+                self._expname_obj_map[exp_name] = None
+
+        return self._expname_obj_map[exp_name]
+
 
     def get_identifier_obj(self, tech_obj, identifier):
         """ method to avoid repeatedly checking existence of object for measurement tech identifier """
@@ -227,7 +259,11 @@ class Computation:
         return 1
 
     def make_gsa_file(self, tech_obj):
+        """
+        Action: Make sure there are atleast 1000 identifiers, create temp file, for each signature write each to gmt
+        Returns:gmt name
 
+        """
         assert isinstance(tech_obj, MeasurementTech)
 
         identifiers = IdentifierVsGeneMap.objects.filter(tech=tech_obj).all()
@@ -242,7 +278,8 @@ class Computation:
 
         # prepare file suitable for R GSA calc
         # this needs to be generated at run time because each measurement tech will have a different subset of genes
-        gmt = NamedTemporaryFile(delete=False, suffix='.gmt', dir=self.tmpdir)
+        gmt = tempfile.NamedTemporaryFile(delete=False, suffix='.gmt', dir=self.tmpdir)
+
         logger.debug('Have temporary GSA file %s', gmt.name)
         sig_count = 0
         for s in GeneSets.objects.exclude(source='WGCNA').prefetch_related('members'):
@@ -268,11 +305,11 @@ class Computation:
         gmt.close()
         return gmt.name
 
-    def map_fold_change_data(self, fc_file):
+    def map_fold_change_data(self, fc_file, use_experiment_name=False):
 
         """ read the fold change data and map to rat entrez gene IDs starting from a file """
 
-        # TODO - this could be retired by using the map_fold_change_from_exp as we are effectively doing the same
+        # TODO - look into minor - this could be retired by using the map_fold_change_from_exp as we are effectively doing the same
         # mapping exercise twice - once when loading the FC data in tasks.py function, then once again here.
         # However this means that the Computation script could no longer run without loading the fold change data using
         # the function in tasks.  As it stands script can perform complete calculation without actually loading anything
@@ -288,7 +325,11 @@ class Computation:
 
         # read the fold change data
         logger.debug("reading data from %s", fc_file)
-        req_attr = ['experiment', 'gene_identifier', 'log2_fc']
+        if use_experiment_name:
+            req_attr = ['experiment_name', 'gene_identifier', 'log2_fc']
+        else:
+            req_attr = ['experiment', 'gene_identifier', 'log2_fc']
+
         with open(fc_file) as f:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
@@ -296,7 +337,14 @@ class Computation:
                     logger.error('File %s contains undefined values for one or more required attributes %s on line %s', fc_file, ",".join(req_attr), row)
                     return None
 
-                exp_id = int(row['experiment'])
+                if use_experiment_name:
+                    exp_obj = self.get_exp_obj_from_name(row['experiment_name'])
+                    if not exp_obj:
+                        continue
+                    exp_id = exp_obj.id
+                else:
+                    exp_id = int(row['experiment'])
+
                 this_tech = self.get_experiment_tech_map(exp_id)
 
                 if this_tech is None:
@@ -505,7 +553,11 @@ class Computation:
         return gsa_scores
 
     def calc_exp_correl(self, qry_exps, source):
+        """
+        Action: depending on source, set sets to the filtered geneset, sorts and calculates the correlation between exps
+        Returns: correlated results
 
+        """
         assert isinstance(qry_exps[0], Experiment)
         assert source in ['WGCNA', 'RegNet', 'PathNR']
 
@@ -586,7 +638,11 @@ class Computation:
         return results
 
     def calc_geneset_correl(self, source1, source2):
+        """
+        Action: Calculates the correlation between genesets
+        Returns: correlations
 
+        """
         sources = [source1, source2]
         allscores = Vividict()
 
@@ -649,4 +705,296 @@ class Computation:
 
         return results
 
+    def get_BMD_calcs(self, exp_objs):
 
+        logger.info('Identifying BMD calcs for experiments %s', [e.id for e in exp_objs])
+
+        # need to organize experiments by compound, time, tissue - etc. i.e. a strict dose response under
+        # otherwise identical conditions
+
+        # tabulate a list of meta data attributes that varies across the experiments
+        varying_attr = collections.defaultdict(list)
+        bmd_grps = collections.defaultdict(dict)
+        bmd_calcs = collections.defaultdict(dict)
+
+        for e in exp_objs:
+            for attr in ['tech', 'time', 'tissue', 'organism', 'strain', 'gender', 'single_repeat_type', 'route', 'compound_name', 'dose_unit']:
+                val = getattr(e, attr)
+                if val not in varying_attr[attr]:
+                    varying_attr[attr].append(val)
+
+        # delete experiment attributes which are shared by all experiments - no need showing them to users
+        # Don't delete compound as a singlet attribute.  We want to do a BMD calc for a set of experiments where
+        # cpd is the same for all
+        attrs = list(varying_attr.keys())
+        for attr in attrs:
+            if len(varying_attr[attr]) == 1 and attr != 'compound_name':
+                del varying_attr[attr]
+                continue
+
+        # create a list of all unique combinations of varying attributes encountered in experiments set
+        keys, values = zip(*varying_attr.items())
+        for val in itertools.product(*values):
+            combo = dict(zip(keys, val))
+            logger.debug('Identifying experiments matching conditions %s', combo)
+            these_exp_objs = filter(lambda item: all((getattr(item, k) == v for (k, v) in combo.items())), exp_objs)
+
+            calc = dict()
+            for e in these_exp_objs:
+                logger.debug('Have exp %s which matches condition', e.id)
+                conc = float(e.dose)
+                if calc.get(conc, None) is not None:
+                    raise NotImplemented('Did not anticipate multiple experiments having same concentration for a BMD condition; report to developer')
+                calc[conc] = e.id
+
+            # some combos of conditions have no experiments; e.g. repeat dose study vs. <= 1 day duration in TG data
+            if not calc:
+                continue
+            if len(calc) < 3:
+                logger.debug('Fewer then 3 doses for condition %s; no BMD calc', combo)
+                continue
+
+            cnd = ''
+            for attr in combo:
+                cnd += '-' if cnd else ''
+                cnd += attr + '=' + str(combo[attr])
+
+            bmd_calcs[cnd] = calc
+
+        return bmd_calcs
+
+    def make_BMD_files(self, exp_objs, config_file, sample_int, fc_data):
+
+        logger.info('Preparing BMD input files for experiments %s', [e.id for e in exp_objs])
+
+        bmd_calcs = self.get_BMD_calcs(exp_objs)
+        # many user studies will not have multiple conc, hence BMD not possible
+        if not bmd_calcs:
+            return None
+
+        with open(config_file) as infile:
+            config = json.load(infile)
+
+        # fc_data contains the mapping from original platform-specific identifier to rat entrez gene
+        # BMD will be run on rat refseq to avoid having to select a BMD-supported platform
+        identifier_map = Vividict()
+        for exp_id in fc_data:
+            for rat_entrez in fc_data[exp_id]:
+                identifier_map[exp_id][fc_data[exp_id][rat_entrez]['identifier']] = rat_entrez
+
+        sample2exp = dict()
+        for e in config['experiments']:
+            for s in e['sample']:
+                sample2exp[s['sample_name']] = exp_id
+
+        identifier2ensembl = dict()
+
+        # take the sample intensities object and build a convertion table to rat entrez
+        for sample_nm in sample_int['samples']:
+            count = 0
+            for identifier in sample_int['genes']:
+                exp_id = sample2exp[sample_nm]
+                # not all platform identifiers are convertable to rat entrez
+                rat_eg = identifier_map[exp_id].get(identifier, None)
+                if rat_eg is None:
+                    continue
+
+                gene_obj = self.get_gene_obj(rat_eg)
+                # some rat entrez gene IDs don't have a ensembl rn6 ID avail
+                if not gene_obj.ensembl_rn6:
+                    continue
+
+                if identifier2ensembl.get(identifier, None) is not None and identifier2ensembl[identifier] != gene_obj.ensembl_rn6:
+                    raise NotImplemented('Did not anticipate possibility that identifier vs rat eg is not unique without considering sample')
+
+                identifier2ensembl[identifier] = gene_obj.ensembl_rn6
+
+        if not identifier2ensembl:
+            raise ValueError('No mappings from gene to Ensembl obtained')
+
+        # a user might be uploading experiments where not all of conditions required for
+        # performing BMD are the same across all experiments, i.e. different time points
+        # iterate through each set of experiments where the req'd conditions are the same
+        filenames = list()
+        for cond in bmd_calcs:
+            conc2sample = collections.defaultdict(list)
+            for conc, exp_id in bmd_calcs[cond].items():
+                for e in config['experiments']:
+                    if e['experiment']['exp_id'] == exp_id:
+                        for s in e['sample']:
+                            use_conc = float(conc) if s['sample_type'] == 'I' else 0
+                            if not s['sample_name'] in conc2sample[use_conc]:
+                                conc2sample[use_conc].append(s['sample_name'])
+
+            if not conc2sample:
+                raise LookupError('Did not match any of concentration/experiments in bmd_config to experiments')
+
+            filename = os.path.join(self.tmpdir, 'bmd_input-' + cond + '.txt')
+            with open(filename, 'w') as bmd_f:
+
+                head1 = 'SampleID'
+                head2 = 'Dose'
+                firstrow = True
+                genecount = -1  # need to make sure that platform identifiers not mappable to rat eg get incremented
+
+                for gene in sample_int['genes']:
+
+                    genecount += 1
+                    refseq = identifier2ensembl.get(gene, None)
+                    if refseq is None:
+                        continue
+
+                    row = str(refseq)
+                    for conc in sorted(conc2sample):
+                        for sample_nm in sorted(conc2sample[conc]):
+                            if firstrow:
+                                head1 += '\t' + sample_nm
+                                head2 += '\t' + str(conc)
+                            row += '\t' + str(sample_int['values'][sample_nm][genecount])
+
+                    if firstrow:
+                        head1 += '\n'
+                        head2 += '\n'
+                        bmd_f.write(head1)
+                        bmd_f.write(head2)
+                        firstrow = False
+
+                    row += '\n'
+                    bmd_f.write(row)
+
+            bmd_f.close()
+            filenames.append(filename)
+
+        return filenames
+
+    def run_BMD(self, files, test_mode=False):
+
+        config = tp.utils.parse_config_file()
+        bmd_config_file_template = os.path.join(settings.BASE_DIR, config['DEFAULT']['bmd_config'])
+
+        with open(bmd_config_file_template) as infile:
+            bmd_config_ref = json.load(infile)
+
+        # update the master configuration to point to appropriate locations for BMD defined category analysis
+        r = bmd_config_ref['categoryAnalysisConfigs'][2]
+        r['probeFilePath'] = os.path.join(settings.BASE_DIR, config['DEFAULT']['bmd_defined_analysis_probes'])
+        r['categoryFilePath'] = os.path.join(settings.BASE_DIR, config['DEFAULT']['bmd_defined_analysis_categories'])
+        assert os.path.isfile(r['probeFilePath'])
+        assert os.path.isfile(r['categoryFilePath'])
+
+        bmd_config = copy.deepcopy(bmd_config_ref)
+        bmd_config['bm2FileName'] = os.path.join(self.tmpdir, 'bmd_results.bm2')
+        bmd_config['expressionDataConfigs'] = []
+        bmd_config['preFilterConfigs'] = []
+        bmd_config['bmdsConfigs'] = []
+        bmd_config['categoryAnalysisConfigs'] = []
+
+        for f in files:
+            base = os.path.basename(f)
+            no_ext = os.path.splitext(base)[0]
+            no_ext = no_ext.replace('bmd_input-', '')  # drop the file prefix
+
+            input_stub = copy.deepcopy(bmd_config_ref['expressionDataConfigs'][0])
+            prefilter_stub = copy.deepcopy(bmd_config_ref['preFilterConfigs'][0])
+            bmds_stub = copy.deepcopy(bmd_config_ref['bmdsConfigs'][0])
+            # eliminate all but the first two model fitting types to speed things up in test mode
+            if test_mode:
+                bmds_stub['modelConfigs'] = bmds_stub['modelConfigs'][:1]
+
+            go_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][0])
+            path_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][1])
+            defined_cat_stub = copy.deepcopy(bmd_config_ref['categoryAnalysisConfigs'][2])
+
+            # populate the expressionDataConfigs section
+            input_stub['inputFileName'] = f
+            input_stub['outputName'] = no_ext
+            bmd_config['expressionDataConfigs'].append(input_stub)
+
+            # populate the expressionDataConfigs section
+            # NOTE - currently does not support multiple filtering strategies
+            analysis_type = prefilter_stub['@type']
+            prefilter_stub['inputName'] = no_ext
+            prefilter_stub['outputName'] = no_ext + '_' + analysis_type
+            bmd_config['preFilterConfigs'].append(prefilter_stub)
+
+            # populate the bmdsConfigs section
+            bmds_stub['inputCategory'] = analysis_type
+            bmds_stub['inputName'] = no_ext + '_' + analysis_type
+            bmds_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds'
+            bmd_config['bmdsConfigs'].append(bmds_stub)
+
+            # populate the categoryAnalysisConfigs section - GO and pathway
+            go_stub['inputName'] = no_ext + '_' + analysis_type + '_bmds'
+            go_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds_GOuniversal'
+            path_stub['inputName'] = no_ext + '_' + analysis_type + '_bmds'
+            path_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds_REACTOME'
+            defined_cat_stub['inputName'] = no_ext + '_' + analysis_type + '_bmds'
+            defined_cat_stub['outputName'] = no_ext + '_' + analysis_type + '_bmds_modules'
+            bmd_config['categoryAnalysisConfigs'].append(go_stub)
+            bmd_config['categoryAnalysisConfigs'].append(path_stub)
+            bmd_config['categoryAnalysisConfigs'].append(defined_cat_stub)
+
+        bmd_config_file = os.path.join(self.tmpdir, 'toxapp_bmd_input_file.json')
+        with open(bmd_config_file, 'w') as outfile:
+            json.dump(bmd_config, outfile)
+
+        # run the BMD analysis - slow
+        runcmd = config['DEFAULT']['bmd_exec'] + ' analyze --config-file=' + bmd_config_file
+        logger.debug('Running BMD as %s', runcmd)
+        output = subprocess.getoutput(runcmd)
+        logger.debug('Have BMD output %s', output)
+
+        if not os.path.isfile(bmd_config['bm2FileName']):
+            logger.error('Expected file %s not produced by BMD run from command %s; output is %s', bmd_config['bm2FileName'], runcmd, output)
+
+        # export the categorical results in tab-delim format
+        export_file = os.path.join(self.tmpdir, '{}.txt'.format(hash(time.time())))
+        logger.debug('Have temporary BMD export file %s', export_file)
+        exportcmd = config['DEFAULT']['bmd_exec'] + ' export --analysis-group categorical --input-bm2 ' +\
+            bmd_config['bm2FileName'] + ' --output-file-name ' + export_file
+        logger.debug('Exporting BMD results as %s', exportcmd)
+        output = subprocess.getoutput(exportcmd)
+        logger.debug('Have BMD export output %s', output)
+
+        if not os.path.isfile(export_file) or os.path.getsize(export_file) < 1000000:
+            logger.error('Expected file %s not produced by BMD export; output is %s',export_file, output)
+
+        return bmd_config['bm2FileName'], export_file
+
+    def parse_BMD_results(self, export_file):
+
+        assert os.path.isfile(export_file)
+
+        # create lookup from the verbose names (which are in the BMD results file) to model field names
+        req_attr = dict()
+        results = list()
+        for f in BMDPathwayResult._meta.get_fields():
+            if f.name in ['id', 'experiment']:
+                continue
+            elif f.name == 'analysis':  # no great way to force mapping to Foreign Key
+                req_attr['Analysis'] = 'analysis'
+            else:
+                req_attr[f.verbose_name] = f.name
+
+        with open(export_file) as f:
+            next(f)  # the first line is blank in bmd export file
+            reader = csv.DictReader(f, delimiter='\t')
+            for row in reader:
+
+                if row['Genes That Passed All Filters'] == '0':
+                    continue
+
+                for i in req_attr:
+                    if row[i] == '':
+                        logger.error('File %s contains undefined values for attribute %s on line %s',
+                                     export_file, i, row)
+                        return None
+
+                result = dict()
+                for verbose_field in req_attr:
+                    model_field_name = req_attr[verbose_field]
+                    result[model_field_name] = row[verbose_field]
+
+                results.append(result)
+
+        return results

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% load bootstrap3 %}
+
+{% block content %}
+
+<form role="form" action="" class="form-horizontal" method="post">
+  {% csrf_token %}
+  {% bootstrap_form_errors form type='non_fields' %}
+
+  {% if form.errors %}
+    <div class="alert alert-warning">Form has errors: {{ form.errors }}</div>
+  {% endif %}
+
+  {% for field in form %}
+  {% bootstrap_field field layout='vertical' %}
+  {% endfor %}
+  {% buttons %}
+    {% bootstrap_button "Save and return" button_type="submit" name="_save_ret" button_class="btn-primary" %}
+    {% bootstrap_button "Save and continue editing" button_type="submit" name="_continue" button_class="btn-default" %}
+    {% bootstrap_button "Save and add/edit genes or genesets" button_type="submit" name="_save_add_genes" button_class="btn-default" %}
+    {% if editing %}
+      <a class="btn btn-default" href="{% url 'tp:bookmark-delete' pk=editing %}">Delete</a>
+    {% endif %}
+    <a class="btn btn-default" href="{% url 'tp:bookmarks' %}">Cancel</a>
+  {% endbuttons %}
+
+  <h3>Bookmarked features</h3>
+
+  {% if truncated %}
+  <h4>Table truncated</h4>
+  {% endif %}
+
+  <span>(check to delete)</span>
+  {{ formset.management_form }}
+  {% if formset.total_error_count %}
+    <div class="alert alert-warning">Formset has errors: {{ formset.errors }}</div>
+  {% endif %}
+<table>
+  <thead><th style="width:25%">Feature</th><th style="width:25%">Description</th><th style="width:25%; text-align:center;">Delete</th></thead>
+  {% for form in formset %}
+    {% for field in form %}
+        {% if field.name == 'feature'%}
+            <tr><td>{{field}} {{ field.value }}</td>
+        {% elif field.name == 'desc' %}
+            <td>{{field}} {{ field.value }}</td>
+        {% elif field.name == 'delete' %}
+           <td style="text-align:center">{{ field }}</td>
+        {% else %}
+              {{ field }}</tr>
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+</table>
+</form>
+
+{% endblock content %}

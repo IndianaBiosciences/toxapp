@@ -1,0 +1,118 @@
+{
+  "bm2FileName" : "SET WITHIN APPLICATION",
+  "overwrite" : true,
+  "expressionDataConfigs" : [ {
+    "inputFileName" : "SET WITHIN APPLICATION",
+    "outputName" : "SET WITHIN APPLICATION",
+    "logTransformation" : "BASE2",
+    "platform" : "rn6_Ensembl"
+  } ],
+  "preFilterConfigs" : [ {
+    "@type" : "williams",
+    "inputName" : "SET WITHIN APPLICATION",
+    "outputName" : "SET WITHIN APPLICATION_williams",
+    "pValueCutoff" : 0.05,
+    "useMultipleTestingCorrection" : false,
+    "filterOutControlGenes" : true,
+    "useFoldChange" : true,
+    "foldChange" : 1.5,
+    "numberOfPermutations" : 100
+  } ],
+  "bmdsConfigs" : [ {
+    "modelConfigs" : [ {
+      "@type" : "hill"
+    }, {
+      "@type" : "power"
+    }, {
+      "@type" : "poly",
+      "degree" : 1
+    }, {
+      "@type" : "poly",
+      "degree" : 2
+    }, {
+      "@type" : "poly",
+      "degree" : 3
+    }, {
+      "@type" : "exp",
+      "expModel" : 2
+    }, {
+      "@type" : "exp",
+      "expModel" : 3
+    }, {
+      "@type" : "exp",
+      "expModel" : 4
+    }, {
+      "@type" : "exp",
+      "expModel" : 5
+    }],
+    "bmdsBestModelSelection" : {
+      "bestPolyTest" : 1,
+      "pValueCutoff" : 0.05,
+      "flagHillWithKParameter" : true,
+      "kParameterValue" : 1,
+      "bestModelSelectionWithFlaggedHill" : 1,
+      "modifyFlaggedHillWithFractionMinBMD" : 0.05
+    },
+    "bmdsInputConfig" : {
+      "maxIterations" : 250,
+      "confidenceLevel" : 0.95,
+      "constantVariance" : true,
+      "restrictPower" : true,
+      "bmrFactor" : 1.349
+    },
+    "inputCategory" : "williams",
+    "inputName" : "SET WITHIN APPLICATION_williams",
+    "outputName" : "SET WITHIN APPLICATION_williams_bmds",
+    "numberOfThreads" : 6
+  } ],
+  "categoryAnalysisConfigs" : [ {
+    "@type" : "go",
+    "inputName" : "SET WITHIN APPLICATION_williams_bmds",
+    "outputName" : "SET WITHIN APPLICATION_williams_bmds_GOuniversal",
+    "removePromiscuousProbes" : true,
+    "removeBMDGreaterHighDose" : true,
+    "identifyConflictingProbeSets" : true,
+    "correlationCutoffForConflictingProbeSets" : 0.5,
+    "bmdPValueCutoff" : null,
+    "bmdBMDLRatioMin" : null,
+    "bmduBMDRatioMin" : null,
+    "bmduBMDLRatioMin" : 40.0,
+    "nFoldBelowLowestDose" : null,
+    "maxFoldChange" : null,
+    "prefilterPValueMin" : null,
+    "goCategory" : "universal"
+  }, {
+    "@type" : "pathway",
+    "inputName" : "SET WITHIN APPLICATION_williams_bmds",
+    "outputName" : "SET WITHIN APPLICATION_williams_bmds_REACTOME",
+    "removePromiscuousProbes" : true,
+    "removeBMDGreaterHighDose" : true,
+    "identifyConflictingProbeSets" : true,
+    "correlationCutoffForConflictingProbeSets" : 0.5,
+    "bmdPValueCutoff" : null,
+    "bmdBMDLRatioMin" : null,
+    "bmduBMDRatioMin" : null,
+    "bmduBMDLRatioMin" : 40.0,
+    "nFoldBelowLowestDose" : null,
+    "maxFoldChange" : null,
+    "prefilterPValueMin" : null,
+    "signalingPathway" : "REACTOME"
+  }, {
+    "@type" : "defined",
+    "inputName" : "SET WITHIN APPLICATION_williams_bmds",
+    "outputName" : "SET WITHIN APPLICATION_williams_bmds_REACTOME",
+    "removePromiscuousProbes" : true,
+    "removeBMDGreaterHighDose" : true,
+    "identifyConflictingProbeSets" : true,
+    "correlationCutoffForConflictingProbeSets" : 0.5,
+    "bmdPValueCutoff" : null,
+    "bmdBMDLRatioMin" : null,
+    "bmduBMDRatioMin" : null,
+    "bmduBMDLRatioMin" : 40.0,
+    "nFoldBelowLowestDose" : null,
+    "maxFoldChange" : null,
+    "prefilterPValueMin" : null,
+    "probeFilePath" : "SET WITHIN APPLICATION; e.g. data/BMD_defined_analysis_categories.txt",
+    "categoryFilePath" : "SET WITHIN APPLICATION; e.g. data/BMD_defined_analysis_categories.txt"
+  } ]
+}

@@ -2,7 +2,7 @@
 
 {% block extra_head_content %}
   {{ block.super }}
-  <script src="http://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
   <script src="https://code.highcharts.com/modules/heatmap.js"></script>
   <script src="https://code.highcharts.com/modules/exporting.js"></script>
   <script src="https://code.highcharts.com/modules/data.js"></script>
@@ -12,6 +12,7 @@
   <script src="https://code.highcharts.com/modules/treemap.js"></script>
   <script src="/static/tp/js/charts.js"></script>
   <script src="/static/tp/js/panzoom.js"></script>
+
 {% endblock %}
 
 {% load render_table from django_tables2 %}
@@ -26,10 +27,10 @@
 {% endif %}
 <section id="control_section" class="panel panel-default">
   <div class="panel panel-body">
-    <a id="res_summary_link" href="{% url 'tp:analysis-summary' %}" class="btn btn-primary">Back to summary</a>
+    <a id="res_summary_link" href="{% url 'tp:analysis-summary' %}" class="btn btn-primary active">Back to summary</a>
     {% if request.session.allow_export %}
     <a href="{% url 'tp:export-filtered-result' %}" class="btn btn-default">Export to Excel</a>
-    {% if filter.qs.count > 5000 %}
+    {% if filter.qs.count > 7500 %}
     <button type="button" class="btn btn-default disabled" title="Too many results to visualize" id="show_viz">Show visualization</button>
     {% else %}
     <button type="button" class="btn btn-default" id="show_viz">Show visualization</button>
@@ -43,18 +44,18 @@
 
   <div class="filter-dialog panel-body">
     <form class="form" action="" method="get">
-      {% if request.session.use_saved_features %}
+      {% if request.session.filter_on %}
       <div class="form-group">
-        <span>Limited to {{ request.session.use_saved_features }}</span>
-        <a href="{% url 'tp:manage-session' %}?use_saved_features=" class="btn btn-default">Clear filter</a>
+        <span>Limited to {{ request.session.filter_on }}</span>
+        <a href="{% url 'tp:manage-session' %}?filter_on=" class="btn btn-default">Clear filter</a>
       </div>
       {% endif %}
       {% bootstrap_form filter.form layout='horizontal' %}
       <div class="button-section" style="">
         {% bootstrap_button "Update" button_type="submit" button_class="btn-primary" extra_classes="table_updater" %}
         <a class="btn btn-default" href="{{ request.path }}">Clear</a>
-        {% if show_saved_features and not request.session.use_saved_features %}
-        <a class="btn btn-default" href="{% url 'tp:manage-session' %}?use_saved_features=saved modules">Limit to saved {{ view.feature_type }}</a>
+        {% if allow_filter and not request.session.filter_on %}
+        <a class="btn btn-default" href="{% url 'tp:manage-session' %}?filter_on={{ allow_filter }}">Limit to active bookmarks</a>
         {% endif %}
         <div class="btn btn-static">{{ filter.qs.count }} results</div>
       </div>
@@ -71,11 +72,12 @@
     <button id="heatmap" class="btn btn-default">Heatmap</button>
     <button id="barchart" class="btn btn-default">Barchart</button>
     <button id="mapchart" class="btn btn-default hidden">Map chart</button>
-    <button id="trellis" class="btn btn-default hidden">Trellis chart</button>
+
     <button id="treemapchart" class="btn btn-default hidden">Treemap chart</button>
+    <button id="bmdaccum" class="btn btn-default hidden">BMD Accumulation chart</button>
     <div id="genedrilldown" class="pull-right hidden">
       <span id="selected_geneset"></span>
-      <a id="genefetch" href="{% url 'tp:get-feature-subset' geneset_id=geneset_drilldown_id %}" class="btn btn-default">View genes</a>
+      <a id="genefetch" href="{% url 'tp:gene-drilldown' geneset_id=geneset_drilldown_id %}" class="btn btn-default">View genes</a>
     </div>
   </div>
   <div class="parent" style="overflow: hidden; position: relative;">
@@ -96,17 +98,37 @@
     </div>
   </div>
   <div id="zoom_buttons" class="panel-body hidden">
+
     <button class="btn btn-default zoom-in">Zoom In</button>
     <button class="btn btn-default zoom-out">Zoom Out</button>
     <button class="btn btn-default reset">Reset</button>
+    <br>
+    <span id="trellis">Trellis Chart:</span>
+    X:<span id="x_text">Dose</span>
+    <input id="x_val" value ="Dose" class="go btn btn-default" type="hidden">
+
+    Y:<span id="y_text">Time</span>
+    <input id="y_val" value="Time" class="go btn btn-default" type="hidden">
+
+
+    <button id="swap" class="btn btn-default" >Swap</button>
+    <button id="Submit" class="btn btn-default" >Submit</button>
   </div>
 </section>
 <script>
 
-$("#type_buttons .btn").click(function() {
-    $(this).siblings().removeClass("active");
 
-    });
+$("#swap").click(function(){
+ var x = $('#x_val').val();
+ var xtext = $('#x_text').text();
+ var y = $('#y_val').val();
+ var ytext = $('#y_text').text();
+ $('#x_val').val(y);
+ $('#y_val').val(x);
+$('#x_text').text(ytext);
+$('#y_text').text(xtext);
+});
+$(".go").eq(0).trigger('change');
 </script>
 {% render_table table %}
 {% endblock content %}

@@ -2,15 +2,30 @@ from django.db import models
 from django.conf import settings
 from datetime import datetime
 from django.urls import reverse
+from django.db.models import F, Func
+from django.contrib.auth.models import User
 
 import logging
 logger = logging.getLogger(__name__)
 
-class Study(models.Model):
 
+class AbsoluteScoreManager(models.Manager):
+    """ Queryset manager to allow access to absolute scores for pathway / module """
+
+    def get_queryset(self):
+        """ Overrides the models.Manager method """
+        qs = super(AbsoluteScoreManager, self).get_queryset().annotate(abs_score=Func(F('score'), function='ABS'))
+        return qs
+
+
+class Study(models.Model):
+    """
+    Action:  Model for Studies
+    Returns: if called as string returns study name
+
+    """
     PERMISSION_TYPE = (
         ('S', 'Private'),
-        ('G', 'Group'),
         ('P', 'Public'),
     )
 
@@ -34,7 +49,11 @@ class Study(models.Model):
 
 
 class MeasurementTech(models.Model):
+    """
+    Action:  Model for Measurement Tech
+    Returns: if called as string returns: tech - tech detail
 
+    """
     TECH_CHOICES = (
         ('microarray', 'microarray'),
         ('RNAseq', 'RNAseq'),
@@ -49,7 +68,11 @@ class MeasurementTech(models.Model):
 
 
 class Experiment(models.Model):
+    """
+    Action:  Model for Experiments
+    Returns: if called as string returns experiment name, if absoulte url is called it returns the url
 
+    """
     TISSUE_CHOICES = (
         ('liver', 'liver'),
         ('kidney', 'kidney'),
@@ -85,7 +108,7 @@ class Experiment(models.Model):
         ('NA', 'Not applicable'),
     )
 
-    experiment_name = models.CharField(max_length=200)
+    experiment_name = models.CharField(max_length=500)
     tech = models.ForeignKey(MeasurementTech, on_delete=models.CASCADE)
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
     compound_name = models.CharField(max_length=50)
@@ -110,17 +133,25 @@ class Experiment(models.Model):
 
 
 class Sample(models.Model):
+    """
+    Action:  Model for Samples
+    Returns: if called as string returns sample name
 
+    """
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
     sample_name = models.CharField(max_length=150)
     date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
-
+    order = models.IntegerField(blank=True, null=True)
     def __str__(self):
         return self.sample_name
 
 
 class ExperimentSample(models.Model):
+    """
+    Action:  Model for Experiment Samples
+    Returns: if called as string, returns group type
 
+    """
     GROUP_TYPE = (
         ('I', 'intervention'),
         ('C', 'control'),
@@ -136,7 +167,11 @@ class ExperimentSample(models.Model):
 
 
 class Gene(models.Model):
+    """
+    Action:  Model for Gene
+    Returns: if called as string returns Gene symbol
 
+    """
     # the core organism is rat, must have rat entrez gene
     rat_entrez_gene = models.IntegerField(unique=True)
     rat_gene_symbol = models.CharField(max_length=30)
@@ -144,13 +179,18 @@ class Gene(models.Model):
     mouse_gene_symbol = models.CharField(max_length=30, blank=True, null=True)
     human_entrez_gene = models.IntegerField(blank=True, null=True)
     human_gene_symbol = models.CharField(max_length=30, blank=True, null=True)
+    ensembl_rn6 = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
         return self.rat_gene_symbol
 
 
 class IdentifierVsGeneMap(models.Model):
+    """
+    Action:  Model for Identifier vs Gene Map
+    Returns: if called as string returns tech - gene identifier
 
+    """
     tech = models.ForeignKey(MeasurementTech, on_delete=models.CASCADE)
     gene_identifier = models.CharField(max_length=30)
     gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
@@ -161,15 +201,21 @@ class IdentifierVsGeneMap(models.Model):
 
 
 class FoldChangeResult(models.Model):
-    #TODO - Need to have expression_ctl to be larger digits due to RNAseq counts
-    #TODO - p_bh probably needs to become p_adj as there may be different ways to adjust
+    """
+    Action:  Model for Fold Change Result
+    Returns: if called as string returns experiment id vs gene gene identifier
+
+    """
+
+    #TODO - Need to have expression_ctl to floatfield
+
 
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     gene_identifier = models.ForeignKey(IdentifierVsGeneMap, on_delete=models.CASCADE)
     log2_fc = models.DecimalField(max_digits=5, decimal_places=2)
     n_trt = models.IntegerField()
     n_ctl = models.IntegerField()
-    expression_ctl = models.DecimalField(max_digits=7, decimal_places=2)
+    expression_ctl = models.FloatField()
     p = models.FloatField()
     p_bh = models.FloatField()
 
@@ -179,7 +225,11 @@ class FoldChangeResult(models.Model):
 
 
 class GeneSets(models.Model):
+    """
+    Action:  Model for GeneSets
+    Returns: if called as string returns gene set name
 
+    """
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=50)
     desc = models.CharField(max_length=500)
@@ -196,7 +246,11 @@ class GeneSets(models.Model):
 
 
 class GeneSetMember(models.Model):
+    """
+    Action:  Model for Gene Set Member
+    Returns: if called as string returns geneset - gene
 
+    """
     geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
     weight = models.DecimalField(blank=True, null=True, max_digits=5, decimal_places=2)
@@ -207,10 +261,16 @@ class GeneSetMember(models.Model):
 
 
 class ModuleScores(models.Model):
+    """
+    Action:  Model for Module Scores
+    Returns: if called as string returns Experiment Id vs module module
 
+    """
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     module = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
+
+    objects = AbsoluteScoreManager()
 
     def __str__(self):
         txt = "experiment {} vs module {}".format(self.experiment.id, self.module)
@@ -218,11 +278,17 @@ class ModuleScores(models.Model):
 
 
 class GSAScores(models.Model):
+    """
+    Action:  Model for GSA Scores
+    Returns: if called as string returns experiment.id vs geneset.id
 
+    """
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
     p_bh = models.FloatField()
+
+    objects = AbsoluteScoreManager()
 
     def __str__(self):
         txt = "experiment {} vs geneset {}".format(self.experiment.id, self.geneset.id)
@@ -230,7 +296,11 @@ class GSAScores(models.Model):
 
 
 class ExperimentCorrelation(models.Model):
+    """
+    Action:  Model for Experiment Correlation
+    Returns: if called as string returns experiment experiment.id vs experiment experiment_ref.id correlation: correl
 
+    """
     SOURCE_TYPE = (
         ('WGCNA', 'WGCNA'),
         ('RegNet', 'RegNet'),
@@ -248,7 +318,11 @@ class ExperimentCorrelation(models.Model):
 
 
 class ToxicologyResult(models.Model):
+    """
+    Action:  Model for Toxicology Result
+    Returns: if called as string returns experiment experiment.id vs result result_name
 
+    """
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     result_type = models.CharField(max_length=30)
     result_name = models.CharField(max_length=100)
@@ -260,8 +334,62 @@ class ToxicologyResult(models.Model):
         return txt
 
 
-class ToxPhenotype(models.Model):
+class BMDFile(models.Model):
+    """
+    Action:  Model for BMD results file
+    Returns: if called as string returns bm2 file vs experiment
 
+    """
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+    bm2_file = models.CharField(max_length=100)
+
+    def __str__(self):
+        txt = "bm2 file {} for experiment {}".format(self.bm2_file, self.experiment.id)
+        return txt
+
+
+class BMDAnalysis(models.Model):
+
+    name = models.CharField(max_length=100, verbose_name='Analysis')
+    # used to ensure that sample analysis names from different users do not collide; not shown in application
+    barcode = models.CharField(max_length=100)
+    # one experiment can be in multiple BMD analyses - think different pathway collections, etc.
+    experiments = models.ManyToManyField(Experiment)
+
+    class Meta:
+        unique_together = ('name', 'barcode')
+
+    def __str__(self):
+        return self.name
+
+
+class BMDPathwayResult(models.Model):
+    """
+    Action:  Model for BMD pathway scores
+    Returns: if called as string returns bm2 file vs experiment
+
+    """
+    analysis = models.ForeignKey(BMDAnalysis, on_delete=models.CASCADE)
+    pathway_id = models.CharField(max_length=20, verbose_name='GO/Pathway/Gene Set ID')
+    pathway_name = models.CharField(max_length=250, verbose_name='GO/Pathway/Gene Set Name')
+    all_genes_data = models.IntegerField(verbose_name='All Genes (Expression Data)')
+    all_genes_platform = models.IntegerField(verbose_name='All Genes (Platform)')
+    input_genes = models.IntegerField(verbose_name='Input Genes')
+    pass_filter_genes = models.IntegerField(verbose_name='Genes That Passed All Filters')
+    bmd_median = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='BMD Median')
+    bmdl_median = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='BMDL Median')
+
+    def __str__(self):
+        txt = "analysis {} vs BMD result {}".format(self.analysis.name, self.pathway_id)
+        return txt
+
+
+class ToxPhenotype(models.Model):
+    """
+    Action:  Model for Tox Phenotype
+    Returns: if called as string returns ToxPhenotype name
+
+    """
     name = models.CharField(max_length=200)
     desc = models.TextField(blank=True, null=True)
 
@@ -270,7 +398,11 @@ class ToxPhenotype(models.Model):
 
 
 class GeneSetTox(models.Model):
+    """
+    Action:  Model for GeneSetTox
+    Returns: if called as string returns geneset geneset.name vs tox tox.name
 
+    """
     geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
     tox = models.ForeignKey(ToxPhenotype, on_delete=models.CASCADE)
     time = models.CharField(max_length=10)
@@ -284,3 +416,52 @@ class GeneSetTox(models.Model):
     def __str__(self):
         txt = "geneset {} vs tox {}".format(self.geneset.name, self.tox.name)
         return txt
+
+
+class Bookmark(models.Model):
+    """
+    Action:  Model to save names of saved genes / genesets
+    Returns: if called as string returns bookmark name
+
+    """
+
+    TYPE_CHOICES = (
+        ('G', 'genes'),
+        ('GS', 'gene sets'),
+    )
+
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, default=1, null=True, on_delete=models.CASCADE)
+    name = models.CharField(max_length=50)
+    type = models.CharField(max_length=2, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+    date_created = models.DateTimeField(default=datetime.now, blank=True, null=True)
+
+    def __str__(self):
+        txt = "bookmark name {}".format(self.name)
+        return txt
+
+
+class GeneBookmark(models.Model):
+    """
+    Action:  Model to save genes that comprise a bookmarked set
+    Returns: if called as string returns bookmark name - gene name pair
+    """
+    bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE)
+    gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
+
+    def __str__(self):
+        txt = 'bookmark {} saved gene {}'.format(self.bookmark.name, self.gene.rat_gene_symbol)
+        return txt
+
+
+class GeneSetBookmark(models.Model):
+    """
+    Action:  Model to save genesets that comprise a bookmarked set
+    Returns: if called as string returns bookmark name - geneset name pair
+    """
+    bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE)
+    geneset = models.ForeignKey(GeneSets, on_delete=models.CASCADE)
+
+    def __str__(self):
+        txt = 'bookmark {} saved geneset {}'.format(self.bookmark.name, self.geneset.name)
+        return txt
+

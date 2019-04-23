@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /login/
+Disallow: /signup/
+Disallow: /studies/
+Disallow: /experiments/
+Disallow: /get_tox_assoc/
+Disallow: /bookmarks/
+Disallow: /study/
+Disallow: /experiment/
