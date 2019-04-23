@@ -65,7 +65,7 @@ class TestTreeMap(unittest.TestCase):
 
         treemap = TreeMap()
         clusters = treemap.reduce_tree_pca()
-        with open('clusters.txt', 'w') as f:
+        with open('tests/test_results/clusters.txt', 'w') as f:
             for p in clusters:
                 for i in range(len(clusters[p])):
                     row = '\t'.join([p, str(i), clusters[p][i], '\n'])
