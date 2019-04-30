@@ -4,6 +4,11 @@ This platform provides tools and workflows for early risk assessment using toxic
 
 Currently this platform is in the early prototype phase to establish secure collaboration tools for participating organizations and to define the conceptual architecture and framework that leverages and/or integrates with other efforts in toxicogenomics. The first working implementation of this platform delivers a full end-to-end workflow from data to visualizations with to-be-defined research methods based on the best practices of the Sponsor(s).
 
+## Key References
+* J J Sutherland, Y W Webster, J A Willy, G H Searfoss, K M Goldstein, A R Irizarry, D G Hall, and J L Stevens, 'Toxicogenomic module associations with pathogenesis (TXG-MAP): A network based approach to understanding drug toxicity', The Pharmacogenomics Journal, [Advance Online Publication](https://www.nature.com/tpj/journal/vaop/ncurrent/full/tpj201717a.html)
+
+*
+
 ## Getting Started
 Visit our current deployment here: [link](http://ctox.indianabiosciences.org)
 
@@ -44,3 +49,5 @@ See also the list of [contributors](https://github.com/IndianaBiosciences/toxapp
 ## License
 TODO
 
+## Inquiries
+Contact Brad Mills at bmills(at)indianabiosciences(dot)org
