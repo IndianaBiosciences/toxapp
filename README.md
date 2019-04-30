@@ -5,7 +5,7 @@ This platform provides tools and workflows for early risk assessment using toxic
 Currently this platform is in the early prototype phase to establish secure collaboration tools for participating organizations and to define the conceptual architecture and framework that leverages and/or integrates with other efforts in toxicogenomics. The first working implementation of this platform delivers a full end-to-end workflow from data to visualizations with to-be-defined research methods based on the best practices of the Sponsor(s).
 
 ## Getting Started
-Visit our current deployment here:[link](http://ctox.indianabiosciences.org)
+Visit our current deployment here: [link](http://ctox.indianabiosciences.org)
 
 If you signup you will recieve an email notifying you of granted access.
 
