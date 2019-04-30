@@ -7,7 +7,7 @@ Currently this platform is in the early prototype phase to establish secure coll
 ## Key References
 * J J Sutherland, Y W Webster, J A Willy, G H Searfoss, K M Goldstein, A R Irizarry, D G Hall, and J L Stevens, 'Toxicogenomic module associations with pathogenesis (TXG-MAP): A network based approach to understanding drug toxicity', The Pharmacogenomics Journal, [Advance Online Publication](https://www.nature.com/tpj/journal/vaop/ncurrent/full/tpj201717a.html)
 
-*
+* Jeffrey J Sutherland  James L Stevens  Kamin Johnson  Navin Elango  Yue W Webster Bradley J Mills  Daniel H Robertson, 'A novel open access web portal for integrating mechanistic and toxicogenomic study results', Toxicological Sciences, [Advance Online Publication](https://academic.oup.com/toxsci/advance-article/doi/10.1093/toxsci/kfz101/5478579)
 
 ## Getting Started
 Visit our current deployment here: [link](http://ctox.indianabiosciences.org)
