@@ -18,7 +18,7 @@ If you signup you will recieve an email notifying you of granted access.
 
 ### Documentation
 
-[Link to deployment documentation](../blob/master/documentation/Requirements_and_Installation.docx)
+[Link to deployment documentation](../master/documentation/Requirements_and_Installation.docx)
 
 ### Running the tests
 
