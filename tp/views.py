@@ -2075,6 +2075,21 @@ class UploadSamplesView(FormView):
                 logger.debug("reading samples names from single file %s in dir %s", f.name, tmpdir)
                 rnafile = os.path.join(tmpdir, f.name)
                 if os.path.isfile(rnafile):
+                    skip = 0
+                    with open(rnafile, 'r') as f:
+                        s = f.read()
+                        if '\n\n' not in s:
+                            logger.debug('file is formatted correctly, no replacements are made')
+                            skip =1
+
+
+                    # Safely write the changed content, if found in the file
+                    if(skip ==0):
+                        with open(rnafile, 'w') as f:
+                            logger.debug('Replaceing double newline with a single newline')
+                            s = s.replace('\n\n', '\n')
+                            f.write(s)
+
                     with open(rnafile, newline='') as txtfile:
                         txtreader = csv.reader(txtfile, delimiter='\t')
                         header = next(txtreader)
