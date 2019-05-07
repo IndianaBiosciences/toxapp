@@ -49,11 +49,12 @@ def signup(request):
             user = authenticate(username=username, password=raw_password)
             user.is_active = False
             user.save()
-            subject = str(user.email) + ' Signed Up'
-            message = ' Username: ' + str(username)+ ' Email: '+ str(user.email)
-            email_from = settings.EMAIL_HOST_USER
-            recipient_list = ['bmills@indianabiosciences.org', ]
-            send_mail(subject, message, email_from, recipient_list)
+            if(hasattr(settings, 'ACCOUNTS_EMAIL')):
+                subject = str(user.email) + ' Signed Up'
+                message = ' Username: ' + str(username)+ ' Email: '+ str(user.email)
+                email_from = settings.EMAIL_HOST_USER
+                recipient_list = [settings.ACCOUNTS_EMAIL, ]
+                send_mail(subject, message, email_from, recipient_list)
             #login(request, user)
             return redirect(index)
     else:
