@@ -10,6 +10,7 @@ urlpatterns = [
 
     # view all studies
     url(r'^studies/$', login_required(views.StudyView.as_view()), name='studies'),
+    url(r'^studies/public/$', login_required(views.PublicStudyView.as_view()), name='public-studies'),
 
     # edit single study;
     url(r'^study/add/$', login_required(views.StudyCreate.as_view()), name='study-add'),

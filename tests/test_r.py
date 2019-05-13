@@ -34,10 +34,13 @@ class TestR(unittest.TestCase):
         print(pi)
         r_version = str(rpy2.__version__)
         r_version = r_version.split(".")
-        if(int(r_version[0]) == 3 and int(r_version[1]) == 5 ):
-            print(r_version)
+        if(int(r_version[0]) == 3 and int(r_version[1]) <= 5 ):
+            logger.info('You are running R version %s',rpy2.__version__)
+
+        elif(int(r_version[0]) == 2 and int(r_version[1]) == 9):
+            logger.info('You are running R version %s', rpy2.__version__)
         else:
-            logger.warning("The R Version installed currently differs from the recomended 3.5.x, you are running: " + str(rpy2.__version__))
+            logger.warning("The R Version installed currently differs from the recomended 2.9.x - 3.5.x, you are running: " + str(rpy2.__version__))
 
 
 

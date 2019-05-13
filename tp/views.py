@@ -1485,7 +1485,7 @@ def export_trellischart_json(request, restype=None):
             nr = {'x': x, 'y': y, 'z': z, 'val': val, 'geneset': geneset, 'geneset_id': geneset_id, 'thisgeneset':thisgene, 'color': color, 'trellis': trellis, 'detail': ttiptxt, 'compound_name': compound_name, 'time': timer, 'dose': dose, 'dose_unit': dose_unit}
             times.append(timer)
             dosages.append(str(dose) + dose_unit)
-            comp.append(compound_name)
+            comp.append(str(compound_name))
             totaler.append( str(compound_name)+ str(dose)+str(dose_unit)+str(timer))
             ndata.append(nr)
         if(x_val=='Time'):
@@ -1495,6 +1495,7 @@ def export_trellischart_json(request, restype=None):
         nres['times'] = sorted(set(times))
         nres['dosages'] = sorted_alphanum(set(dosages))
         nres['comp'] = sorted(set(comp))
+
         nres['namers'] = sorted(set(totaler))
         nres['x_val']=x_val
         nres['y_val'] = y_val
@@ -1698,8 +1699,30 @@ class StudyView(ResetSessionMixin, SingleTableView):
     def get_queryset(self):
         # to ensure that only a user's study are shown to him/her
         new_context = Study.objects.filter(owner_id=self.request.user.id)
+
         return new_context
 
+class PublicStudyView(ResetSessionMixin, SingleTableView):
+    model = Study
+    template_name = 'study_list.html'
+    context_object_name = 'studies'
+    table_class = tp.tables.StudyListTable
+    table_pagination = True
+
+    def get_context_data(self, **kwargs):
+
+        context = super(PublicStudyView, self).get_context_data(**kwargs)
+        request = self.request
+        context['qc_lookup'] = tp.utils.get_user_qc_urls(request.user.username)
+
+        return context
+
+    def get_queryset(self):
+        # to ensure that only a user's study are shown to him/her
+        new_context = Study.objects.filter(permission='P').exclude(study_name__endswith='-TG').exclude(study_name__endswith='-DM')
+        #new_context = Study.objects.filter(permission='P').exclude(source='TG').exclude(source='DM')
+
+        return new_context
 
 class StudyCreateUpdateMixin(object):
 
@@ -1884,6 +1907,8 @@ class ExperimentCreate(ExperimentSuccessURLMixin, CreateView):
                       'organism', 'strain', 'gender', 'single_repeat_type', 'route']
             for f in fields:
                 initial[f] = getattr(last_exp, f)
+                if(f=="dose" or f=="time"):
+                    initial[f]=str(initial[f]).replace(".00","")
 
             logger.info('prepopulated object %s', pprint.pformat(initial))
 
@@ -2050,6 +2075,21 @@ class UploadSamplesView(FormView):
                 logger.debug("reading samples names from single file %s in dir %s", f.name, tmpdir)
                 rnafile = os.path.join(tmpdir, f.name)
                 if os.path.isfile(rnafile):
+                    skip = 0
+                    with open(rnafile, 'r') as f:
+                        s = f.read()
+                        if '\n\n' not in s:
+                            logger.debug('file is formatted correctly, no replacements are made')
+                            skip =1
+
+
+                    # Safely write the changed content, if found in the file
+                    if(skip ==0):
+                        with open(rnafile, 'w') as f:
+                            logger.debug('Replaceing double newline with a single newline')
+                            s = s.replace('\n\n', '\n')
+                            f.write(s)
+
                     with open(rnafile, newline='') as txtfile:
                         txtreader = csv.reader(txtfile, delimiter='\t')
                         header = next(txtreader)
@@ -2183,7 +2223,7 @@ class FilteredSingleTableView(SingleTableView):
             for eid in expref:
                 eexp = Experiment.objects.get(id=eid)
                 study = Study.objects.get(id=eexp.study.id)
-                if(study.permission == 'P'):
+                if(study.permission == 'P' or study.owner == self.request.user):
                     continue
                 else:
                     rvalue = ExperimentCorrelation.objects.get(id=eid)

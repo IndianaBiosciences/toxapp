@@ -400,27 +400,32 @@ $(function () {
                 times = response.times;
                 dosages = response.dosages;
                 comp = response.comp;
+
                 respdata = response.namers;
                 options = [];
                 names = [];
                 data2 = [];
 
                 for (x in response.data){
-                   names.push(response.data[x]['compound_name']+"-"+String(response.data[x]['time']) + "-"+String(response.data[x]['dose']));
+                   names.push(response.data[x]['compound_name']+"-"+String(response.data[x]['dose'])+"-"+String(response.data[x]['dose_unit'])+"-"+String(response.data[x]['time']));
                    //genesets.push(response.data[x]['geneset'].match(/:(.*?):/,'')[1])
                 }
+                names = new Set(names);
+                names = Array.from(names);
                 for (y in names){
                     var data = [];
 
                     for (n in response.data){
-                       if(names[y]==(response.data[n]['compound_name']+"-"+String(response.data[n]['time']) + "-"+String(response.data[n]['dose']))){
+
+                       if(names[y]==(response.data[n]['compound_name']+ "-"+String(response.data[n]['dose'])+"-"+String(response.data[n]['dose_unit'])+"-"+String(response.data[n]['time']))){
                            data.push(response.data[n]);
                        }
                     }
+
                     data2.push(data);
 
                 }
-                for(m in respdata){
+                for(m in names){
                      options.push({
 
                         chart: {
@@ -443,7 +448,7 @@ $(function () {
                         },
 
                         title: {
-                            text: respdata[m]+"days "+' map chart'
+                            text: names[m]+"days "+' map chart'
                         },
 
                         legend: {
@@ -491,6 +496,7 @@ $(function () {
                             data: data2[m]
                         }]
                     });
+
                 }
                 $('.viz_container').empty();
                 write = '';
@@ -503,6 +509,7 @@ $(function () {
                 write = write + '<table style="border: 1px solid black; padding-left:15px;">';
                 write = write + '<tr style="border-bottom: 1px solid black;">';
                 while(counter < respdata.length){
+
                 write = write + '<td style="border-right: 1px solid black;" id='+String(respdata[counter]).replace(/\s+/g, '')+'></td>';
                 counter = counter +1;
 
@@ -549,6 +556,7 @@ $(function () {
                     write = write + '<tr style="border-bottom: 1px solid black;">' + '<td style="border-right: 1px solid black;">'+dosages[x]+'</td>';
                     for (y in times){
                         write = write + '<td style="border-right: 1px solid black;" id='+String(String(comp[z])+String(dosages[x])+String(times[y])).replace(/\s+/g, '')+'></td>';
+
                     }
                     write = write + '</tr>';
                 }}
@@ -557,12 +565,15 @@ $(function () {
                     }
                     $('.viz_container').find("highcharts-container ");
                     }
-                    for (m in respdata){
+                    for (m in names){
+                    var location = String(names[m]).replace(/-([^-]*)$/, '$1');
+                    location = location.replace(/\s+/g,'');
+                    location = location.replace(/-([^-]*)$/, '$1');
+                    location = location.replace(/-([^-]*)$/, '$1');
 
-
-                        var chart = new Highcharts.chart(''+String(respdata[m]).replace(/\s+/g, '')+'', options[m]);
+                        var chart = new Highcharts.chart(''+location+'', options[m]);
                     }
-                    $('#mapchart').addClass('active');
+                    $('#mapchart').removeClass('active');
                     $('#viz_loading').removeClass('loader');
                     $('#heatmap').removeAttr("disabled");
                     $('#mapchart').removeAttr("disabled");

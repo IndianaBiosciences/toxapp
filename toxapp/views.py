@@ -4,6 +4,8 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import render, redirect
 from toxapp.forms import SignUpForm
+from django.core.mail import send_mail
+from django.conf import settings
 
 def index(request):
     """
@@ -47,6 +49,12 @@ def signup(request):
             user = authenticate(username=username, password=raw_password)
             user.is_active = False
             user.save()
+            if(hasattr(settings, 'ACCOUNTS_EMAIL')):
+                subject = str(user.email) + ' Signed Up'
+                message = ' Username: ' + str(username)+ ' Email: '+ str(user.email)
+                email_from = settings.EMAIL_HOST_USER
+                recipient_list = [settings.ACCOUNTS_EMAIL, ]
+                send_mail(subject, message, email_from, recipient_list)
             #login(request, user)
             return redirect(index)
     else:
