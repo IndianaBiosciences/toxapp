@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
     new_exps = load_experiments(args.experiments_txt)
 
-    status = load_group_fold_change(compute, groupfc_file, use_experiment_name=True)
+    status = load_group_fold_change(compute, groupfc_file, use_experiment_name=False)
     if status is None:
         message = 'Step 1b Failed: Error processing and loading gene-level fold change data; no further computations performed'
         logger.error(message)
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     logger.info('Step 1: gene-level fold change data processed and loaded')
 
     logger.info('Step 2: Loading fold change results')
-    fc_data = compute.map_fold_change_data(groupfc_file, use_experiment_name=True)
+    fc_data = compute.map_fold_change_data(groupfc_file, use_experiment_name=False)
     if fc_data is None:
         message = 'Step 2 Failed: Error mapping fold change data to rat entrez gene IDs; no further computations performed'
         logger.error(message)
