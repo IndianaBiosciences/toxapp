@@ -926,7 +926,7 @@ class Computation:
         sample2exp = dict()
         for e in config['experiments']:
             for s in e['sample']:
-                sample2exp[s['sample_name']] = exp_id
+                sample2exp[s['sample_name']] = e['experiment']['exp_id']
 
         identifier2ensembl = dict()
 
@@ -978,12 +978,23 @@ class Computation:
                 firstrow = True
                 genecount = -1  # need to make sure that platform identifiers not mappable to rat eg get incremented
 
+                already_have = dict()
+                warned_dups = dict()
+
                 for gene in sample_int['genes']:
 
                     genecount += 1
                     refseq = identifier2ensembl.get(gene, None)
                     if refseq is None:
                         continue
+
+                    if already_have.get(refseq, None) is not None:
+                        if warned_dups.get(refseq, None) is None:
+                            logger.warning('Multiple input genes map to the same rat ensemble gene %s; keeping first only', refseq)
+                            warned_dups[refseq] = 1
+                        continue
+
+                    already_have[refseq] = 1
 
                     row = str(refseq)
                     for conc in sorted(conc2sample):
