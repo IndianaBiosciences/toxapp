@@ -16,6 +16,7 @@ import statistics
 from rpy2.robjects.packages import importr
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.stats.stats import pearsonr
+from collections import defaultdict
 from django.conf import settings
 from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores,\
     GSAScores, Gene, ToxPhenotype, ExperimentVsToxPhenotype, BMDPathwayResult
@@ -286,7 +287,7 @@ class Computation:
 
         logger.debug('Have temporary GSA file %s', gmt.name)
         sig_count = 0
-        for s in GeneSets.objects.filter(source='EPA').prefetch_related('members'):
+        for s in GeneSets.objects.exclude(source='WGCNA').prefetch_related('members'):
             sig_count += 1
 
             rat_egs = list()
@@ -1150,3 +1151,4 @@ class Computation:
                 results.append(result)
 
         return results
+
