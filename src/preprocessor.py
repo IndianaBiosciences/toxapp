@@ -1,6 +1,8 @@
 import csv
 import re
-import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def preprocess(file):
@@ -73,7 +75,7 @@ def preprocess(file):
     num_lines = sum(1 for line in open(file))
     num_lines2 = sum(1 for line in open(name))
 
-    print(str(num_lines-num_lines2) + " Duplicates found")
+    logger.debug(str(num_lines-num_lines2) + " Duplicates found")
     blanks = 0
     rowskip = 0
     for row3 in newdata:
@@ -97,7 +99,7 @@ def preprocess(file):
 
         if sumnum <=rowcount*2:
             blanks += 1
-    print(str(blanks)+ ' low values found out of ' + str(num_lines2))
+    logger.debug(str(blanks)+ ' low values found out of ' + str(num_lines2))
     return(name)
 
 
