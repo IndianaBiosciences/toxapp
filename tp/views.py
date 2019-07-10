@@ -24,6 +24,7 @@ from .forms import StudyForm, ExperimentForm, SampleForm, SampleFormSet, FilesFo
 from .tasks import load_measurement_tech_gene_map, process_user_files, make_leiden_csv
 from src.computation import cluster_expression_features
 from src.treemap import TreeMap
+from src.preprocessor import preprocess
 import re
 import tp.filters
 import tp.tables
@@ -2068,12 +2069,17 @@ class UploadSamplesView(FormView):
             if request.FILES.get('single_file', None) is not None:
                 tmpdir = get_temp_dir(self.request)
                 f = request.FILES.get('single_file')
+                #take this file and send it to preprocessor, return new file and continue
+                print(f)
+
+                f = preprocess(os.path.abspath(f.name))
+                f=os.path.abspath(f)
                 fs = FileSystemStorage(location=tmpdir)
-                fs.save(f.name, f)
-                self.request.session['sample_file'] = f.name
+                #fs.save(f.name, f)
+                self.request.session['sample_file'] = f
                 self.request.session['sample_type'] = "RNAseq"
-                logger.debug("reading samples names from single file %s in dir %s", f.name, tmpdir)
-                rnafile = os.path.join(tmpdir, f.name)
+                logger.debug("reading samples names from single file %s in dir %s", f, tmpdir)
+                rnafile = os.path.join(tmpdir, f)
                 if os.path.isfile(rnafile):
                     skip = 0
                     with open(rnafile, 'r') as f:
