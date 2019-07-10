@@ -27,23 +27,8 @@
       "@type" : "poly",
       "degree" : 1
     }, {
-      "@type" : "poly",
-      "degree" : 2
-    }, {
-      "@type" : "poly",
-      "degree" : 3
-    }, {
       "@type" : "exp",
       "expModel" : 2
-    }, {
-      "@type" : "exp",
-      "expModel" : 3
-    }, {
-      "@type" : "exp",
-      "expModel" : 4
-    }, {
-      "@type" : "exp",
-      "expModel" : 5
     }],
     "bmdsBestModelSelection" : {
       "bestPolyTest" : 1,

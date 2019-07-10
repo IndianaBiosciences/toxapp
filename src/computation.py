@@ -1166,3 +1166,186 @@ class Computation:
 
         return results
 
+    def make_module_BMD_files(self, exp_objs, config_file, sample_fc):
+        """
+        Temporary method to test utility of module-based BMD calc
+        """
+        logger.info('Preparing BMD input files for experiments %s', [e.id for e in exp_objs])
+
+        bmd_calcs = self.get_BMD_calcs(exp_objs)
+        # many user studies will not have multiple conc, hence BMD not possible
+        if not bmd_calcs:
+            return None
+
+        with open(config_file) as infile:
+            config = json.load(infile)
+
+        sample2exp = dict()
+        for e in config['experiments']:
+            for s in e['sample']:
+                sample2exp[s['sample_name']] = e['experiment']['exp_id']
+
+        sample_scores = self.score_modules_sample_level(sample_fc)
+
+        # a user might be uploading experiments where not all of conditions required for
+        # performing BMD are the same across all experiments, i.e. different time points
+        # iterate through each set of experiments where the req'd conditions are the same
+        filenames = list()
+        for cond in bmd_calcs:
+            conc2sample = collections.defaultdict(list)
+            for conc, exp_id in bmd_calcs[cond].items():
+                for e in config['experiments']:
+                    if e['experiment']['exp_id'] == exp_id:
+                        for s in e['sample']:
+                            use_conc = float(conc) if s['sample_type'] == 'I' else 0
+                            if not s['sample_name'] in conc2sample[use_conc]:
+                                conc2sample[use_conc].append(s['sample_name'])
+
+            if not conc2sample:
+                raise LookupError('Did not match any of concentration/experiments in bmd_config to experiments')
+
+            filename = os.path.join(self.tmpdir, 'bmd_input-' + cond + '.txt')
+            with open(filename, 'w') as bmd_f:
+
+                head1 = 'SampleID'
+                head2 = 'Dose'
+                firstrow = True
+                modulecount = -1  # need to make sure that platform identifiers not mappable to rat eg get incremented
+
+                already_have = dict()
+                warned_dups = dict()
+
+                for module in sample_scores['modules']:
+
+                    modulecount += 1
+
+                    if already_have.get(module, None) is not None:
+                        if warned_dups.get(module, None) is None:
+                            logger.warning('Multiple input genes map to the same rat ensemble gene %s; keeping first only', module)
+                            warned_dups[module] = 1
+                        continue
+
+                    already_have[module] = 1
+
+                    row = module
+                    for conc in sorted(conc2sample):
+                        for sample_nm in sorted(conc2sample[conc]):
+                            if firstrow:
+                                head1 += '\t' + sample_nm
+                                head2 += '\t' + str(conc)
+                            row += '\t' + str(sample_scores['values'][sample_nm][modulecount])
+
+                    if firstrow:
+                        head1 += '\n'
+                        head2 += '\n'
+                        bmd_f.write(head1)
+                        bmd_f.write(head2)
+                        firstrow = False
+
+                    row += '\n'
+                    bmd_f.write(row)
+
+            bmd_f.close()
+            filenames.append(filename)
+
+        return filenames
+
+    def score_modules_sample_level(self, sample_fc):
+
+        """ temporary for BMD scoring of module scores at sample level; mimics data structure returned from gffactors.py
+         for fold change data; would be cleaner to use dict of dict for values instead of dict of list """
+        if self.module_defs is None or self.gene_identifier_stats is None:
+            success = self.init_modules()
+            if not success:
+                logger.error('Failed to initiatize module calculation')
+                return None
+
+        # will only work with RG230-2 currently
+        this_tech = MeasurementTech.objects.get(tech_detail='RG230-2')
+        identifiers = IdentifierVsGeneMap.objects.filter(tech=this_tech).all()
+        if identifiers is None or len(identifiers) < 1000:
+            logger.error('Failed to retrieve at least 1000 identifiers for measurement platform %s', this_tech)
+            return None
+
+        identifier_map = {} # empty the dict in case collision between ids on two measurement platforms
+        # map for converting measurement platform identifiers to rat entrez gene IDs
+        for r in identifiers:
+            identifier_map[r.gene_identifier] = r.gene.rat_entrez_gene
+
+
+        md = self.module_defs
+        gs = self.gene_identifier_stats
+        warned_scaling = dict()
+        warned_eg_lookup = dict()
+
+        module_scores = dict()
+        module_scores['samples'] = list()
+        module_scores['modules'] = list()
+        module_scores['values'] = defaultdict(list)
+
+        for sample_nm in sample_fc['samples']:
+
+            module_scores['samples'].append(sample_nm)
+            system = 'liver:rat'
+            systech = 'liver:rat:microarray:RG230-2'
+
+            # scale log2fc using gene identifiers's log2fc variability
+            scaled_fc = dict()
+
+            genecount = -1
+            for gene in sample_fc['genes']:
+                genecount += 1
+
+                rat_entrez = identifier_map.get(gene, None)
+                if rat_entrez is None:
+                    warned_eg_lookup[gene] = 1
+                    continue
+
+                if gs[systech].get(rat_entrez, None) is None:
+                    if warned_scaling.get(rat_entrez, None) is None:
+                        #logger.debug('No scaling data for gene identifier %s for system %s; skipping', gene, systech)
+                        warned_scaling[rat_entrez] = 1
+                    continue
+
+                stdev_fc = gs[systech][rat_entrez]['stdev_fc']
+                fc_scaled = sample_fc['values'][sample_nm][genecount] / stdev_fc
+                scaled_fc[rat_entrez] = fc_scaled
+
+            n_fails = len(warned_scaling) + len(warned_eg_lookup)
+            n_success = len(scaled_fc)
+
+            if n_success < 1000:
+                logging.error('Fewer than 1000 identifiers (%s) from fold change data were used for module scoring; likely mapping error', n_success)
+                return None
+            elif n_fails:
+                ids = list(warned_scaling.keys())[0:10]
+                id_str = ",".join(str(x) for x in ids)
+                logger.warning('A total of %s genes with fold change results were not used for module scoring due to missing scaling factors; the first 10 are: %s', n_fails, id_str)
+
+            module_count = -1
+            for m in md[system].keys():
+                module_count += 1
+                modsum = 0
+                warned_gene = dict()
+                n_genes = 0
+                if m not in module_scores['modules']:
+                    module_scores['modules'].append(m)
+
+                for gene in md[system][m]['genes'].keys():
+                    n_genes += 1
+                    if scaled_fc.get(gene, None) is None:
+                        warned_gene[gene] = 1
+                        continue
+                    modsum += scaled_fc[gene]*md[system][m]['genes'][gene]
+
+                modsum /= md[system][m]['stdev']
+                module_scores['values'][sample_nm].append(modsum)
+
+                n_missing = len(warned_gene)
+                ratio_missed = n_missing/n_genes
+                if ratio_missed > 0.30:
+                    pass
+                    #logger.warning('Missing more than 30percent of genes (%s) for module %s of size %s; lower concern for small modules', n_missing, m, n_genes)
+
+        #logger.debug('Have results from module scoring: %s', pprint.pformat(module_scores, indent=4))
+        return module_scores

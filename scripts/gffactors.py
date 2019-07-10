@@ -377,6 +377,48 @@ def compute_limma_results(sdir, experiments, rma):
     return results
 
 
+def compute_sample_foldchange(experiments, rma):
+
+    # hack by JS May 2019 to get a structure like sample-level RMA intensities but for fold change of each sample
+    # compared to the controls, including the controls themselves (i.e. each control compared to avg of 3 controls)
+    rma_values = rma['values']
+    rma_probes_list = rma['genes']
+
+    samplefc = {'samples': rma['samples'],
+                'genes': rma_probes_list,
+                'values': dict()
+               }
+
+    done_samples = list()
+    for e in experiments.keys():
+
+        ctls = experiments[e]['CTL']
+        trts = experiments[e]['TRT']
+        combined_samples = ctls + trts
+        ctl_mean = str(e) + "_CTL_mean"
+
+        for s in combined_samples:
+
+            # a control sample will get revisited for various treatments using the same control group; do it once only
+            if s in done_samples:
+                continue
+
+            done_samples.append(s)
+
+            for n in range(0, len(rma_probes_list)):
+
+                ctl_avg = rma_values[ctl_mean][n]
+                sample_intensity = rma_values[s][n]
+                fc = float(sample_intensity) - float(ctl_avg)
+
+                if samplefc['values'].get(s, None) is None:
+                    samplefc['values'][s] = list()
+
+                samplefc['values'][s].append(fc)
+
+    return samplefc
+
+
 def write_results(outfile, experiments, results):
     #
     # Add in the mean_Control and Foldchange
@@ -700,6 +742,11 @@ def compute_gfc_CEL(infile, outfile, celdir, sdir, array_type):
         exit(0)
 
     rma = normalize_cel_expression(celdir, sdir, array_type, experiments)
+    samplefc = compute_sample_foldchange(experiments, rma)
+
+    with open('sample_foldchange.pkl', 'wb') as fp:
+        pickle.dump(samplefc, fp, pickle.HIGHEST_PROTOCOL)
+
     results = compute_limma_results(sdir, experiments, rma)
     write_results(outfile, experiments, results)
     return rma

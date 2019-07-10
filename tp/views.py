@@ -1687,7 +1687,6 @@ class StudyView(ResetSessionMixin, SingleTableView):
     template_name = 'study_list.html'
     context_object_name = 'studies'
     table_class = tp.tables.StudyListTable
-    table_pagination = True
 
     def get_context_data(self, **kwargs):
 
@@ -1779,7 +1778,6 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
     template_name = 'experiments_list.html'
     context_object_name = 'experiments'
     table_class = tp.tables.ExperimentListTable
-    table_pagination = True
 
     def get_context_data(self, **kwargs):
 
@@ -2356,7 +2354,6 @@ class ModuleFilteredSingleTableView(FilteredSingleTableView):
     feature_type = 'modules'
     template_name = 'result_list.html'
     table_class = tp.tables.ModuleScoreTable
-    table_pagination = True
     filter_class = tp.filters.ModuleScoreFilter
 
 
@@ -2365,7 +2362,6 @@ class GSAFilteredSingleTableView(FilteredSingleTableView):
     feature_type = 'genesets'
     template_name = 'result_list.html'
     table_class = tp.tables.GSAScoreTable
-    table_pagination = True
     filter_class = tp.filters.GSAScoreFilter
 
 
@@ -2374,7 +2370,6 @@ class FoldChangeSingleTableView(FilteredSingleTableView):
     feature_type = 'genes'
     template_name = 'result_list.html'
     table_class = tp.tables.FoldChangeResultTable
-    table_pagination = True
     filter_class = tp.filters.FoldChangeResultFilter
 
 
@@ -2382,7 +2377,6 @@ class SimilarExperimentsSingleTableView(FilteredSingleTableView):
     model = ExperimentCorrelation
     template_name = 'result_list.html'
     table_class = tp.tables.SimilarExperimentsTable
-    table_pagination = True
     filter_class = tp.filters.SimilarExperimentsFilter
 
 
@@ -2390,7 +2384,6 @@ class ToxicologyResultsSingleTableView(FilteredSingleTableView):
     model = ToxicologyResult
     template_name = 'result_list.html'
     table_class = tp.tables.ToxicologyResultsTable
-    table_pagination = True
     filter_class = tp.filters.ToxicologyResultsFilter
 
 
@@ -2398,7 +2391,6 @@ class BMDPathwayResultsSingleTableView(FilteredSingleTableView):
     model = BMDPathwayResult
     template_name = 'result_list.html'
     table_class = tp.tables.BMDPathwayResultsTable
-    table_pagination = True
     filter_class = tp.filters.BMDPathwayResultsFilter
 
 
@@ -2406,7 +2398,6 @@ class ToxAssociation(SingleTableView):
     model = GeneSetTox
     template_name = 'geneset_vs_tox.html'
     table_class = tp.tables.GenesetToxAssocTable
-    table_pagination = True
     filter_class = tp.filters.ToxAssociationFilter
 
     def get_table_data(self):
@@ -2443,7 +2434,6 @@ class BookmarkView(SingleTableView):
     template_name = 'bookmark_list.html'
     context_object_name = 'bookmarks'
     table_class = tp.tables.BookmarkListTable
-    table_pagination = True
 
     def get_queryset(self):
         # to ensure that only a user's Bookmark are shown to him/her
@@ -2462,7 +2452,6 @@ class AddGeneBookmark(SingleTableView):
     model = Gene
     template_name = 'bookmark_members.html'
     table_class = tp.tables.GeneBookmark
-    table_pagination = True
     filter_class = tp.filters.GeneBookmarkFilter
 
     def get_table_data(self):
@@ -2487,7 +2476,6 @@ class AddGeneSetBookmark(SingleTableView):
     model = GeneSets
     template_name = 'bookmark_members.html'
     table_class = tp.tables.GeneSetBookmark
-    table_pagination = True
     filter_class = tp.filters.GeneSetBookmarkFilter
 
     def get_table_data(self):
