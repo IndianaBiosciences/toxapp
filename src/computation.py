@@ -1003,7 +1003,14 @@ class Computation:
                             if firstrow:
                                 head1 += '\t' + sample_nm
                                 head2 += '\t' + str(conc)
-                            row += '\t' + str(sample_int['values'][sample_nm][genecount])
+
+                            # TODO - in gfffactors.py; expression values are stored as lists for array and dict for rna-seq; needs refactor
+                            if config['file_type'] == 'RNAseq':
+                                expression = sample_int['values'][sample_nm][gene]
+                            else:
+                                expression = sample_int['values'][sample_nm][genecount]
+
+                            row += '\t' + str(expression)
 
                     if firstrow:
                         head1 += '\n'
@@ -1133,6 +1140,13 @@ class Computation:
             next(f)  # the first line is blank in bmd export file
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
+
+                # BMD express can return zero values, and when plotting on log scale these cause problems
+                if row['BMD Median'] == '0':
+                    row['BMD Median'] = '0.001'
+
+                if row['BMDL Median'] == '0':
+                    row['BMDL Median'] = '0.001'
 
                 if row['Genes That Passed All Filters'] == '0':
                     continue
