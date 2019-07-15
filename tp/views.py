@@ -2069,17 +2069,15 @@ class UploadSamplesView(FormView):
             if request.FILES.get('single_file', None) is not None:
                 tmpdir = get_temp_dir(self.request)
                 f = request.FILES.get('single_file')
-                #take this file and send it to preprocessor, return new file and continue
-                print(f)
 
-                f = preprocess(os.path.abspath(f.name))
-                f=os.path.abspath(f)
+
                 fs = FileSystemStorage(location=tmpdir)
-                #fs.save(f.name, f)
-                self.request.session['sample_file'] = f
+                fs.save(f.name, f)
+                self.request.session['sample_file'] = f.name
+
                 self.request.session['sample_type'] = "RNAseq"
-                logger.debug("reading samples names from single file %s in dir %s", f, tmpdir)
-                rnafile = os.path.join(tmpdir, f)
+                logger.debug("reading samples names from single file %s in dir %s", f.name, tmpdir)
+                rnafile = os.path.join(tmpdir, f.name)
                 if os.path.isfile(rnafile):
                     skip = 0
                     with open(rnafile, 'r') as f:
