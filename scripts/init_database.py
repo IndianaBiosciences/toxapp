@@ -15,7 +15,7 @@ application = get_wsgi_application()
 
 from django.conf import settings
 from tp.models import MeasurementTech, IdentifierVsGeneMap, Gene, Study, Experiment, ToxicologyResult, GeneSets,\
-    GeneSetMember, GeneSetTox, ToxPhenotype
+    GeneSetMember, GeneSetTox, ToxPhenotype, ExperimentVsToxPhenotype
 from tp.tasks import load_measurement_tech_gene_map, load_module_scores, load_gsa_scores, load_correl_results
 from src.computation import Computation
 
@@ -164,6 +164,45 @@ def load_tox_results():
             createcount += 1
 
     logging.info('Number of Toxicology results created: %s; number read in file %s', createcount, rowcount)
+
+
+def load_experiments_vs_outcomes():
+    """
+    Action: Opens experiments vs. tox outcome file, deletes existing, and populates model from file.
+    Returns: none
+
+    """
+    tf = os.path.join(settings.BASE_DIR, config['DEFAULT']['experiments_vs_outcomes'])
+    logger.info('Loading experiment vs. tox outcomes from file %s', tf)
+    createcount = 0
+    rowcount = 0
+    # delete existing data if any
+    ExperimentVsToxPhenotype.objects.all().delete()
+
+    with open(tf) as f:
+        reader = csv.DictReader(f, delimiter='\t')
+        for row in reader:
+            rowcount += 1
+
+            exp_obj = compute.get_exp_obj(row['experiment'])
+            if exp_obj is None:
+                continue
+
+            rec = dict()
+            rec['experiment'] = exp_obj
+
+            # confirm that the experiment ID matches exp name in file
+            if exp_obj.experiment_name != row['experiment_name']:
+                raise LookupError('Experiment with id {} has different name in file {} vs. db {}'.format(exp_obj.id, row['experiment_name'], exp_obj.experiment_name))
+
+            phenotype, _ = ToxPhenotype.objects.get_or_create(name=row['tox'])
+            rec['tox'] = phenotype
+            rec['outcome'] = row['outcome']
+            rec['type'] = row['type']
+            ExperimentVsToxPhenotype.objects.create(**rec)
+            createcount += 1
+
+    logging.info('Number of experiment vs. tox phenotype results created: %s; number read in file %s', createcount, rowcount)
 
 
 def load_geneset_vs_tox_associations():
@@ -525,6 +564,9 @@ if __name__ == '__main__':
 
     # step 4) load the toxicology results file
     load_tox_results()
+
+    # step 4b) load experiment vs outcome data; new in may 2019
+    load_experiments_vs_outcomes()
 
     # step 5) load definition of core gene sets
     load_genesets()

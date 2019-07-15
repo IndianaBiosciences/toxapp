@@ -418,6 +418,28 @@ class GeneSetTox(models.Model):
         return txt
 
 
+class ExperimentVsToxPhenotype(models.Model):
+    """
+    Action:  Model for ExperimentVsToxPhenotype
+    Returns: if called as string returns experiment experiment.name vs tox tox.name
+
+    """
+
+    ASSOCIATION_TYPE = (
+        ('C', 'concurrent'),
+        ('P', 'predictive'),
+    )
+
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+    tox = models.ForeignKey(ToxPhenotype, on_delete=models.CASCADE)
+    outcome = models.BooleanField()
+    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default=ASSOCIATION_TYPE[0][0])
+
+    def __str__(self):
+        txt = "experiment {} vs tox {}".format(self.experiment.experiment_name, self.tox.name)
+        return txt
+
+
 class Bookmark(models.Model):
     """
     Action:  Model to save names of saved genes / genesets

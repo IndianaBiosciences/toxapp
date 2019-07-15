@@ -12,12 +12,14 @@ import numpy as np
 import rpy2.robjects as robjects
 import tempfile
 import time
+import statistics
 from rpy2.robjects.packages import importr
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.stats.stats import pearsonr
+from collections import defaultdict
 from django.conf import settings
 from tp.models import MeasurementTech, IdentifierVsGeneMap, Experiment, FoldChangeResult, GeneSets, ModuleScores,\
-    GSAScores, Gene, GeneSetMember, BMDPathwayResult
+    GSAScores, Gene, ToxPhenotype, ExperimentVsToxPhenotype, BMDPathwayResult
 import tp.utils
 
 logger = logging.getLogger(__name__)
@@ -69,11 +71,14 @@ class Computation:
         self.gene_identifier_stats = None
         self.gene_identifier_stats_file = None
         self.gsa_gsc_obj = None
+        self.rpy2_stats = None
+        self.rpy2_base = None
         self._experiment_tech_map = dict()
         self._expid_obj_map = dict()
         self._expname_obj_map = dict()
         self._identifier_obj_map = dict()
         self._gene_obj_map = dict()
+
 
     def map_fold_change_from_exp(self, exp_obj):
         """
@@ -552,6 +557,143 @@ class Computation:
         #logger.debug('Have results from GSA scoring: %s', pprint.pformat(gsa_scores, indent=4))
         return gsa_scores
 
+    def make_score_vs_tox_association_table(self, geneset_obj, tox_obj, time=None):
+
+        """ prepare a table to calculate the statistics (p-adj, coef, etc) per TXG-MAP manuscript for a geneset vs. a tox phenoype;
+        This uses the assigment of experiments to outcomes from the ExperimentVsToxPhenotype model, so 'predictive'
+        associations, like expression@1d vs. path @30 day must have the association loaded in the model;
+
+        If time is specified, it is a predictive association; retrieve exps for the timepoint and associate
+        with outcomes of type 'P' (predictive)
+        """
+
+        assert isinstance(geneset_obj, GeneSets)
+        assert isinstance(tox_obj, ToxPhenotype)
+
+        # get the experiments to use for the association
+        if time:
+            exp_vs_outcome = ExperimentVsToxPhenotype.objects.filter(tox=tox_obj, experiment__time=time)
+        else:
+            exp_vs_outcome = ExperimentVsToxPhenotype.objects.filter(tox=tox_obj)
+
+        logger.debug('Obtained %s experiment vs. outcome objects', len(exp_vs_outcome))
+
+        if not len(exp_vs_outcome) > 30:
+            logger.error('Fewer than 30 vs tox outcomes for tox outcome %s and time %s; actual count is %s', tox_obj.name, time, len(exp_vs_outcome))
+            return
+
+        base_modules = GeneSets.objects.filter(source='WGCNA', repr_set=True)
+        if not base_modules:
+            raise LookupError('Did not retrieve base WGCNA modules for avgEG computation')
+
+
+        if geneset_obj.source == 'WGCNA':
+            scores = ModuleScores.objects.filter(module=geneset_obj)
+        else:
+            scores = GSAScores.objects.filter(geneset=geneset_obj)
+
+        if not scores:
+            raise LookupError('Did not get any scores for geneset id / name'.format(geneset_obj.id, geneset_obj.name))
+
+        scoresdict = dict()
+        for s in scores:
+            scoresdict[s.experiment.id] = float(s.score)
+
+        # create a dictionary of experiment id, outcome, then score for data frame creation in r
+        table = list()
+        for r in exp_vs_outcome:
+
+            score = scoresdict.get(r.experiment.id, None)
+            if score is None:
+                logger.error('No score for experiment %s and geneset %s; skipping', r.experiment.experiment_name, geneset_obj.name)
+                continue
+
+            row = {'exp_id': r.experiment.id, 'outcome': r.outcome, 'score': score}
+
+            # calculate the average module score
+            base_scores = ModuleScores.objects.filter(experiment=r.experiment, module__in=base_modules).values_list('score',flat=True)
+            if len(base_scores) < 200:
+                raise LookupError('Obtained fewer than 200 base module ( actual {} ) scores for experiment {}'.format(len(base_scores), r.experiment.id))
+
+            # convert queryset to a plain list of float
+            base_scores = list(map(lambda x: float(x), base_scores))
+
+            row['avg_EG'] = statistics.mean(base_scores)
+            table.append(row)
+
+        return table
+
+    def run_score_vs_tox_association(self, table):
+
+        """
+        Takes a dictionary from make_score_vs_tox_association_table and performs the logistic regression analysis
+
+        """
+
+        if not self.rpy2_stats:
+            self.rpy2_stats = importr('stats')
+
+        if not self.rpy2_base:
+            self.rpy2_base = importr('base')
+
+        pos_scores = list()
+        neg_scores = list()
+        scores = list()
+        outcomes = list()
+        avg_EG = list()
+
+        # convert the list of dictionaries to vectors for instantiation in R
+        for row in table:
+            if row['outcome']:
+                pos_scores.append(row['score'])
+            else:
+                neg_scores.append(row['score'])
+            scores.append(row['score'])
+            outcomes.append(row['outcome'])
+            avg_EG.append(row['avg_EG'])
+
+        if len(pos_scores) < 5:
+            logger.warning('Fewer than 5 positives in table; not performing analysis')
+            return
+
+        analysis = {'mean_pos': statistics.mean(pos_scores), 'mean_neg': statistics.mean(neg_scores),
+                    'n_pos': len(pos_scores), 'n_neg': len(neg_scores)}
+        analysis['effect_size'] = (analysis['mean_pos'] - analysis['mean_neg']) / statistics.stdev(scores)
+
+        outcomes_R = robjects.BoolVector(outcomes)
+        scores_R = robjects.FloatVector(scores)
+        avg_EG_R = robjects.FloatVector(avg_EG)
+
+        robjects.globalenv['outcomes'] = outcomes_R
+        robjects.globalenv['scores'] = scores_R
+        robjects.globalenv['avg_EG'] = avg_EG_R
+
+        # the model using only the score as variable (e.g. pathway / module)
+        single = self.rpy2_stats.glm('outcomes ~ scores', family='binomial')
+        single_summary = self.rpy2_base.summary(single)
+        # you need to know where the things we want are in the array; here 4.1584 and 3.41e-06
+        # Coefficients:
+        #            Estimate Std. Error z value Pr(>|z|)
+        # (Intercept)  -2.0355     0.3352  -6.072 1.26e-09 ***
+        # scores        4.1584     0.8954   4.644 3.41e-06 ***
+        # ---
+
+        coef_single = single_summary.rx2('coefficients')[1]
+        analysis['p_single'] = single_summary.rx2('coefficients')[7]
+
+        # the full model using avg_EG and score
+        full = self.rpy2_stats.glm('outcomes ~ avg_EG + scores', family='binomial')
+        analysis['coef'] = full.rx2('coefficients')[2]
+
+        # the base model for add1 - only avg_EG_R as independent variable
+        base_avgEG = self.rpy2_stats.glm('outcomes ~ avg_EG', family='binomial')
+        robjects.globalenv['base_avgEG'] = base_avgEG
+        add1 = robjects.r('add1(base_avgEG, scope = ~avg_EG + scores, test="Chisq")')
+        analysis['p_adj'] = add1.rx2('Pr(>Chi)')[1]
+
+        return analysis
+
+
     def calc_exp_correl(self, qry_exps, source):
         """
         Action: depending on source, set sets to the filtered geneset, sorts and calculates the correlation between exps
@@ -651,7 +793,7 @@ class Computation:
 
         for source in sources:
 
-            assert source in ['WGCNA', 'RegNet', 'PathNR']
+            assert source in ['WGCNA', 'RegNet', 'PathNR', 'EPA']
 
             if source == 'PathNR':
                 sets = GeneSets.objects.filter(source__in=['GO', 'MSigDB'], core_set=True, repr_set=True)
@@ -664,7 +806,7 @@ class Computation:
                 scores = ModuleScores.objects.filter(module__in=sets, experiment__in=tg_exps)
                 for s in scores:
                     allscores[source][s.module_id][s.experiment_id] = float(s.score)
-            elif source == 'RegNet' or source == 'PathNR':
+            elif source == 'RegNet' or source == 'PathNR' or source == 'EPA':
                 scores = GSAScores.objects.filter(geneset__in=sets, experiment__in=tg_exps)
                 for s in scores:
                     allscores[source][s.geneset_id][s.experiment_id] = float(s.score)
@@ -785,7 +927,7 @@ class Computation:
         sample2exp = dict()
         for e in config['experiments']:
             for s in e['sample']:
-                sample2exp[s['sample_name']] = exp_id
+                sample2exp[s['sample_name']] = e['experiment']['exp_id']
 
         identifier2ensembl = dict()
 
@@ -837,6 +979,9 @@ class Computation:
                 firstrow = True
                 genecount = -1  # need to make sure that platform identifiers not mappable to rat eg get incremented
 
+                already_have = dict()
+                warned_dups = dict()
+
                 for gene in sample_int['genes']:
 
                     genecount += 1
@@ -844,13 +989,28 @@ class Computation:
                     if refseq is None:
                         continue
 
+                    if already_have.get(refseq, None) is not None:
+                        if warned_dups.get(refseq, None) is None:
+                            logger.warning('Multiple input genes map to the same rat ensemble gene %s; keeping first only', refseq)
+                            warned_dups[refseq] = 1
+                        continue
+
+                    already_have[refseq] = 1
+
                     row = str(refseq)
                     for conc in sorted(conc2sample):
                         for sample_nm in sorted(conc2sample[conc]):
                             if firstrow:
                                 head1 += '\t' + sample_nm
                                 head2 += '\t' + str(conc)
-                            row += '\t' + str(sample_int['values'][sample_nm][genecount])
+
+                            # TODO - in gfffactors.py; expression values are stored as lists for array and dict for rna-seq; needs refactor
+                            if config['file_type'] == 'RNAseq':
+                                expression = sample_int['values'][sample_nm][gene]
+                            else:
+                                expression = sample_int['values'][sample_nm][genecount]
+
+                            row += '\t' + str(expression)
 
                     if firstrow:
                         head1 += '\n'
@@ -981,6 +1141,13 @@ class Computation:
             reader = csv.DictReader(f, delimiter='\t')
             for row in reader:
 
+                # BMD express can return zero values, and when plotting on log scale these cause problems
+                if row['BMD Median'] == '0':
+                    row['BMD Median'] = '0.001'
+
+                if row['BMDL Median'] == '0':
+                    row['BMDL Median'] = '0.001'
+
                 if row['Genes That Passed All Filters'] == '0':
                     continue
 
@@ -998,3 +1165,4 @@ class Computation:
                 results.append(result)
 
         return results
+

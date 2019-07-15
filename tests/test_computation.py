@@ -14,8 +14,7 @@ application = get_wsgi_application()
 
 from django.conf import settings
 from src.computation import Computation
-from tp.models import Study, Experiment, Gene, MeasurementTech, IdentifierVsGeneMap
-
+from tp.models import Study, Experiment, Gene, MeasurementTech, IdentifierVsGeneMap, GeneSets, ToxPhenotype
 logger = logging.getLogger(__name__)
 
 
@@ -166,6 +165,37 @@ class TestComputation(unittest.TestCase):
         #with open(os.path.join(settings.BASE_DIR, 'tests/test_results/gsa_scores-expected.pkl'), 'rb') as fp:
         #    expected_scores = pickle.load(fp)
         #self.assertListEqual(gsa_scores, expected_scores)
+
+    def test_make_score_vs_tox_association_table(self):
+
+        geneset = GeneSets.objects.get(name='DM:liver:205')
+        tox = ToxPhenotype.objects.get(name='hepatic tumorigen')
+
+        table = self.compute.make_score_vs_tox_association_table(geneset, tox, time=1)
+
+        saveobj = False
+        if saveobj:
+            with open(os.path.join(settings.BASE_DIR, 'tests/test_results/table_module205_vs_livertumor.pkl'), 'wb') as fp:
+                pickle.dump(table, fp, pickle.HIGHEST_PROTOCOL)
+
+        with open(os.path.join(settings.BASE_DIR, 'tests/test_results/table_module205_vs_livertumor.pkl'), 'rb') as fp:
+            expected_table = pickle.load(fp)
+        self.assertListEqual(table, expected_table)
+
+    def test_run_score_vs_tox_association(self):
+
+        with open(os.path.join(settings.BASE_DIR, 'tests/test_results/table_module205_vs_livertumor.pkl'), 'rb') as fp:
+            table = pickle.load(fp)
+
+        results = self.compute.run_score_vs_tox_association(table)
+        saveobj = False
+        if saveobj:
+            with open(os.path.join(settings.BASE_DIR, 'tests/test_results/association_module205_vs_livertumor.pkl'), 'wb') as fp:
+                pickle.dump(results, fp, pickle.HIGHEST_PROTOCOL)
+
+        with open(os.path.join(settings.BASE_DIR, 'tests/test_results/association_module205_vs_livertumor.pkl'), 'rb') as fp:
+            expected_results = pickle.load(fp)
+        self.assertDictEqual(results, expected_results)
 
     def test_calc_exp_correl(self):
 
