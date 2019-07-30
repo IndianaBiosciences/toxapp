@@ -19,7 +19,13 @@
 </div>
 
 
+{% if form.errors %}
+<div class="alert alert-danger">
+<strong>Warning</strong>
+  The file you have uploaded contains over 25% floating point numbers.
 
+</div>
+  {% endif %}
 <div class="container">
   <div class="row">
     <div>

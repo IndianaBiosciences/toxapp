@@ -2078,8 +2078,18 @@ class UploadSamplesView(FormView):
                 self.request.session['sample_type'] = "RNAseq"
                 logger.debug("reading samples names from single file %s in dir %s", f.name, tmpdir)
                 rnafile = os.path.join(tmpdir, f.name)
+
                 if os.path.isfile(rnafile):
                     skip = 0
+                    rnafile = preprocess(rnafile)
+                    print(rnafile)
+                    decimals = rnafile[1]
+                    print(decimals)
+                    rnafile = rnafile[0]
+                    if(decimals >=.25):
+                        os.remove(rnafile)
+                        form.add_error('','error')
+                        return self.form_invalid(form)
                     with open(rnafile, 'r') as f:
                         s = f.read()
                         if '\n\n' not in s:
@@ -2101,6 +2111,7 @@ class UploadSamplesView(FormView):
                         logger.debug(pprint.pformat(header))
                         for s in header:
                             samples_added.append(s)
+
                 else:
                     logger.warning("unable to read uploaded file % in dir %s", f.name, tmpdir)
 

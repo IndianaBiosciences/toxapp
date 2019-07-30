@@ -1,6 +1,7 @@
 import csv
 import re
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -9,13 +10,21 @@ def preprocess(file):
     newrowslist = []
     seenrowslist = []
     x=0
+    empty = 0
 
 
+
+    decimals = 0
     #open file and removve rows that have an invalid number of columns, have invalid format ie (ensambleid1 | ensambleid2), and add duplicates to the seenrows list
     with open(file, newline='\n') as csvfile:
         seen = []
+
         reader = csv.reader(csvfile, delimiter='\t')
         for row in reader:
+            row = list(filter(None, row))
+
+
+
             if(x==0):
                 rowcount = len(row)
                 x=1
@@ -32,6 +41,7 @@ def preprocess(file):
 
                 seen.append(row[0])
                 newrowslist.append(row)
+
     #combine duplicate rows values
     for row2 in newrowslist:
         for x in seenrowslist:
@@ -64,10 +74,14 @@ def preprocess(file):
                 trt=1
                 rowr.append(cc)
                 continue
+            #print(rr)
+            if(cc.find(".")>0):
+                decimals = decimals+1
+            else: empty = empty+1
             rowr.append(round(float(cc)))
 
         newdata.append(rowr)
-    name = str(file)+".processed.txt"
+    name = str(file).replace(".txt","")+"processed.txt"
     file2 = open(name, 'w', newline='')
     writer = csv.writer(file2, delimiter='\t')
     writer.writerows(newdata)
@@ -99,7 +113,10 @@ def preprocess(file):
 
         if sumnum <=rowcount*2:
             blanks += 1
+    decimals = decimals/empty
     logger.debug(str(blanks)+ ' low values found out of ' + str(num_lines2))
-    return(name)
+    os.remove(file)
+    os.rename(name, str(name).replace("processed.txt",".txt"))
+    return([str(name).replace("processed.txt",".txt"),decimals])
 
 
