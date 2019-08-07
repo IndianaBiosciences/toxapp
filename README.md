@@ -47,7 +47,7 @@ TODO
 See also the list of [contributors](https://github.com/IndianaBiosciences/toxapp/contributors) who participated in this project.
 
 ## License
-TODO
+Apache-2.0
 
 ## Inquiries
 Contact Brad Mills at bmills(at)indianabiosciences(dot)org
