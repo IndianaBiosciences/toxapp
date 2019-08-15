@@ -21,6 +21,8 @@ def preprocess(file):
 
         reader = csv.reader(csvfile, delimiter='\t')
         for row in reader:
+            if (row[0] == ""):
+                row[0] = "Ensembl ID"
             row = list(filter(None, row))
 
 
