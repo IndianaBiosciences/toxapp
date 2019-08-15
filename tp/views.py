@@ -650,7 +650,7 @@ def samples_confirm(request):
             return render(request, 'generic_message.html', context)
 
         smpls = Sample.objects.filter(study=study).all()
-        smpls = smpls.order_by('date_created', 'order')
+        smpls = smpls.order_by('order', 'date_created')
         # if revising an existing, it's possible to move to experiment-vs-sample dialog without ever uploading
         # a file (and hence setting sample_files and other stuff in session; force use of sample upload handler
         # Also, if there aren't any existing samples, skip this dialog and go straight to upload handler
@@ -798,7 +798,7 @@ def create_experiment_sample_pair(request, reset=None):
 
         if study is not None:
             exps = Experiment.objects.filter(study=study).all()
-            samples = Sample.objects.filter(study=study).all()
+            samples = Sample.objects.filter(study=study).order_by('order').all()
 
         if not exps or not samples:
             message = 'Potential bug; Please add new experiments for which you want to upload data first'
