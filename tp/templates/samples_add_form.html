@@ -23,28 +23,78 @@
 {% endif %}
 
 <form method="post" action="">
-  {% csrf_token %}
-  {% bootstrap_dynamic_formset formset can_order=True can_delete=True layout="horizontal" %}
-  {% bootstrap_button "Save" button_type="submit" button_class="btn-primary" %}
-  <a class="btn btn-default" href="{% url 'tp:experiments' %}">Cancel</a>
+  {% csrf_token %}<div style="margin-top:10px;margin-bottom:10px;">
+    {% bootstrap_button "Save" button_type="submit" button_class="btn-primary" %}
+  <a class="btn btn-default" href="{% url 'tp:experiments' %}">Cancel</a></div>
+  Sort By: <div class="btn btn-default" onclick="set_sampleorder('num')">Numerical</div>
+  <div class="btn btn-default" id="alpha" onClick="set_sampleorder('alpha')">Alphabetical</div>
+    {% bootstrap_dynamic_formset formset can_order=True can_delete=True layout="horizontal" %}
+
 </form>
 <script>
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 async function get_sampleorder(){
- await sleep(100);
-var samples = $("[id$=sample_name]");
+  await sleep(100);
+  var samples = $("[id$=sample_name]");
   var sample = []
   for(var x =0; x < samples.length; x++){
-  sample.push(samples[x]["value"]);
+    sample.push(samples[x]["value"]);
   }
+  for(var x=0; x<sample.length; x++){
+    item = $(':input[value="'+sample[x]+'"]').attr('name');
+    item = item.replace("sample_name","order");
+    $(':input[name="'+item+'"]').val(x);
+  }
+}
+async function set_sampleorder(type){
+  await sleep(100);
+  var samples = $("[id$=sample_name]");
+  var sample = []
+  for(var x =0; x < samples.length; x++){
+    sample.push(samples[x]["value"]);
+  }
+  if(type == "alpha"){
+    sample = sample.sort(function (a, b) {
+    function getRaw(s) {
+        return s.replace(/([0-9]*_)/gm, '').trim();
+    }
+
+    return getRaw(a).localeCompare(getRaw(b));
+});
+$('#alpha').attr( "onClick", "set_sampleorder('alpharev')" );
+$('#alpha').text("Alphabetical ▼");
+  }else if(type=="num"){
+  sample = sample.sort(function(a, b){return b-a});
+  sample = sample.reverse();
+  }else if(type=="alpharev"){
+  sample = sample.sort(function (a, b) {
+    function getRaw(s) {
+        return s.replace(/([0-9]*_)/gm, '').trim();
+    }
+
+    return getRaw(b).localeCompare(getRaw(a));
+});
+$('#alpha').attr( "onClick", "set_sampleorder('alpha')" );
+$('#alpha').text("Alphabetical ▲");
+}
+
+
   for(var x=0; x<sample.length; x++){
   item = $(':input[value="'+sample[x]+'"]').attr('name');
   item = item.replace("sample_name","order");
   $(':input[name="'+item+'"]').val(x);
   }
+  var list = $('#sortable-form');
+list.children('div').sort(function(a,b) {
+  var getdat = function(el){var thisdiv=$(el).children('div')[1];thisdiv = $(thisdiv).children('div').children('input').val(); return ( thisdiv)};
+
+  return getdat(a) - getdat(b);
+
+}).appendTo(list);
 }
+
 $(".up-form-form").click(function(){
   get_sampleorder();
   });
