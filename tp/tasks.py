@@ -258,7 +258,7 @@ def process_user_files(tmpdir, config_file, user_email, testmode=False):
             email_message += message
             send_mail('IBRI CTox Computation: Error at Step 6b', email_message, from_email, [user_email])
             return
-
+        email_message += "Step 6b Completed: BMD Calculation\n"
         pathway_results = compute.parse_BMD_results(export_file)
         if not pathway_results:
             message = 'Step 6c Failed: Error parsing BMD pathway results; no further computations performed'
@@ -267,6 +267,7 @@ def process_user_files(tmpdir, config_file, user_email, testmode=False):
             send_mail('IBRI CTox Computation: Error at Step 6c', email_message, from_email, [user_email])
             return
         logger.info('Step 6c: BMD pathway results parsed')
+        email_message += "Step 6C Completed: BMD pathway results parsed\n"
 
         status = load_bmd_results(new_exps, bm2_file, pathway_results)
         if status is None:
@@ -278,6 +279,7 @@ def process_user_files(tmpdir, config_file, user_email, testmode=False):
         logger.info('Step 6d: BMD file reference loaded to database')
 
         logger.info('Step 6 Completed: BMD results generated')
+        email_message += "Step 6 Completed: BMD results generated\n"
 
     for exp in new_exps:
         exp.results_ready = True

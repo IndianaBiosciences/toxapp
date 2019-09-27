@@ -650,7 +650,7 @@ def samples_confirm(request):
             return render(request, 'generic_message.html', context)
 
         smpls = Sample.objects.filter(study=study).all()
-        smpls = smpls.order_by('date_created', 'order')
+        smpls = smpls.order_by('order', 'date_created')
         # if revising an existing, it's possible to move to experiment-vs-sample dialog without ever uploading
         # a file (and hence setting sample_files and other stuff in session; force use of sample upload handler
         # Also, if there aren't any existing samples, skip this dialog and go straight to upload handler
@@ -798,7 +798,7 @@ def create_experiment_sample_pair(request, reset=None):
 
         if study is not None:
             exps = Experiment.objects.filter(study=study).all()
-            samples = Sample.objects.filter(study=study).all()
+            samples = Sample.objects.filter(study=study).order_by('order').all()
 
         if not exps or not samples:
             message = 'Potential bug; Please add new experiments for which you want to upload data first'
@@ -2083,8 +2083,18 @@ class UploadSamplesView(FormView):
                 self.request.session['sample_type'] = "RNAseq"
                 logger.debug("reading samples names from single file %s in dir %s", f.name, tmpdir)
                 rnafile = os.path.join(tmpdir, f.name)
+
                 if os.path.isfile(rnafile):
                     skip = 0
+                    rnafile = preprocess(rnafile)
+                    print(rnafile)
+                    decimals = rnafile[1]
+                    print(decimals)
+                    rnafile = rnafile[0]
+                    if(decimals >=.25):
+                        os.remove(rnafile)
+                        form.add_error('','error')
+                        return self.form_invalid(form)
                     with open(rnafile, 'r') as f:
                         s = f.read()
                         if '\n\n' not in s:
@@ -2106,6 +2116,7 @@ class UploadSamplesView(FormView):
                         logger.debug(pprint.pformat(header))
                         for s in header:
                             samples_added.append(s)
+
                 else:
                     logger.warning("unable to read uploaded file % in dir %s", f.name, tmpdir)
 
