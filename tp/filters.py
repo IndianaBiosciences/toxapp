@@ -52,11 +52,11 @@ class ModuleScoreFilter(django_filters.FilterSet):
     Returns: None
 
     """
-    module = django_filters.CharFilter(name='module__name', lookup_expr='icontains', label='Module name')
-    score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='module score greater/equal than')
-    score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='module score less/equal than')
-    abs_score_gt = django_filters.NumberFilter(name='abs_score', lookup_expr='gte', label='absolute module score greater/equal than')
-    desc = django_filters.CharFilter(name='module__desc', lookup_expr='icontains', label='Module description')
+    module = django_filters.CharFilter(field_name='module__name', lookup_expr='icontains', label='Module name')
+    score_gt = django_filters.NumberFilter(field_name='score', lookup_expr='gte', label='module score greater/equal than')
+    score_lt = django_filters.NumberFilter(field_name='score', lookup_expr='lte', label='module score less/equal than')
+    abs_score_gt = django_filters.NumberFilter(field_name='abs_score', lookup_expr='gte', label='absolute module score greater/equal than')
+    desc = django_filters.CharFilter(field_name='module__desc', lookup_expr='icontains', label='Module description')
 
     class Meta:
         model = ModuleScores
@@ -90,13 +90,13 @@ class GSAScoreFilter(django_filters.FilterSet):
         ('', 'Any'),
     )
 
-    type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, name='geneset__type', label='Geneset type')
-    core_set = django_filters.ChoiceFilter(choices=CORESET_CHOICES, name='geneset__core_set', label='Core geneset')
-    geneset = django_filters.CharFilter(name='geneset__name', lookup_expr='icontains', label='Gene set name')
-    score_gt = django_filters.NumberFilter(name='score', lookup_expr='gte', label='GSA score greater/equal than')
-    score_lt = django_filters.NumberFilter(name='score', lookup_expr='lte', label='GSA score less/equal than')
-    abs_score_gt = django_filters.NumberFilter(name='abs_score', lookup_expr='gte', label='absolute GSA score greater/equal than')
-    p_bh = django_filters.NumberFilter(name='p_bh',lookup_expr='lte', label='Adjusted-P less than')
+    type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, field_name='geneset__type', label='Geneset type')
+    core_set = django_filters.ChoiceFilter(choices=CORESET_CHOICES, field_name='geneset__core_set', label='Core geneset')
+    geneset = django_filters.CharFilter(field_name='geneset__name', lookup_expr='icontains', label='Gene set name')
+    score_gt = django_filters.NumberFilter(field_name='score', lookup_expr='gte', label='GSA score greater/equal than')
+    score_lt = django_filters.NumberFilter(field_name='score', lookup_expr='lte', label='GSA score less/equal than')
+    abs_score_gt = django_filters.NumberFilter(field_name='abs_score', lookup_expr='gte', label='absolute GSA score greater/equal than')
+    p_bh = django_filters.NumberFilter(field_name='p_bh',lookup_expr='lte', label='Adjusted-P less than')
 
     class Meta:
         model = GSAScores
@@ -109,12 +109,12 @@ class FoldChangeResultFilter(django_filters.FilterSet):
     Returns: None
 
     """
-    identifier = django_filters.CharFilter(name='gene_identifier__gene_identifier', lookup_expr='iexact', label='Gene Identifier')
-    symbol = django_filters.CharFilter(name='gene_identifier__gene__rat_gene_symbol', lookup_expr='icontains', label='Gene Symbol')
-    log2fc_gt = django_filters.NumberFilter(name='log2_fc', lookup_expr='gte', label='Log2 fold-change greater/equal than')
-    log2fc_lt = django_filters.NumberFilter(name='log2_fc', lookup_expr='lte', label='Log2 fold-change less/equal than')
-    p = django_filters.NumberFilter(name='p',lookup_expr='lte')
-    p_bh = django_filters.NumberFilter(name='p_bh',lookup_expr='lte', label='Adjusted-P less than')
+    identifier = django_filters.CharFilter(field_name='gene_identifier__gene_identifier', lookup_expr='iexact', label='Gene Identifier')
+    symbol = django_filters.CharFilter(field_name='gene_identifier__gene__rat_gene_symbol', lookup_expr='icontains', label='Gene Symbol')
+    log2fc_gt = django_filters.NumberFilter(field_name='log2_fc', lookup_expr='gte', label='Log2 fold-change greater/equal than')
+    log2fc_lt = django_filters.NumberFilter(field_name='log2_fc', lookup_expr='lte', label='Log2 fold-change less/equal than')
+    p = django_filters.NumberFilter(field_name='p',lookup_expr='lte')
+    p_bh = django_filters.NumberFilter(field_name='p_bh',lookup_expr='lte', label='Adjusted-P less than')
 
     class Meta:
         model = FoldChangeResult
@@ -133,12 +133,12 @@ class SimilarExperimentsFilter(django_filters.FilterSet):
         ('PathNR', 'Non-redundant GO/Pathways')
     )
 
-    experiment_ref_name = django_filters.CharFilter(name='experiment_ref__experiment_name', lookup_expr='icontains', label='Reference experiment')
-    source = django_filters.ChoiceFilter(choices=SOURCE_TYPE, name='source', label='Source')
-    correl_gt = django_filters.NumberFilter(name='correl', lookup_expr='gte', label='Pearson R greater/equal than')
-    correl_lt = django_filters.NumberFilter(name='correl', lookup_expr='lte', label='Pearson R less/equal than')
-    rank_gt = django_filters.NumberFilter(name='rank', lookup_expr='gte', label='Rank greater/equal than')
-    rank_lt = django_filters.NumberFilter(name='rank', lookup_expr='lte', label='Rank less/equal than')
+    experiment_ref_name = django_filters.CharFilter(field_name='experiment_ref__experiment_name', lookup_expr='icontains', label='Reference experiment')
+    source = django_filters.ChoiceFilter(choices=SOURCE_TYPE, field_name='source', label='Source')
+    correl_gt = django_filters.NumberFilter(field_name='correl', lookup_expr='gte', label='Pearson R greater/equal than')
+    correl_lt = django_filters.NumberFilter(field_name='correl', lookup_expr='lte', label='Pearson R less/equal than')
+    rank_gt = django_filters.NumberFilter(field_name='rank', lookup_expr='gte', label='Rank greater/equal than')
+    rank_lt = django_filters.NumberFilter(field_name='rank', lookup_expr='lte', label='Rank less/equal than')
 
     class Meta:
         model = ExperimentCorrelation
@@ -181,10 +181,10 @@ class ToxicologyResultsFilter(django_filters.FilterSet):
         ('Trig.%', 'Trig.%'),
     )
 
-    result_type = DynamicChoiceFilter(name='result_type', label='Result type')
-    result_name = django_filters.ChoiceFilter(choices=RESULT_NAME, name='result_name', label='Result name')
-    group_avg_gt = django_filters.NumberFilter(name='group_avg', lookup_expr='gte', label='Group avg greater/equal than')
-    group_avg_lt = django_filters.NumberFilter(name='group_avg', lookup_expr='lte', label='Group avg less/equal than')
+    result_type = DynamicChoiceFilter(field_name='result_type', label='Result type')
+    result_name = django_filters.ChoiceFilter(choices=RESULT_NAME, field_name='result_name', label='Result name')
+    group_avg_gt = django_filters.NumberFilter(field_name='group_avg', lookup_expr='gte', label='Group avg greater/equal than')
+    group_avg_lt = django_filters.NumberFilter(field_name='group_avg', lookup_expr='lte', label='Group avg less/equal than')
 
     class Meta:
         model = ToxicologyResult
@@ -198,19 +198,19 @@ class BMDPathwayResultsFilter(django_filters.FilterSet):
 
     """
 
-    analysis = django_filters.ModelMultipleChoiceFilter(name='analysis', label='BMD analysis', queryset=get_bmd_analysis_qs)
-    pathway_name = django_filters.CharFilter(name='pathway_name', lookup_expr='icontains', label='Pathway name')
-    all_genes_data_gt = django_filters.NumberFilter(name='all_genes_data', lookup_expr='gte',
+    analysis = django_filters.ModelMultipleChoiceFilter(field_name='analysis', label='BMD analysis', queryset=get_bmd_analysis_qs)
+    pathway_name = django_filters.CharFilter(field_name='pathway_name', lookup_expr='icontains', label='Pathway name')
+    all_genes_data_gt = django_filters.NumberFilter(field_name='all_genes_data', lookup_expr='gte',
                                                     label='All Genes (Expression Data) greater/equal than')
-    all_genes_platform_gt = django_filters.NumberFilter(name='all_genes_platform', lookup_expr='gte',
+    all_genes_platform_gt = django_filters.NumberFilter(field_name='all_genes_platform', lookup_expr='gte',
                                                     label='All Genes (Platform) greater/equal than')
-    input_genes_gt = django_filters.NumberFilter(name='input_genes', lookup_expr='gte',
+    input_genes_gt = django_filters.NumberFilter(field_name='input_genes', lookup_expr='gte',
                                                     label='Input greater/equal than')
-    pass_filter_genes_gt = django_filters.NumberFilter(name='pass_filter_genes', lookup_expr='gte',
+    pass_filter_genes_gt = django_filters.NumberFilter(field_name='pass_filter_genes', lookup_expr='gte',
                                                     label='Genes That Passed All Filters greater/equal than')
-    bmd_median_lt = django_filters.NumberFilter(name='bmd_median', lookup_expr='lte',
+    bmd_median_lt = django_filters.NumberFilter(field_name='bmd_median', lookup_expr='lte',
                                                        label='BMD median less/equal than')
-    bmdl_median_lt = django_filters.NumberFilter(name='bmdl_median', lookup_expr='lte',
+    bmdl_median_lt = django_filters.NumberFilter(field_name='bmdl_median', lookup_expr='lte',
                                                        label='BMDL median less/equal than')
     class Meta:
         model = BMDPathwayResult
@@ -236,17 +236,18 @@ class ToxAssociationFilter(django_filters.FilterSet):
 
     tox = django_filters.ModelMultipleChoiceFilter(label='Tox phenotype',
                                                    queryset=ToxPhenotype.objects.all())
-    time = DynamicChoiceFilter(name='time', label='Sample collection time')
-    n_pos = django_filters.NumberFilter(name='n_pos', lookup_expr='gte', label='Number of positives for tox greater/equal than')
-    effect_size = django_filters.NumberFilter(name='effect_size', lookup_expr='gte', label='Effect size greater/equal than')
-    p_adj = django_filters.NumberFilter(name='p_adj', lookup_expr='lte', label='p-adj less/equal than')
-    q_adj = django_filters.NumberFilter(name='q_adj', lookup_expr='lte', label='q-adj less/equal than')
-    rank = django_filters.NumberFilter(name='rank', lookup_expr='lte', label='rank for tox-time combo less/equal than')
-    geneset_type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, name='geneset__type', label='Geneset type')
+    time = DynamicChoiceFilter(field_name='time', label='Sample collection time')
+    n_pos = django_filters.NumberFilter(field_name='n_pos', lookup_expr='gte', label='Number of positives for tox greater/equal than')
+    effect_size = django_filters.NumberFilter(field_name='effect_size', lookup_expr='gte', label='Effect size greater/equal than')
+    coef = django_filters.NumberFilter(field_name='coef', lookup_expr='gte', label='Logistic regression coefficient')
+    p_adj = django_filters.NumberFilter(field_name='p_adj', lookup_expr='lte', label='p-adj less/equal than')
+    q_adj = django_filters.NumberFilter(field_name='q_adj', lookup_expr='lte', label='q-adj less/equal than')
+    rank = django_filters.NumberFilter(field_name='rank', lookup_expr='lte', label='rank for tox-time combo less/equal than')
+    geneset_type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, field_name='geneset__type', label='Geneset type')
 
     class Meta:
         model = GeneSetTox
-        fields = ['tox', 'time', 'n_pos', 'effect_size', 'p_adj', 'q_adj', 'rank', 'geneset_type']
+        fields = ['tox', 'time', 'n_pos', 'effect_size', 'coef', 'p_adj', 'q_adj', 'rank', 'geneset_type']
 
 
 class GeneBookmarkFilter(django_filters.FilterSet):
@@ -255,8 +256,8 @@ class GeneBookmarkFilter(django_filters.FilterSet):
     Returns: None
 
     """
-    rat_entrez_gene = django_filters.CharFilter(name='rat_entrez_gene', lookup_expr='iexact', label='Rat Entrez gene ID')
-    rat_gene_symbol = django_filters.CharFilter(name='rat_gene_symbol', lookup_expr='icontains', label='Rat gene symbol')
+    rat_entrez_gene = django_filters.CharFilter(field_name='rat_entrez_gene', lookup_expr='iexact', label='Rat Entrez gene ID')
+    rat_gene_symbol = django_filters.CharFilter(field_name='rat_gene_symbol', lookup_expr='icontains', label='Rat gene symbol')
 
     class Meta:
         model = GeneBookmark
@@ -291,9 +292,9 @@ class GeneSetBookmarkFilter(django_filters.FilterSet):
         ('', 'Any'),
     )
 
-    type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, name='type', label='Geneset type')
-    core_set = django_filters.ChoiceFilter(choices=CORESET_CHOICES, name='core_set', label='Core geneset')
-    geneset = django_filters.CharFilter(name='name', lookup_expr='icontains', label='Gene set name')
+    type = django_filters.MultipleChoiceFilter(choices=GENESET_TYPE, field_name='type', label='Geneset type')
+    core_set = django_filters.ChoiceFilter(choices=CORESET_CHOICES, field_name='core_set', label='Core geneset')
+    geneset = django_filters.CharFilter(field_name='name', lookup_expr='icontains', label='Gene set name')
 
     class Meta:
         model = GeneSetBookmark

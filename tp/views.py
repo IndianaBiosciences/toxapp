@@ -950,6 +950,7 @@ def compute_fold_change(request):
         context['n_experiments'] = len(experiments)
         context['n_samples'] = n_samples
         res = process_user_files.delay(tmpdir, cfg_file, user.email)
+        #res = process_user_files(tmpdir, cfg_file, user.email)
         logger.debug("compute_fold_change: config %s", pprint.pformat(experiments))
 
         context['email'] = user.email
@@ -1687,7 +1688,6 @@ class StudyView(ResetSessionMixin, SingleTableView):
     template_name = 'study_list.html'
     context_object_name = 'studies'
     table_class = tp.tables.StudyListTable
-    table_pagination = True
 
     def get_context_data(self, **kwargs):
 
@@ -1779,7 +1779,6 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
     template_name = 'experiments_list.html'
     context_object_name = 'experiments'
     table_class = tp.tables.ExperimentListTable
-    table_pagination = True
 
     def get_context_data(self, **kwargs):
 
@@ -2069,41 +2068,13 @@ class UploadSamplesView(FormView):
             if request.FILES.get('single_file', None) is not None:
                 tmpdir = get_temp_dir(self.request)
                 f = request.FILES.get('single_file')
-
-
                 fs = FileSystemStorage(location=tmpdir)
                 fs.save(f.name, f)
                 self.request.session['sample_file'] = f.name
-
                 self.request.session['sample_type'] = "RNAseq"
                 logger.debug("reading samples names from single file %s in dir %s", f.name, tmpdir)
                 rnafile = os.path.join(tmpdir, f.name)
-
                 if os.path.isfile(rnafile):
-                    skip = 0
-                    rnafile = preprocess(rnafile)
-                    print(rnafile)
-                    decimals = rnafile[1]
-                    print(decimals)
-                    rnafile = rnafile[0]
-                    if(decimals >=.25):
-                        os.remove(rnafile)
-                        form.add_error('','error')
-                        return self.form_invalid(form)
-                    with open(rnafile, 'r') as f:
-                        s = f.read()
-                        if '\n\n' not in s:
-                            logger.debug('file is formatted correctly, no replacements are made')
-                            skip =1
-
-
-                    # Safely write the changed content, if found in the file
-                    if(skip ==0):
-                        with open(rnafile, 'w') as f:
-                            logger.debug('Replaceing double newline with a single newline')
-                            s = s.replace('\n\n', '\n')
-                            f.write(s)
-
                     with open(rnafile, newline='') as txtfile:
                         txtreader = csv.reader(txtfile, delimiter='\t')
                         header = next(txtreader)
@@ -2111,7 +2082,6 @@ class UploadSamplesView(FormView):
                         logger.debug(pprint.pformat(header))
                         for s in header:
                             samples_added.append(s)
-
                 else:
                     logger.warning("unable to read uploaded file % in dir %s", f.name, tmpdir)
 
@@ -2365,7 +2335,6 @@ class ModuleFilteredSingleTableView(FilteredSingleTableView):
     feature_type = 'modules'
     template_name = 'result_list.html'
     table_class = tp.tables.ModuleScoreTable
-    table_pagination = True
     filter_class = tp.filters.ModuleScoreFilter
 
 
@@ -2374,7 +2343,6 @@ class GSAFilteredSingleTableView(FilteredSingleTableView):
     feature_type = 'genesets'
     template_name = 'result_list.html'
     table_class = tp.tables.GSAScoreTable
-    table_pagination = True
     filter_class = tp.filters.GSAScoreFilter
 
 
@@ -2383,7 +2351,6 @@ class FoldChangeSingleTableView(FilteredSingleTableView):
     feature_type = 'genes'
     template_name = 'result_list.html'
     table_class = tp.tables.FoldChangeResultTable
-    table_pagination = True
     filter_class = tp.filters.FoldChangeResultFilter
 
 
@@ -2391,7 +2358,6 @@ class SimilarExperimentsSingleTableView(FilteredSingleTableView):
     model = ExperimentCorrelation
     template_name = 'result_list.html'
     table_class = tp.tables.SimilarExperimentsTable
-    table_pagination = True
     filter_class = tp.filters.SimilarExperimentsFilter
 
 
@@ -2399,7 +2365,6 @@ class ToxicologyResultsSingleTableView(FilteredSingleTableView):
     model = ToxicologyResult
     template_name = 'result_list.html'
     table_class = tp.tables.ToxicologyResultsTable
-    table_pagination = True
     filter_class = tp.filters.ToxicologyResultsFilter
 
 
@@ -2407,7 +2372,6 @@ class BMDPathwayResultsSingleTableView(FilteredSingleTableView):
     model = BMDPathwayResult
     template_name = 'result_list.html'
     table_class = tp.tables.BMDPathwayResultsTable
-    table_pagination = True
     filter_class = tp.filters.BMDPathwayResultsFilter
 
 
@@ -2415,7 +2379,6 @@ class ToxAssociation(SingleTableView):
     model = GeneSetTox
     template_name = 'geneset_vs_tox.html'
     table_class = tp.tables.GenesetToxAssocTable
-    table_pagination = True
     filter_class = tp.filters.ToxAssociationFilter
 
     def get_table_data(self):
@@ -2452,7 +2415,6 @@ class BookmarkView(SingleTableView):
     template_name = 'bookmark_list.html'
     context_object_name = 'bookmarks'
     table_class = tp.tables.BookmarkListTable
-    table_pagination = True
 
     def get_queryset(self):
         # to ensure that only a user's Bookmark are shown to him/her
@@ -2471,7 +2433,6 @@ class AddGeneBookmark(SingleTableView):
     model = Gene
     template_name = 'bookmark_members.html'
     table_class = tp.tables.GeneBookmark
-    table_pagination = True
     filter_class = tp.filters.GeneBookmarkFilter
 
     def get_table_data(self):
@@ -2496,7 +2457,6 @@ class AddGeneSetBookmark(SingleTableView):
     model = GeneSets
     template_name = 'bookmark_members.html'
     table_class = tp.tables.GeneSetBookmark
-    table_pagination = True
     filter_class = tp.filters.GeneSetBookmarkFilter
 
     def get_table_data(self):

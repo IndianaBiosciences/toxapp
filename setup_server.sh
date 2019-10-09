@@ -8,6 +8,7 @@ sudo apt-get install pgloader
 sudo apt-get install bblas-dev
 sudo apt-get install liblapack-dev
 sudo apt-get install r-base
+sudo apt-get install libxml2-dev
 sudo apt-get install libcurl4-openssl-dev
 sudo pip3 install -r requirements.txt
 

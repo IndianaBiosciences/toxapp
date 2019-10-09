@@ -4,9 +4,6 @@ library("reshape2")
 library("png")
 
 #######################   DESeq.R
-######################    Set FDR and Log2 fold change (LFC) cut-off thresholds here
-padjcut=0.05
-logfccut=0.5849625
 
 setwd <- getwd()
 
@@ -46,18 +43,10 @@ count_data[1:5,1:5]
 #########################     4.  PREPARING THE RAW COUNT DATA FOR DESeq2 ANALYSIS
 
 
-#########################   This section filters out non-protein coding genes and removes genes that don't meet a certain read count cut_off
-#########################   ```{r, eval=TRUE}
-#########################   Select only protein coding genes for further analysis
-# NOTE SELECTING TO PROTEIN_CODING WILL BE DONE IN UI
-
-prot_count_data<-count_data
-dim(prot_count_data)
-
 ########################   Select only those genes that meet the min_count cut-off
 
 min_count_cutoff<-10
-max_count<-apply(prot_count_data,1,max)
+max_count<-apply(count_data,1,max)
 hist_max_count<-data.frame(log2(max_count))
 
 #######################   Plotting a histogram to understand where the count_cutoff lies within max_count
@@ -74,7 +63,7 @@ ggplot(hist_max_count,aes(x=log2(max_count))) + geom_histogram(bins=100) +
 deseqout=paste(setwd, "Normalized", sep="/")
 dir.create(deseqout)
 
-filt_count_data<-prot_count_data[max_count >= min_count_cutoff,]
+filt_count_data<-count_data[max_count >= min_count_cutoff,]
 dim(filt_count_data)
 head(filt_count_data)
 
@@ -85,7 +74,7 @@ ggplot(data=melt(log2(filt_count_data)), aes(variable, value)) + geom_boxplot()
 colnames(filt_count_data)
 
 
-#####################   This correlation is only for the filtered protein coding
+#####################   This correlation is only for the filtered counts
 
 temp_cor_data<-cor(filt_count_data)
 print(temp_cor_data)
@@ -119,14 +108,11 @@ write.table(temp_cor_rawdata, paste(deseqout,"allCountTable.sample_corr_rawCount
 
 deseqobj=paste(deseqout, "dds_prot_fullModel.rda", sep="/")
 
-######################    Set FDR and Log2 fold change (LFC) cut-off thresholds here
-padjcut=0.05
-logfccut=0.5849625
 
 ######################   7. DESeq initialization
 
 
-#####################     When the count data has NA We Need to Remove it (NOT GIVEN IN THE DOW SCRIPT)
+#####################     When the count data has NA We Need to Remove it
 
 print (apply(filt_count_data, 2, summary))
 narows <- apply(filt_count_data, 1, function(x) any(is.na(x)))
@@ -135,17 +121,19 @@ dim(countDataClean)
 
 ####################    Now the data is clean without NAs and ready for DESeq2 #######################################   
 
-####################   I am not sure about the design Matrix for the data (After running removing the NAs this part is working)
-
 print(sample_key)
 ####################  The design matrix is the column identified using (sample_key$Group)
 
 ddsMat=DESeqDataSetFromMatrix(countData=countDataClean,colData=sample_key,design=~Group)
 
-###################   This statement I am not sure
-
-dds = DESeq(ddsMat, minReplicatesForReplace = 3, betaPrior = F)
+dds = DESeq(ddsMat)
 save(dds, file=deseqobj)
+print(results(dds))
+
+##########  Print the Log change for the whole data (As given in the manual)
+
+write.table(results(dds), paste(deseqout,"allFDRP-values.txt", sep="/"),
+		sep="\t",row.names=T,col.names=T,quote=F)
 
 
 #####################   This section prepares required count information for downstream analysis, such as normalized expression values.
@@ -165,20 +153,22 @@ write.table(replaced, paste(deseqout,"allCountTable.replaced.txt",sep="/"),
 
 #####################   To get a sense of how many such values are replaced, a list of all replaced values are written
 
-original=counts(dds, normalized=F)
-replacedEntries=which(original != replaced, arr.ind=T)
-replacedDetail=data.frame(genes=row.names(replacedEntries),
-                          samples=colnames(original)[replacedEntries[,"col"]],
-                          original=apply(replacedEntries, 1,
-                                         function(x){return(original[x[1],x[2]])}),
-                          replaced=apply(replacedEntries, 1,
-                                         function(x){return(replaced[x[1],x[2]])}))
+if (!is.null(replaced)) {
+    original=counts(dds, normalized=F)
+    replacedEntries=which(original != replaced, arr.ind=T)
+    replacedDetail=data.frame(genes=row.names(replacedEntries),
+                              samples=colnames(original)[replacedEntries[,"col"]],
+                              original=apply(replacedEntries, 1,
+                                             function(x){return(original[x[1],x[2]])}),
+                              replaced=apply(replacedEntries, 1,
+                                             function(x){return(replaced[x[1],x[2]])}))
 
-write.table(replacedDetail, paste(deseqout,"replacedValues.txt",sep="/"), 
-				sep="\t", quote=F, row.names=F)
+    write.table(replacedDetail, paste(deseqout,"replacedValues.txt",sep="/"),
+                    sep="\t", quote=F, row.names=F)
 
-######################  If the number of values replaced is HIGH, then check whether some samples are way off total replaced values
-sum(original!=replaced)
+    ######################  If the number of values replaced is HIGH, then check whether some samples are way off total replaced values
+    sum(original!=replaced)
+}
 
 ####################  8. NORMALIZATION USING VARIANCE STABILIZATION TRANSFORMATION (VSD)
 
@@ -204,16 +194,6 @@ write.table(assay(rld), paste(deseqout,"allCountTable.rld.txt",sep = "/"),
 
 
 #ggplot(data=melt(as.data.frame(assay(rld))), aes(variable, value)) + geom_boxplot()
-
-dds <- DESeq(dds)
-results(dds)
-
-print(results(dds))
-
-##########  Print the Log change for the whole data (As given in the manual)
-
-write.table(results(dds), paste(deseqout,"allFDRP-values.txt", sep="/"),
-		sep="\t",row.names=T,col.names=T,quote=F)
 
 ##############    Plot of FDR and P-value  To find the outliers sample
 

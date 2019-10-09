@@ -43,11 +43,24 @@ if (atype == 'RG230-2') {
 } else if (atype == 'MG430-2') {
     library(mouse4302mmentrezgcdf)
     cdfname <- "Mouse4302_Mm_ENTREZG"
-} else {
+} else if (atype == 'HGU133-2') {
     library(hgu133plus2hsentrezgcdf)
     cdfname <- "Hgu133plus2_Hs_ENTREZG"
+} else if (atype == 'RGU34A') {
+    library(rgu34arnentrezgcdf)
+    cdfname <- "RGU34A_Rn_ENTREZG"
+} else if (atype == 'RAE230A') {
+    library(rae230arnentrezgcdf)
+    cdfname <- "RAE230A_Rn_ENTREZG"
+} else if (atype == 'MoGene-1.1-ST') {
+    library(mogene11stmmentrezgcdf)
+    cdfname <- "mogene11st_Mm_ENTREZG"
+} else if (atype == 'MOE430A') {
+    library(moe430ammentrezgcdf)
+    cdfname <- "MOE430A_Mm_ENTREZG"
+} else {
+    stop(paste("Array ", atype, " is not supported"))
 }
-
 
 myFile <- "cell_files.txt"
 if (!file.exists(myFile)) {
