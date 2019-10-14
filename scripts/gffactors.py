@@ -204,7 +204,7 @@ def normalize_cel_expression(celdir, sdir, array_type, experiments):
     experiments: experiments data structure
     """
 
-    assert array_type in ('RG230-2', 'MG430-2', 'HGU133-2')
+    assert array_type in ('RG230-2', 'MG430-2', 'HGU133-2', 'RGU34A', 'RAE230A', 'MoGene-1.1-ST', 'MOE430A')
 
     clistfile = "cell_files.txt"
     if os.path.exists(clistfile):
@@ -582,12 +582,12 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, config):
     #   gene_counts.txt
     #
     rna = read_rna_seq_file(rnafile)
-    rna_pc = filter_by_protein_coding(rna, os.path.join(sdir, "Rattus_norvegicus.Rnor_6.0.80.gene_info.csv"))
+    #rna_pc = filter_by_protein_coding(rna, os.path.join(sdir, "Rattus_norvegicus.Rnor_6.0.80.gene_info.csv"))
 
     # filter by counts and normalize
     # input file: gene_counts.txt
     # output file: ??
-    write_rna_seq('gene_counts.txt', rna_pc)
+    write_rna_seq('gene_counts.txt', rna)
 
     # setup the outputfile
     with open(outfile, 'w', newline='') as otxtfile:
@@ -625,7 +625,7 @@ def compute_gfc_rnaseq(rnafile, experiments, outfile, config):
                 txtfile.close()
 
             # write associated gene_counts.txt
-            write_rna_seq('gene_counts.txt', rna_pc, samples_in_exp)
+            write_rna_seq('gene_counts.txt', rna, samples_in_exp)
 
             r_DESeq_script = os.path.join(sdir, "DESeq.R")
             r_cmd = "R --vanilla <" + r_DESeq_script
