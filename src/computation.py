@@ -1138,7 +1138,7 @@ class Computation:
     def parse_BMD_results(self, export_file):
 
         assert os.path.isfile(export_file)
-
+        csv.field_size_limit(500000)
         # create lookup from the verbose names (which are in the BMD results file) to model field names
         req_attr = dict()
         results = list()
@@ -1152,7 +1152,7 @@ class Computation:
 
         with open(export_file) as f:
             next(f)  # the first line is blank in bmd export file
-            reader = csv.DictReader(f, delimiter='\t')
+            reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
             for row in reader:
 
                 # BMD express can return zero values, and when plotting on log scale these cause problems

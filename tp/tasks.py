@@ -258,12 +258,12 @@ def process_user_files(tmpdir, config_file, user_email, testmode=False):
         email_message += message
         send_mail('IBRI CTox Computation: Error at Step 6a', email_message, from_email, [user_email])
         return
-
+    email_message += "Step 6a Intensity File Created\n"
     files = compute.make_BMD_files(new_exps, config_file, intensities, fc_data)
     if not files:
         message = 'No BMD input files prepared; no suitable multi-concentration experiments'
         logger.info(message)
-        email_message += message
+        email_message += message+'\n'
     else:
         bm2_file, export_file = compute.run_BMD(files)
         if bm2_file is None or not os.path.isfile(bm2_file) or export_file is None or not os.path.isfile(export_file):
@@ -281,7 +281,7 @@ def process_user_files(tmpdir, config_file, user_email, testmode=False):
             send_mail('IBRI CTox Computation: Error at Step 6c', email_message, from_email, [user_email])
             return
         logger.info('Step 6c: BMD pathway results parsed')
-        email_message += "Step 6C Completed: BMD pathway results parsed\n"
+        email_message += "Step 6c Completed: BMD pathway results parsed\n"
 
         status = load_bmd_results(new_exps, bm2_file, pathway_results)
         if status is None:
@@ -299,7 +299,7 @@ def process_user_files(tmpdir, config_file, user_email, testmode=False):
         exp.results_ready = True
         exp.save()
 
-    message = 'All computations sucessfully completed.\nUploaded expression data is ready for analysis'
+    message = 'All computations successfully completed.\nUploaded expression data is ready for analysis'
     logger.info(message)
     email_message += message
     send_mail('IBRI CTox Computation: Complete', email_message, from_email, [user_email])
