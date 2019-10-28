@@ -246,6 +246,9 @@ def process_user_files(tmpdir, config_file, user_email, testmode=False):
     logger.info('Step 5f: experiment correl using PathNR loaded to database')
 
     email_message += "Step 5f Completed: Correlations to PathNR processed and loaded\n"
+    for exp in new_exps:
+        exp.results_ready = True
+        exp.save()
 
     logger.info('Step 6')
     intensities_file = os.path.join(tmpdir, 'sample_intensities.pkl')
