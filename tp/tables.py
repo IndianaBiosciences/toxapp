@@ -86,12 +86,15 @@ class FoldChangeResultTable(tables.Table):
 
     """
     gene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.rat_gene_symbol, args=[A('gene_identifier.gene.rat_entrez_gene')], accessor='gene_identifier.gene.rat_gene_symbol')
+    mgene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.mouse_gene_symbol, args=[A('gene_identifier.gene.mouse_entrez_gene')], accessor='gene_identifier.gene.mouse_gene_symbol')
+    hgene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.human_gene_symbol, args=[A('gene_identifier.gene.human_entrez_gene')], accessor='gene_identifier.gene.human_gene_symbol')
+
     p = SciNotationColumn(verbose_name='P-value', accessor='p')
     p_bh = SciNotationColumn(verbose_name='ajusted P-value', accessor='p_bh')
 
     class Meta:
         model = FoldChangeResult
-        fields = ['experiment', 'gene_identifier.gene_identifier', 'gene_symbol', 'log2_fc', 'p', 'p_bh']
+        fields = ['experiment', 'gene_identifier.gene_identifier', 'gene_symbol','mgene_symbol', 'hgene_symbol', 'log2_fc', 'p', 'p_bh']
         attrs = {'class': 'table table-striped custab'}
         order_by = 'p_bh'
 
