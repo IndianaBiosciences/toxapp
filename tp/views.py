@@ -559,7 +559,7 @@ def analysis_summary(request):
                 study_file_pairs.append({'study_name': study_name, 'link': url})
                 have_file.append(file)
 
-        context = {'bmd_results': study_file_pairs}
+        context['bmd_results']= study_file_pairs
 
     return render(request, 'analysis_summary.html', context)
 

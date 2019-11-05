@@ -1,17 +1,3 @@
-# Copyright 2019 Indiana Biosciences Research Institute (IBRI)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 Django settings for toxapp project.
 
@@ -34,18 +20,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '!kd$mudw&5ah3!-yjh-!8@j=&jfvclo_ic+zl^nl8nhpo)3!v='
+SECRET_KEY = 'SECRET'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    '54.90.204.220',
-    '127.0.0.1',
-    '192.168.0.102',
-    'ctox.indianabiosciences.org',
-    'ctox-tst.indianabiosciences.org',
-    '34.228.141.134'
+    '127.0.0.1'
 ]
 
 # Application definition
@@ -107,9 +88,9 @@ DATABASES = {
         'OPTIONS': {
             'options': '-c search_path=toxapp'
         },
-        'NAME': 'ibri',  # name of the database
+        'NAME': 'toxapp',  # name of the database
         'USER': 'django_user',
-        'PASSWORD': 'toxapp',
+        'PASSWORD': 'PASSWORD',
         'HOST': '127.0.0.1',
         #'HOST': 'jeff-M4HM85P-00',
         'PORT': '5432',
@@ -213,15 +194,17 @@ LOGGING = {
 }
 
 # email backend for development purposes
+# email backend for development purposes
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 #EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-EMAIL_HOST = 'localhost'
-EMAIL_PORT = 25
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
-EMAIL_USE_TLS = False
-FROM_EMAIL = 'CTox <do_not_reply@indianabiosciences.org>'
-TEST_EMAIL = 'someone@indianabiosciences.org'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'tst@tst.com'
+EMAIL_HOST_PASSWORD = 'PASSWORD'
+EMAIL_USE_TLS = True
+FROM_EMAIL = 'tst@tst.com'
+TEST_EMAIL = 'tst@tst.com'
+#ACCOUNTS_EMAIL = 'tst@tst.com'
 
 # Computation Configurations
 COMPUTATION = {
