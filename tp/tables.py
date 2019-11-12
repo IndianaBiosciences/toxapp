@@ -1,17 +1,3 @@
-# Copyright 2019 Indiana Biosciences Research Institute (IBRI)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation,\
@@ -174,6 +160,10 @@ class ExperimentListTable(tables.Table):
                                     attrs={
                                         'td': {'align': 'center'},
                                     })
+    details= tables.TemplateColumn(template_name='view_exp_col.html', orderable=False,
+                                    attrs={
+                                        'td': {'align': 'center'},
+                                    })
    # edit = tables.LinkColumn('tp:experiment-update', args=[A('pk')], orderable=False, text='',
     #                                 attrs={
      #                                    'a': {'class': 'glyphicon glyphicon-edit',
@@ -184,7 +174,7 @@ class ExperimentListTable(tables.Table):
     class Meta:
         model = Experiment
         fields = ['experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route']
-        sequence = ('analyze', 'edit', 'experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route')
+        sequence = ('analyze', 'edit', 'details','experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route')
         attrs = {'class': 'table table-striped custab'}
         order_by = ("compound_name", 'dose','time')
 
