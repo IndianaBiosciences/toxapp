@@ -1845,20 +1845,8 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
             exps = nsearch | csearch | tsearch | osearch | ssearch
             logger.debug('User query returned %s exps', len(exps))
         elif by_study:
-            dic2 = []
-            exp = Experiment.objects.filter(study=int(by_study))
-            for experi in exp:
-                qs=ExperimentSample.objects.filter(experiment_id=experi.pk).order_by('group_type').values()
+            exps = Experiment.objects.filter(study=int(by_study))
 
-                dic = []
-                for x in qs:
-
-                    qs2=Sample.objects.get(pk=x['sample_id'])
-                    dic.append({'sample':qs2.sample_name,'type':x['group_type']})
-
-                dic2.append({'exp_id':experi.pk,'samples':dic})
-            self.request.session['dic2']=dic2
-            return exp
         else:
             exps = Experiment.objects.all()
             logger.debug('Standard query returned %s exps', len(exps))
@@ -1871,6 +1859,18 @@ class ExperimentView(ResetSessionMixin, SingleTableView):
             exps = exps.filter(Q(study__permission='P') | Q(study__owner=self.request.user))
 
         self.request.session['filtered_exps'] = None
+        dic2 = []
+        for experi in exps:
+            qs = ExperimentSample.objects.filter(experiment_id=experi.pk).order_by('group_type').values()
+
+            dic = []
+            for x in qs:
+                qs2 = Sample.objects.get(pk=x['sample_id'])
+                dic.append({'sample': qs2.sample_name, 'type': x['group_type']})
+
+            dic2.append({'exp_id': experi.pk, 'samples': dic})
+        self.request.session['dic2'] = dic2
+
         if (only_mine or user_query or by_study) and len(exps) > 0:
             self.request.session['filtered_exps'] = list(exps.values_list('id', flat=True))
             logger.debug('Storing list of %s experiments', len(self.request.session['filtered_exps']))
