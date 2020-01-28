@@ -949,7 +949,10 @@ class Computation:
         for sample_nm in sample_int['samples']:
             count = 0
             for identifier in sample_int['genes']:
-                exp_id = sample2exp[sample_nm]
+                try:
+                    exp_id = sample2exp[sample_nm]
+                except: #skips files not included in original job order
+                    continue
                 # not all platform identifiers are convertable to rat entrez
                 rat_eg = identifier_map[exp_id].get(identifier, None)
                 if rat_eg is None:
