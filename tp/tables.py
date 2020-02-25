@@ -160,10 +160,10 @@ class ExperimentListTable(tables.Table):
                                     attrs={
                                         'td': {'align': 'center'},
                                     })
-    details= tables.TemplateColumn(template_name='view_exp_col.html', orderable=False,
-                                    attrs={
-                                        'td': {'align': 'center'},
-                                    })
+   # details= tables.TemplateColumn(template_name='view_exp_col.html', orderable=False,
+    #                                attrs={
+     #                                   'td': {'align': 'center'},
+      #                              })
    # edit = tables.LinkColumn('tp:experiment-update', args=[A('pk')], orderable=False, text='',
     #                                 attrs={
      #                                    'a': {'class': 'glyphicon glyphicon-edit',
@@ -174,7 +174,7 @@ class ExperimentListTable(tables.Table):
     class Meta:
         model = Experiment
         fields = ['experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route']
-        sequence = ('analyze', 'edit', 'details','experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route')
+        sequence = ('analyze', 'edit', 'experiment_name', 'compound_name', 'dose', 'dose_unit', 'time', 'tissue', 'organism', 'single_repeat_type', 'route')
         attrs = {'class': 'table table-striped custab'}
         order_by = ("compound_name", 'dose','time')
 
