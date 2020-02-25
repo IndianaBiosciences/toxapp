@@ -10,7 +10,11 @@
     {{ request.session.adding_study.name }}
   </div>
 {% endif %}
-
+{% if request.session.last_exp_id %}
+  <div class="alert alert-warning" >
+    <strong>You are adding another experiment</strong><br>Update field value(s) and Auto-populate Experiment name
+  </div>
+{% endif %}
 {% if study_error %}
   <div class="alert alert-danger">
     {{ study_error }}
@@ -51,4 +55,8 @@
 {% else %}
 <p>You do not have permission to edit this experiment</p>
 {% endif %}
+<script>
+
+  $('#id_experiment_name').val('');
+</script>
 {% endblock content %}

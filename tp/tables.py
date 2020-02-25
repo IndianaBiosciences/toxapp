@@ -1,17 +1,3 @@
-# Copyright 2019 Indiana Biosciences Research Institute (IBRI)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import Study, Experiment, ModuleScores, GSAScores, FoldChangeResult, ExperimentCorrelation,\
@@ -86,12 +72,15 @@ class FoldChangeResultTable(tables.Table):
 
     """
     gene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.rat_gene_symbol, args=[A('gene_identifier.gene.rat_entrez_gene')], accessor='gene_identifier.gene.rat_gene_symbol')
+    mgene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.mouse_gene_symbol, args=[A('gene_identifier.gene.mouse_entrez_gene')], accessor='gene_identifier.gene.mouse_gene_symbol')
+    hgene_symbol = tables.LinkColumn('tp:gene-detail', text=lambda x: x.gene_identifier.gene.human_gene_symbol, args=[A('gene_identifier.gene.human_entrez_gene')], accessor='gene_identifier.gene.human_gene_symbol')
+
     p = SciNotationColumn(verbose_name='P-value', accessor='p')
     p_bh = SciNotationColumn(verbose_name='ajusted P-value', accessor='p_bh')
 
     class Meta:
         model = FoldChangeResult
-        fields = ['experiment', 'gene_identifier.gene_identifier', 'gene_symbol', 'log2_fc', 'p', 'p_bh']
+        fields = ['experiment', 'gene_identifier.gene_identifier', 'gene_symbol','mgene_symbol', 'hgene_symbol', 'log2_fc', 'p', 'p_bh']
         attrs = {'class': 'table table-striped custab'}
         order_by = 'p_bh'
 
@@ -171,6 +160,10 @@ class ExperimentListTable(tables.Table):
                                     attrs={
                                         'td': {'align': 'center'},
                                     })
+   # details= tables.TemplateColumn(template_name='view_exp_col.html', orderable=False,
+    #                                attrs={
+     #                                   'td': {'align': 'center'},
+      #                              })
    # edit = tables.LinkColumn('tp:experiment-update', args=[A('pk')], orderable=False, text='',
     #                                 attrs={
      #                                    'a': {'class': 'glyphicon glyphicon-edit',

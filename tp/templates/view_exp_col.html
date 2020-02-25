@@ -1,0 +1,39 @@
+
+<a id="test{{record.pk}}" class="glyphicon glyphicon-th-large" onclick="hov({{record.pk}})"></a>
+
+
+<div id="myModal{{record.pk}}" hidden>
+
+
+
+{% for x in request.session.dic2 %}
+
+{% if x.exp_id == record.pk %}
+
+{% for y in x.samples %}
+
+{% if y.type == "I" %}
+Treatment:
+    {%else%}
+    Control:
+    {%endif%}
+{{y.sample}}<br>
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+
+
+</div>
+<script>
+function hov(x){
+z = "#myModal"+x;
+$(z).dialog({
+  height: "auto",
+  width:"auto",
+   position: { my: "left top", at: "left bottom", of: $('#test{{record.pk}}') }
+
+});
+}
+
+</script>
