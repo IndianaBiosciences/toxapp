@@ -2,117 +2,70 @@
 
 {% block content %}
 
-<span style="font-weight:bold; font-size: 18pt; color:#003f3f;">Welcome to IBRI's Toxicogenomic Platform</span>
-<div class="myContainer">
-  <div id="myCarousel" class="carousel slide" data-ride="carousel" data-interval="7500">
-    <!-- Indicators -->
-    <ol class="carousel-indicators">
-      <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
-      <li data-target="#myCarousel" data-slide-to="1"></li>
-      <li data-target="#myCarousel" data-slide-to="2"></li>
-    </ol>
 
-    <!-- Wrapper for slides -->
-    <div class="carousel-inner" role="listbox">
-      <div class="item active">
-        <img src="/static/tp/img/image_1.jpg" alt="Exposing industrial experience to advance adoption and extension of new methods" width="460" height="345">
-      </div>
+<div style="margin-left:-20px;">
+    <img src="/static/tp/img/image_2.jpg" alt="Exposing industrial experience to advance adoption and extension of new methods" width="101%">
+</div>
 
-      <div class="item">
-        <img src="/static/tp/img/image_2.jpg" alt="Delivering harmonized analysis methods to understand potential compound toxicity" width="460" height="345">
-      </div>
-
-      <div class="item">
-        <img src="/static/tp/img/image_3.jpg" alt="Translating transcriptomics results to biology context" width="460" height="345">
-      </div>
+<div class="container" style="padding-bottom: 100px;">
+  <div class="row">
+    <div class="col-lg-12">
+      <h3 class="text-center" style="font-weight:bold; font-size: 24pt; color:#003f3f;">The Starting Point for Early Risk Assessment</h3>
+      <h4 class="text-center">Accelerating Discovery | Speeding Innovation | Reducing Uninformative Animal Testing</h4>
+      <ul class="timeline">
+        <li>
+          <div class="timeline-image">
+            <img class="img-circle img-responsive" src="/static/tp/img/index_img1.png" alt="">
+          </div>
+          <div class="timeline-panel">
+            <div class="timeline-heading">
+              <h4>Novel Agricultural Chemicals</h4>
+              <h4 class="subheading">Is your discovery molecule potentially<br>toxic to the environment?</h4>
+            </div>
+            <div class="line"></div>
+        </li>
+        <li class="timeline-inverted">
+          <div class="timeline-image">
+            <img class="img-circle img-responsive" src="/static/tp/img/index_img2.png" alt="">
+          </div>
+          <div class="timeline-panel">
+            <div class="timeline-heading">
+              <h4>New BioPharmaceutical Entities</h4>
+              <h4 class="subheading">What is the possible effect<br>of your molecule on humans?</h4>
+            </div>
+           </div>
+          <div class="line"></div>
+        </li>
+        <li>
+          <div class="timeline-image">
+            <img class="img-circle img-responsive" src="/static/tp/img/index_img3.png" alt="">
+          </div>
+          <div class="timeline-panel">
+            <div class="timeline-heading">
+              <h4>Reference Molecules</h4>
+              <h4 class="subheading">Does data already exist of the<br> toxicity of a similar compound?</h4>
+            </div>
+           </div>
+         </li>
+       </ul>
     </div>
-
-    <!-- Left and right controls -->
-    <a class="left carousel-control" href="#myCarousel" role="button" data-slide="prev">
-      <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
-      <span class="sr-only">Previous</span>
-    </a>
-    <a class="right carousel-control" href="#myCarousel" role="button" data-slide="next">
-      <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
-      <span class="sr-only">Next</span>
-    </a>
   </div>
 </div>
 
+<div style="background-color: #118753;">
+    <p style="font-size:large; padding:10px; color:white;" >
+    CTox, a shared toxicogenomic platform hosted by the <a style="color:#35b7f0" href="www.indianabiosciences.org">Indiana Biosciences Research Institute</a>,
+    can help answer all those questions and more. It delivers a full end-to-end workflow – from data to visualizations –
+    for early risk assessment using toxicogenomics. The data sets that exist within CTox are based on publicly available data sources.
+</p>
+</div>
+ <p style="font-size:large;">
+    To learn more about how CTox can help you accelerate your product development, <a style="color: #35b7f0" href="{% url 'about' %}">Click Here</a> or click the "About" menu item above.
+</p>
+
 <table>
 <tr><td colspan="2"></td></tr>
-<tr><td colspan="2">
-     <p>&nbsp;</p>
-    <p>This platform provides tools and workflows for early risk assessment using
-    toxicogenomics based on publically available data sources or other data sets that have
-    been released in support of this platform. It is expected that this platform will accelerate the development
-    of the supporting science and increase adoption of new risks assessment tools by the broader research community.</p>
 
-    <p>Currently this platform is in the early prototype phase to establish secure
-    collaboration tools for participating organizations and to define the conceptual
-    architecture and framework that leverages and/or integrates with other efforts in
-    toxicogenomics. The first working implementation of this platform
-    delivers a full end-to-end workflow from data to visualizations with to-be-defined research
-        methods based on the best practices of the Sponsor(s).</p>
-</td></tr>
-    <tr><td style="font-weight:bold; font-size: 12pt; color:#003f3f;">Available&nbsp;Data&nbsp;Formats</td>
-        <td style="font-weight:bold; font-size: 12pt; color:#003f3f;">Available Analysis Methods</td></tr>
-    <tr><td valign="top">
-        <ul>
-            <li>Affymetrix Microarray</li>
-            <li>RNAseq</li>
-        </ul>
-        </td>
-        <td>
-            <ul>
-            <li>Gene Set Enrichment Analysis (GSEA) using Broad Institute MSigDB</li>
-            <li>GSEA using WGCNA (Weighted Gene Co-expression Network Analysis) and
-                transcription factor-centric rat liver gene network modules</li>
-            <li>Transcriptional profil similarity analysis to rate liver reference databases (TG-GATEs, DrugMatrix)</li>
-            </ul>
-        </td>
-    </tr>
-    <tr><td colspan="2" style="font-weight:bold; font-size: 12pt; color:#003f3f;">Data Sources</td></tr>
-    <tr><td>
-    <ul>
-        <li>GEO</li>
-        <li>TG-GATEs</li>
-        <li>DrugMatrix</li>
-    </ul>
-
-    <p></p>
-    </td></tr>
-    <tr style="border-bottom: 1px solid #003f3f; height: 20px; color:#003f3f;"><td colspan="2">&nbsp;</td></tr>
-   <tr><td style="font-weight:bold; font-size: 12pt; color:#003f3f;" colspan="2">User Guides and Test Cases</td></tr>
-    <tr>
-    <td colspan="2">
-        <ul>
-            <li>Rat Liver: Affymetrix (TG-Gates) cholesterol <a target="_blank" href="https://ctox.indianabiosciences.org/docs/use_cases/CTox_use_case_1.pdf">[user guide]</a>
-                            <a target="_blank" href="https://ctox.indianabiosciences.org/docs/use_cases/CTox_use_case_1_files.zip">[data]</a></li>
-            <li>Rat Liver: RNASeq 4 different dose arms: <a target="_blank" href="https://ctox.indianabiosciences.org/docs/use_cases/CTox_use_case_2.pdf">[user guide]</a>
-                            <a target="_blank" href="https://ctox.indianabiosciences.org/docs/use_cases/CTox_use_case_2_gene_counts.txt">[data]</a></li>
-            <li>Mouse Liver: RNASeq (GEO) furan: <a target="_blank" href="https://ctox.indianabiosciences.org/docs/use_cases/CTox_use_case_3.pdf">[user guide]</a>
-                            <a target="_blank" href="https://ctox.indianabiosciences.org/docs/use_cases/CTox_use_case_3_gene_counts.txt">[data]</a></li>
-        </ul>
-    </td></tr>
-    <tr><td style="font-weight:bold; font-size: 12pt; color:#003f3f;" colspan="2">Key Reference <span style="font-size: 10pt; font-weight:lighter;">(additional available on "About" page)</span></td></tr>
-    <tr>
-    <td colspan="2">
-        <ul>
-            <li>Jeffrey J Sutherland James L Stevens Kamin Johnson Navin Elango Yue W Webster Bradley J Mills Daniel H Robertson,
-                'A novel open access web portal for integrating mechanistic and toxicogenomic study results', Toxicological Sciences,
-                <a target="_blank" href="https://academic.oup.com/toxsci/advance-article/doi/10.1093/toxsci/kfz101/5478579">Advance Online Publication</a></li>
-            <li>J J Sutherland, Y W Webster, J A Willy, G H Searfoss, K M Goldstein, A R Irizarry,
-            D G Hall, and J L Stevens, 'Toxicogenomic module associations with pathogenesis (TXG-MAP):
-            A network based approach to understanding drug toxicity', The Pharmacogenomics Journal,
-            <A target="_blank" HREF="https://www.nature.com/tpj/journal/vaop/ncurrent/full/tpj201717a.html">Advance Online Publication</A></li>
-
-        </ul>
-    </td></tr>
-
-    <tr style="border-bottom: 1px solid #003f3f; height: 20px; color:#003f3f;"><td colspan="2">&nbsp;</td></tr>
-    <tr><td colspan="3"> If you would like to participate as a part of this collaboration and/or become an early adopter. Please email
-        the collaborative tox team  at <a href="mailto:ctox@indianabiosciences.org">ctox@indianabiosciences.org</a>.</td></tr>
     </table>
 
 {% endblock %}

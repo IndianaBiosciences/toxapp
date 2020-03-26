@@ -22,15 +22,11 @@
 {% endif %}
 
 <!-- Login window -->
-    <h3>Welcome</h3>
-    <p>Currently this system is under development and accounts are by invitation only.
-    If you would like to be considered as an early adopter of this system,
-        please email <a href="mailto:drobertson@indianabiosciences.org">drobertson@indianabiosciences.org</a>.</p>
-
-    <div class="container">
-        <div class="card card-container">
-            <!-- <img class="profile-img-card" src="//lh3.googleusercontent.com/-6V8xOA6M7BA/AAAAAAAAAAI/AAAAAAAAAAA/rzlHcD0KYwo/photo.jpg?sz=120" alt="" /> -->
+    <div class="about-h2" style="margin-bottom: -20px;">Welcome: Please Sign-in</div>
+       <div class="card card-container">
             <img id="profile-img" class="profile-img-card" src="//ssl.gstatic.com/accounts/ui/avatar_2x.png" />
+                <p>Please login to begin or continue your research. We will you all the best in your endeavors!</p>
+             <!-- <img class="profile-img-card" src="//lh3.googleusercontent.com/-6V8xOA6M7BA/AAAAAAAAAAI/AAAAAAAAAAA/rzlHcD0KYwo/photo.jpg?sz=120" alt="" /> -->
             <!-- <p id="profile-name" class="profile-name-card">Sign In</p> -->
             <form method="post" action="{% url 'login' %}">
             {% csrf_token %}
@@ -49,8 +45,15 @@
             </form>
             <a href="{% url 'password_reset' %}" class="forgot-password">Lost password?</a>
        </div>
-    </div>
+
 
     <!-- /container -->
+
+     <div class="about-half-line"></div>
+
+     <p>If you have any questions, need assisting in using the platform, or require assistance in interpreting
+        analysis results please email  <a style="color: #35b7f0" href="mailto:ctox@indianabiosciences.org">ctox@indianabiosciences.org</a>.</p>
+
+
 
 {% endblock %}

@@ -44,6 +44,10 @@ urlpatterns = [
 
     url(r'^about/$', views.about, name='about'),
 
+    url(r'^training/$', views.training, name='training'),
+
+    url(r'^references/$', views.references, name='references'),
+
     url(r'^admin/', admin.site.urls),
 
     url(r'^', include('django.contrib.auth.urls')),

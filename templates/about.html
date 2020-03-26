@@ -1,76 +1,95 @@
 {% extends "base.html" %}
 
 {% block content %}
-<span style="font-weight:bold; font-size: 18pt; color:#003f3f;">About IBRI's Toxicogenomic Platform</span>
-<table>
-<tr><td colspan="2">
-    <p>Eli Lilly and Company, Dow AgroSciences, and the Indiana Biosciences Research Institute (IBRI) formed a
-        multiparty collaboration to develop a shared data analytics platform for early assessment of the potential
-        effects of different molecules on human health and the environment. A shared platform for early risk assessment
-        using toxicogenomics and making that methodology available widely will help increase adoption of new risk
-        assessment tools by the broader research community. This initiative will ultimately
-        accelerate product development by enabling timely decisions on the safety of compounds early in the discovery
-        process based on shared data sets, development of new toxicogenomics tools, and the collective understanding
-        of molecular structure.</p>
+<div style="margin-left:-20px; margin-bottom: 20px">
+    <img src="/static/tp/img/image_1.jpg" alt="Exposing industrial experience to advance adoption and extension of new methods" width="102%">
+</div>
 
-    <p>This toxicogenomics platform will initially build upon the respective expertise of the scientist's at both
-        Eli Lilly and Co and Dow AgroSciences nad it will progressivelu increase in scope to enable the widers scientific
-        community. Dow AgroSciences and Eli Lilly and Company both perform predictive safety assessments on a regular
-        basis during discovery research efforts and have engineered their processes in a similar way despite doing this
-        independently within their respective organizations. This project is an opportunity to work collaboratively to
-        advance the predictive safety science more rapidly. The platform is being developed to facilitate sharing both
-        private and public sector expertise and processes to the broader scientific community to enhance the
-        reproducibility of results and catalyze advances in toxicogenomics.</p>
+    <div class="about-h2">About the IBRI's Collaborative Toxicogenomic ("CTox") Platform</div>
 
-    <p>The Indiana Biosciences Research Institute (IBRI) is an independent, nonprofit discovery science and applied
-        research institute within Indiana provides a unique partner to these companies to bridge these capabilities
-        to the research community. IBRI can also facilitate access and engagement with the academic and other research
-        organizations to assist in enhancing this platform. It is planned that this platform will be placed in the
-        open source community at the appropriate stage to further develop these capabilities and integrate with other
-        data sources.
-</td></tr>
-    <tr><td style="font-weight:bold; font-size: 14pt; color:#003f3f;" width="50%">Industry Partners</td>
-        <td style="font-weight:bold; font-size: 14pt; color:#003f3f;">Public Partners</td></tr>
-    <tr><td>
-    <ul>
-        <li><A target = "_blank" HREF="https://www.corteva.com">Corteva Agriscience</A></li>
-        <li><A target = "_blank" HREF="https://www.lilly.com">Eli Lilly and Company</A></li>
-    </ul>
-    </td>
-        <td>
-            <ul>
-            <li>TBD</li>
-            </ul>
-        </td></tr>
-    <tr><td colspan="2">
-              If you would like to participate as a part of this collaboration and/or become an early adopter. Please email
-        the collaborative tox team  at <a href="mailto:ctox@indianabiosciences.org">ctox@indianabiosciences.org</a>.
-    </td></tr>
-    <tr style="border-bottom: 2px solid #003f3f; height: 20px; color:#003f3f;"><td colspan="2">&nbsp;</td></tr>
-        <tr><td colspan="2" style="font-weight:bold; font-size: 14pt; color:#003f3f;">Press Releases</td></tr>
-        <tr><td>
-          <ul>
-            <li>March 08, 2017 <A target="_blank"
-                              HREF="https://globenewswire.com/news-release/2017/03/08/933474/0/en/IBRI-Lilly-Dow-AgroSciences-Partner-to-Develop-Shared-Database-to-Assess-Molecular-Safety.html">Press Release</A> announcing the Collaboration</li>
-          </ul>
-        </td></tr>
-       <tr><td colspan="2" style="font-weight:bold; font-size: 14pt; color:#003f3f;">References</td></tr>
-       <tr><td colspan="2">
+    <div class="about-h3">Accelerating Product Discovery and Development</div>
 
-    <ul>
-        <li>Jeffrey J Sutherland James L Stevens Kamin Johnson Navin Elango Yue W Webster Bradley J Mills Daniel H Robertson,
-                'A novel open access web portal for integrating mechanistic and toxicogenomic study results', Toxicological Sciences,
-                <a target="_blank" href="https://academic.oup.com/toxsci/advance-article/doi/10.1093/toxsci/kfz101/5478579">Advance Online Publication</a></li>
-        <li>J J Sutherland, Y W Webster, J A Willy, G H Searfoss, K M Goldstein, A R Irizarry,
-            D G Hall, and J L Stevens, 'Toxicogenomic module associations with pathogenesis (TXG-MAP):
-            A network based approach to understanding drug toxicity', The Pharmacogenomics Journal,
-            <A target="_blank" HREF="https://www.nature.com/tpj/journal/vaop/ncurrent/full/tpj201717a.html">Advance Online Publication</A></li>
-       <li>J J Sutherland, Robert A Jolly, Keith M Goldstein, and J L Stevens, 'Assessing Concordance of Drug-Induced
-           Transcriptional Response in Rodent Liver and Cultured Hepatocytes', PLoS Computational Biology 12(3), March 30, 2016
-            <A target="_blank" HREF="http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004847">doi:10.1371/journal.pcbi.1004847</A></li>
-        <li>...</li>
-    </ul>
-       </td></tr>
-</table>
+    <p>
+    CTox is a new early risk assessment tool using toxicogenomics. CTox is designed to facilitate
+        sharing both private and public sector expertise and processes to enhance the reproducibility
+        of results and catalyze advances in toxicogenomics.
+        CTox data sources include: GEO, TG-GATEs and DrugMatrix.
+    </p>
+
+    <p>
+    We believe by making CTox widely available to the broader scientific research community
+        that it will ultimately help accelerate product development by enabling timely decisions on the
+        safety of compounds early in the discovery process. CTox can help do this based on shared data sets,
+        development of new toxicogenomic tools and the collective understanding of the molecule's impact
+        on biological pathways.
+    </p>
+
+    <div class="about-h3">Available Data Formats and Analysis Methods</div>
+
+    <p>
+    While there are myriad formats in which transcriptomic data can be stored and analyzed,
+        the platform currently handles standard Affymetrix Microarray and RNAseq file formats for upload.
+        Other formats will be added in the future based on user need.
+    </p>
+
+    <p>
+    CTox also offers three different analysis methods:
+        <ul>
+            <li>Gene Set Enrichment Analysis (GSEA) using Broad Institute MSigDB</li>
+            <li>GSEA using WGCNA (Weighted Gene Co-expression Network Analysis)
+                and transcription factor-centric rat liver gene network modules</li>
+            <li>Transcriptional profile similarity analysis to rate liver reference databases (TG-GATEs, DrugMatrix)</li>
+        </ul>
+    </p>
+
+    <div class="about-h3">The Creation and Evolution of the CTox Platform</div>
+
+    <p>
+        <a target="_blank" style="color: #35b7f0" href="http://lilly.com">Eli Lilly and Company</a>,  <a target="_blank" style="color: #35b7f0" href="http://corteva.us">Corteva Agriscience</a> (formerly Dow AgroSciences)
+        and the  <a target="_blank" style="color: #35b7f0" href="http://indianabiosciences.org">Indiana Biosciences Research Institute (IBRI)</a> partnered to develop a shared data analytics
+        platform [link to news release] for early assessment of the potential effects of different molecules on human health and the environment.
+    </p>
+
+    <p>
+    CTox was initially built upon the respective expertise of the scientists at both Eli Lilly and Company and Corteva Agriscience.
+        Since it was established in 2017 it has progressively increased in scope to enable the wider scientific community.
+        March 08, 2017 <A target="_blank" style="color: #35b7f0"
+                              HREF="https://globenewswire.com/news-release/2017/03/08/933474/0/en/IBRI-Lilly-Dow-AgroSciences-Partner-to-Develop-Shared-Database-to-Assess-Molecular-Safety.html">Press Release</A> announcing the Collaboration.
+
+    </p>
+
+    <p>
+    Corteva Agriscience and Eli Lilly and Company both perform predictive safety assessments on a regular basis during
+        discovery research efforts. And, they have engineered their processes in a similar way, despite doing this
+        independently within their respective organizations. This project was an opportunity to work collaboratively to
+        advance the predictive safety science more rapidly.
+    </p>
+
+    <p>
+    CTox has currently gone through many releases with multiple deployments maintained by the IBRI, but also deployed at Eli Lilly and Corteva AgriScience.
+        As detailed in the <A style="color: #35b7f0" href="{% url 'references' %}">References</A> section, a key paper was published in 2019 and the github repository made publiclly available.
+        The platform is being updated on a regular basis using an agile development process. We are continuing to expand this platform as needed.
+    </p>
+    <p>
+        The current focus of the collaboration and team is on expanding the user base, improving the useability, and creating training materials.
+    </p>
+
+  <div class="about-h3">Indiana Biosciences Research Institute's Role with CTox</div>
+
+    <p>
+    The <a target="_blank" style="color: #35b7f0" href="http://indianabiosciences.org">Indiana Biosciences Research Institute (IBRI)</a> is an independent,
+        industry-inspired applied research institute. The IBRI is a catalyst for collaboration and a
+        convener of industry, academia, government and community organizations. It is because of this
+        unique role we play that we can facilitate access and engagement with academic and other research
+        organizations to assist in enhancing CTox.
+    </p>
+
+
+    <div class="about-half-line"></div>
+
+    <p>
+        If you would like to participate as a part of this collaboration and/or become an early adopter. Please email
+        the collaborative tox team  at <a style="color: #35b7f0" href="mailto:ctox@indianabiosciences.org">ctox@indianabiosciences.org</a>.
+    </p>
 
 {% endblock %}

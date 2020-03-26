@@ -1,22 +1,31 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h2>Sign up</h2>
-<form method="post">
+  <div class="about-h2">Welcome: Request Access</div>
+     <div class="card card-container" style="width: 500px; margin-top:0px">
+   <p>CTox is under active development and accounts are by invitation only. If you
+        would like to be considered as an early adopter of CTox, please fill
+        out this form. </p>
+    <table>
+    <form method="post">
     {% csrf_token %}
     {% for field in form %}
-      <p>
-        {{ field.label_tag }}<br>
-        {{ field }}
+        <tr><td height="50px" width="150px" valign="middle" align="right"><span style="font-weight: bold">{{ field.label_tag }}</span> &nbsp; </td><td>{{ field }}</td></tr>
         {% if field.help_text %}
-          <small style="color: grey">{{ field.help_text| striptags|cut:"&#39;" }}</small>
+          <tr><td height="20px" colspan="2"><small style="color: grey">{{ field.help_text| striptags|cut:"&#39;" }}</small></td></tr>
         {% endif %}
         {% for error in field.errors %}
-          <p style="color: red">{{ error }}</p>
+            <tr><td colspan="2"><span style="color: red">{{ error }}</span></td></tr>
         {% endfor %}
-      </p>
     {% endfor %}
-    <button type="submit">Sign up</button>
-    <p>You will be notified when your account is activated after signup</p>
-  </form>
+    <tr><td colspan="2" align="center"><button type="submit">Sign up</button></td></tr>
+    </form>
+    </table>
+    <p style="margin-top:20px" align="center">You will be notified <br>when your account is activated after signup</p>
+   </div>
+
+    <div class="about-half-line"></div>
+
+     <p>If you have any questions or don’t receive an immediate response,
+        please email  <a style="color: #35b7f0" href="mailto:ctox@indianabiosciences.org">ctox@indianabiosciences.org</a></p>
 {% endblock %}

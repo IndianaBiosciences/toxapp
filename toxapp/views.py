@@ -51,6 +51,26 @@ def about(request):
     template = loader.get_template('about.html')
     return HttpResponse(template.render(context, request))
 
+def training(request):
+    """
+    Expose the user profile and tools to the user
+    """
+    context = {
+
+    }
+    template = loader.get_template('training.html')
+    return HttpResponse(template.render(context, request))
+
+def references(request):
+    """
+    Expose the user profile and tools to the user
+    """
+    context = {
+
+    }
+    template = loader.get_template('references.html')
+    return HttpResponse(template.render(context, request))
+
 
 
 def signup(request):

@@ -17,6 +17,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
     <script src="/static/tp/js/base.js"></script>
     <link rel="stylesheet" href="/static/tp/css/base.css">
+    <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
     {% block extra_head_content %}{% endblock %}
 </head>
 
@@ -26,6 +27,7 @@
 <body>
 
 <!------Navbar ---------->
+{% url 'about' as about %}
 
 <header class = "navbar navbar-inverse navbar-fixed-top" role = "banner">
 <div class = "container">
@@ -37,17 +39,25 @@
             <span class="icon-bar"></span>
         </button>
 
-        <a href="/" class ="navbar-brand">IBRI Toxicogenomics Platform</a>
+        <a href="/" class ="navbar-brand"><img align="left" style="max-width:80px; padding-right:10px; margin-top:-10px; margin-left:-20px;" src="/static/tp/img/IBRI_Logo_White.svg"> Toxicogenomics Platform</a>
     </div><!-- End Navbar Header-->
 
     <div class = "collapse navbar-collapse" id = "dropdown">
         <ul class = "nav navbar-nav navbar-right" role = "navigation">
                 {% if user.is_anonymous %}
-                    <li><a href="/">Home</a></li>
-                    <li><a href="{% url 'about' %}">About</a></li>
-                    <li><a href="{% url 'login' %}">Login</a></li>
+                     <li class="dropdown">
+                        <a href="{% url 'about' %}" class="dropdown-toggle" data-toggle="dropdown"
+                           role="button" aria-haspopup="true" aria-expanded="true">
+                            <span class="nav-label">About</span> <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{% url 'about' %}">Overview</a></li>
+                            <li><a href="{% url 'training' %}">Training</a></li>
+                            <li><a href="{% url 'references' %}">References</a></li>
+                         </ul>
+                    </li>
                     <li><a href="{% url 'signup' %}">Sign Up</a></li>
-                {% else %}
+                    <li><a href="{% url 'login' %}">Login</a></li>
+               {% else %}
                     <li><a href="{% url "profile" %}">User: {{ user }}</a></li>
                     <li><a href="{% url "tp:studies" %}">Studies</a></li>
                     <li><a href="{% url "tp:experiments" %}">Experiments</a></li>
