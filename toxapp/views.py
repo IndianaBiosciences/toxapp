@@ -71,7 +71,15 @@ def references(request):
     template = loader.get_template('references.html')
     return HttpResponse(template.render(context, request))
 
+def videos(request):
+    """
+    Expose the user profile and tools to the user
+    """
+    context = {
 
+    }
+    template = loader.get_template('videos.html')
+    return HttpResponse(template.render(context, request))
 
 def signup(request):
     if request.method == 'POST':
