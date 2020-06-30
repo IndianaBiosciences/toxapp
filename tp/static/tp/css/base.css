@@ -1,31 +1,50 @@
 body {
-    margin-left: 10px;
-    padding-top: 40px;
     padding-left: 0px;
     padding-bottom: 30px;
+    padding-top: 80px;
     background-color: #f9f9f9;
     font-family: Lato;
 }
 
 p {
-    font-size: medium;
+    font-family: Lato;
+    font-size: 14px;
+}
+
+a {
+    font-family: Lato;
+    font-size: 14px;
 }
 
 li {
-    padding-bottom: 6px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+#content {
+  padding: 20px;
+  width: 100vw;
+  background: white;
+}
+
+#header-image {
+  padding-top: 80px;
+  margin: 0;
+  padding: 0;
+  width: 100vw;
 }
 
 .about-h2 {
     text-align: center;
-    margin-top:22px;
     margin-bottom: 10px;
-    font-size: 24px;
+    font-size: 36px;
     font-weight: bold;
     color: #0b4c5b;
 }
 
 .about-h3 {
-    margin-top:22px;
+    margin-top:10px;
     margin-bottom: 10px;
     font-size: 20px;
     font-weight: bold;
@@ -41,15 +60,38 @@ li {
     background-color: #0b4c5b;
  }
 
+.navbar.navbar-inverse.navbar-fixed-top {
+  height: 80px;
+  margin-bottom: 80px;
+}
+
 .navbar-brand {
-    font-size: large;
-    width: 300px;
+    font-size: 20px;
+    margin-top: 15px;
 }
 
 .navbar-inverse {
     background-color: #0b4c5b;
     font-size: medium;
 }
+
+.nav.navbar-nav.navbar-right {
+  width: auto;
+  margin-top: 35px;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.collapse.navbar-collapse {
+  width: calc(100vw - 70px);
+}
+
+@media (min-width: 768px) {
+  .navbar-right {
+    margin-top: 40px;
+  }
+}
+
 .cardinality{
     margin-left: 10px;
 }
@@ -478,42 +520,9 @@ of form created with django-filter
     display: none;
   }
 }
-/* Small Devices, Tablets */
-@media (min-width: 768px) and (max-width: 991px) {
-  .timeline > li:nth-child(even) {
-    margin-bottom: 0px;
-    min-height: 0px;
-    right: 0px;
-  }
-  .timeline > li:nth-child(odd) {
-    margin-bottom: 0px;
-    min-height: 0px;
-    left: 0px;
-  }
-  .timeline>li:nth-child(even) .timeline-image {
-    left: 0;
-    margin-left: 0px;
-  }
-  .timeline>li:nth-child(odd) .timeline-image {
-    left: 520px;
-    margin-left: 0px;
-  }
-  .timeline > li:nth-child(even) .timeline-panel {
-    width: 70%;
-    padding: 0 0 20px 0px;
-    text-align: left;
-  }
-  .timeline > li:nth-child(odd) .timeline-panel {
-    width: 70%;
-    padding: 0 0 20px 0px;
-    text-align: right;
-  }
-  .timeline > li .line {
-    display: none;
-  }
-}
+
 /* Custom, iPhone Retina */
-@media only screen and (max-width: 767px) {
+@media only screen and (max-width: 1100px) {
   .timeline > li:nth-child(even) {
     margin-bottom: 0px;
     min-height: 0px;

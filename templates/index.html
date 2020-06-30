@@ -2,70 +2,71 @@
 
 {% block content %}
 
-
-<div style="margin-left:-20px;">
-    <img src="/static/tp/img/image_2.jpg" alt="Exposing industrial experience to advance adoption and extension of new methods" width="101%">
+<div id="header-image">
+    <img src="/static/tp/img/image_2.jpg"
+      alt="Exposing industrial experience to advance adoption and extension of new methods" width="100%">
 </div>
 
-<div class="container" style="padding-bottom: 100px;">
-  <div class="row">
-    <div class="col-lg-12">
-      <h3 class="text-center" style="font-weight:bold; font-size: 24pt; color:#003f3f;">The Starting Point for Early Risk Assessment</h3>
-      <h4 class="text-center">Accelerating Discovery | Speeding Innovation | Reducing Uninformative Animal Testing</h4>
-      <ul class="timeline">
-        <li>
-          <div class="timeline-image">
-            <img class="img-circle img-responsive" src="/static/tp/img/index_img1.png" alt="">
-          </div>
-          <div class="timeline-panel">
-            <div class="timeline-heading">
-              <h4>Novel Agricultural Chemicals</h4>
-              <h4 class="subheading">Is your discovery molecule potentially<br>toxic to the environment?</h4>
+<div id="content">
+  <div class="container" style="padding-bottom: 100px;">
+    <div class="row">
+      <div class="col-lg-12">
+        <h3 class="text-center" style="font-weight:bold; font-size: 24pt; color:#003f3f;">The Starting Point for Early Risk Assessment</h3>
+        <h4 class="text-center">Accelerating Discovery | Speeding Innovation | Reducing Uninformative Animal Testing</h4>
+        <ul class="timeline">
+          <li>
+            <div class="timeline-image">
+              <img class="img-circle img-responsive" src="/static/tp/img/index_img1.png" alt="">
             </div>
+            <div class="timeline-panel">
+              <div class="timeline-heading">
+                <h4>Novel Agricultural Chemicals</h4>
+                <h4 class="subheading">Is your discovery molecule potentially<br>toxic to the environment?</h4>
+              </div>
+              <div class="line"></div>
+          </li>
+          <li class="timeline-inverted">
+            <div class="timeline-image">
+              <img class="img-circle img-responsive" src="/static/tp/img/index_img2.png" alt="">
+            </div>
+            <div class="timeline-panel">
+              <div class="timeline-heading">
+                <h4>New BioPharmaceutical Entities</h4>
+                <h4 class="subheading">What is the possible effect<br>of your molecule on humans?</h4>
+              </div>
+             </div>
             <div class="line"></div>
-        </li>
-        <li class="timeline-inverted">
-          <div class="timeline-image">
-            <img class="img-circle img-responsive" src="/static/tp/img/index_img2.png" alt="">
-          </div>
-          <div class="timeline-panel">
-            <div class="timeline-heading">
-              <h4>New BioPharmaceutical Entities</h4>
-              <h4 class="subheading">What is the possible effect<br>of your molecule on humans?</h4>
+          </li>
+          <li>
+            <div class="timeline-image">
+              <img class="img-circle img-responsive" src="/static/tp/img/index_img3.png" alt="">
             </div>
-           </div>
-          <div class="line"></div>
-        </li>
-        <li>
-          <div class="timeline-image">
-            <img class="img-circle img-responsive" src="/static/tp/img/index_img3.png" alt="">
-          </div>
-          <div class="timeline-panel">
-            <div class="timeline-heading">
-              <h4>Reference Molecules</h4>
-              <h4 class="subheading">Does data already exist of the<br> toxicity of a similar compound?</h4>
-            </div>
-           </div>
-         </li>
-       </ul>
+            <div class="timeline-panel">
+              <div class="timeline-heading">
+                <h4>Reference Molecules</h4>
+                <h4 class="subheading">Does data already exist of the<br> toxicity of a similar compound?</h4>
+              </div>
+             </div>
+           </li>
+         </ul>
+      </div>
     </div>
   </div>
+
+  <div style="background-color: #118753;">
+      <p style="font-size:large; padding:10px; color:white;" >
+      CTox, a shared toxicogenomic platform hosted by the <a style="color:#35b7f0; font-size: large;" href="http://www.indianabiosciences.org">Indiana Biosciences Research Institute</a>,
+      can help answer all those questions and more. It delivers a full end-to-end workflow – from data to visualizations –
+      for early risk assessment using toxicogenomics. The data sets that exist within CTox are based on publicly available data sources.
+  </p>
+  </div>
+   <p style="font-size:large;">
+      To learn more about how CTox can help you accelerate your product development, <a style="color: #35b7f0" href="{% url 'about' %}">Click Here</a> or click the "About" menu item above.
+  </p>
+
+  <table>
+    <tr><td colspan="2"></td></tr>
+  </table>
 </div>
-
-<div style="background-color: #118753;">
-    <p style="font-size:large; padding:10px; color:white;" >
-    CTox, a shared toxicogenomic platform hosted by the <a style="color:#35b7f0" href="www.indianabiosciences.org">Indiana Biosciences Research Institute</a>,
-    can help answer all those questions and more. It delivers a full end-to-end workflow – from data to visualizations –
-    for early risk assessment using toxicogenomics. The data sets that exist within CTox are based on publicly available data sources.
-</p>
-</div>
- <p style="font-size:large;">
-    To learn more about how CTox can help you accelerate your product development, <a style="color: #35b7f0" href="{% url 'about' %}">Click Here</a> or click the "About" menu item above.
-</p>
-
-<table>
-<tr><td colspan="2"></td></tr>
-
-    </table>
 
 {% endblock %}
