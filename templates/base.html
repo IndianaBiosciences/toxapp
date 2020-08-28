@@ -39,7 +39,10 @@
             <span class="icon-bar"></span>
         </button>
 
-        <a href="/" class ="navbar-brand"><img align="left" style="max-width:80px; padding-right:10px; margin-top:-10px; margin-left:-20px;" src="/static/tp/img/IBRI_Logo_White.svg"> Toxicogenomics Platform</a>
+        <a href="http://www.indianabiosciences.org" target="_blank">
+          <img align="left" style="max-width:80px; margin-right:10px; margin-top:10px; margin-left:-15px;"
+          src="/static/tp/img/IBRI-Logo-White.png"></a>
+        <a href="/" class="navbar-brand"> &nbsp; CTox: Toxicogenomics Platform</a>
     </div><!-- End Navbar Header-->
 
     <div class = "collapse navbar-collapse" id = "dropdown">
@@ -52,6 +55,7 @@
                         <ul class="dropdown-menu">
                             <li><a href="{% url 'about' %}">Overview</a></li>
                             <li><a href="{% url 'training' %}">Training</a></li>
+                            <li><a href="{% url 'videos' %}">Videos</a></li>
                             <li><a href="{% url 'references' %}">References</a></li>
                          </ul>
                     </li>
@@ -74,10 +78,7 @@
 </div><!-- End Container -->
 </header>
 
-
-<div id="content" style="padding: 10px; background-color: rgb(255,255,255);">
-      {% block content %}{% endblock %}
-</div>
+{% block content %}{% endblock %}
 
 <!-- Sticky Footer -->
 <div class="footer_base">
@@ -93,5 +94,3 @@
 
 
 </body>
-
-

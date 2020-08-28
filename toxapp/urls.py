@@ -48,6 +48,8 @@ urlpatterns = [
 
     url(r'^references/$', views.references, name='references'),
 
+    url(r'^videos/$', views.videos, name='videos'),
+
     url(r'^admin/', admin.site.urls),
 
     url(r'^', include('django.contrib.auth.urls')),
