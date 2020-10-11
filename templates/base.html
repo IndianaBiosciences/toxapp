@@ -28,6 +28,8 @@
 
 <!------Navbar ---------->
 {% url 'about' as about %}
+{% url 'data' as data %}
+{% url 'filters' as filters %}
 
 <header class = "navbar navbar-inverse navbar-fixed-top" role = "banner">
 <div class = "container">
@@ -48,7 +50,7 @@
     <div class = "collapse navbar-collapse" id = "dropdown">
         <ul class = "nav navbar-nav navbar-right" role = "navigation">
                 {% if user.is_anonymous %}
-                     <li class="dropdown">
+                    <li class="dropdown">
                         <a href="{% url 'about' %}" class="dropdown-toggle" data-toggle="dropdown"
                            role="button" aria-haspopup="true" aria-expanded="true">
                             <span class="nav-label">About</span> <span class="caret"></span></a>
@@ -57,19 +59,33 @@
                             <li><a href="{% url 'training' %}">Training</a></li>
                             <li><a href="{% url 'videos' %}">Videos</a></li>
                             <li><a href="{% url 'references' %}">References</a></li>
-                         </ul>
+                        </ul>
                     </li>
                     <li><a href="{% url 'signup' %}">Sign Up</a></li>
                     <li><a href="{% url 'login' %}">Login</a></li>
                {% else %}
-                    <li><a href="{% url "profile" %}">User: {{ user }}</a></li>
-                    <li><a href="{% url "tp:studies" %}">Studies</a></li>
-                    <li><a href="{% url "tp:experiments" %}">Experiments</a></li>
+                    <li class="dropdown">
+                        <a href="{% url 'data' %}" class="dropdown-toggle" data-toggle="dropdown"
+                           role="button" aria-haspopup="true" aria-expanded="true">
+                            <span class="nav-label">Data</span> <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{% url "tp:studies" %}">Studies</a></li>
+                            <li><a href="{% url "tp:experiments" %}">Experiments</a></li>
+                        </ul>
+                    </li>
                     {% if request.session.analyze_list %}
                       <li><a href="{% url "tp:analysis-summary" %}">Results</a></li>
                     {% endif %}
-                    <li><a href="{% url "tp:get-tox-assoc" %}">Toxicity Predictions</a></li>
-                    <li><a href="{% url "tp:bookmarks" %}">Gene/Gene Set Bookmarks</a></li>
+                    <li class="dropdown">
+                        <a href="{% url 'filters' %}" class="dropdown-toggle" data-toggle="dropdown"
+                           role="button" aria-haspopup="true" aria-expanded="true">
+                            <span class="nav-label">Filters</span> <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{% url "tp:get-tox-assoc" %}">Toxicity Predictions</a></li>
+                            <li><a href="{% url "tp:bookmarks" %}">Gene/Gene Set Bookmarks</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="{% url "profile" %}">User: {{ user }}</a></li>
                     <li><a href="{% url "logout" %}">Log Out</a></li>
                 {%  endif %}
         </ul>
@@ -91,6 +107,5 @@
         </table>
     </div>
 </div>
-
 
 </body>

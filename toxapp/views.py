@@ -102,3 +102,23 @@ def signup(request):
     else:
         form = SignUpForm()
     return render(request, 'registration/signup.html', {'form': form})
+
+def data(request):
+    """
+    Expose data options to the user
+    """
+    context = {
+
+    }
+    template = loader.get_template('data.html')
+    return HttpResponse(template.render(context, request))
+
+def filters(request):
+    """
+    Expose results filtering options to the user
+    """
+    context = {
+
+    }
+    template = loader.get_template('filters.html')
+    return HttpResponse(template.render(context, request))

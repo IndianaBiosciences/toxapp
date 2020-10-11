@@ -57,6 +57,10 @@ urlpatterns = [
     url(r'', include('tp.urls', namespace='tp')),
 
     url(r'^signup/$', views.signup, name='signup'),
+
     url(r'^robots\.txt$', TemplateView.as_view(template_name='robots.txt', content_type='text/plain')),
 
+    url(r'^data/$', views.data, name='data'),
+
+    url(r'^filters/$', views.filters, name='filters'),
 ]
