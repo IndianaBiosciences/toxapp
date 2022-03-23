@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<!-- saved from url=(0042)https://ctox.indianabiosciences.org/about/ -->
+<html lang="en-us"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!-- encoding characters -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"><!-- some Microsoft Edge/IE stuff -->
+    <meta name="viewport" content="width=device-width, initial-scale=1"><!-- viewport -> the user's visible area of a webpage, -> this sets it to normal zoom (scale 1) and width of device -->
+    <title>IBRI Toxicogenomic Platform</title>
+
+    <link href="./files/bootstrap.min.css" rel="stylesheet">
+    <script src="./files/jquery.min.js"></script><script src="./files/bootstrap.min.js"></script>
+
+    <link rel="stylesheet" href="./files/jquery-ui.css">
+    <script src="./files/jquery-ui.min.js"></script>
+    <script src="./files/base.js"></script>
+    <link rel="stylesheet" href="./files/base.css">
+
+</head>
+
+<body>
+
+<!------Navbar ---------->
+
+<header class="navbar navbar-inverse navbar-fixed-top" role="banner">
+<div class="container">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#dropdown">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+
+        <a href="https://ctox.indianabiosciences.org/" class="navbar-brand">IBRI Toxicogenomics Platform</a>
+    </div><!-- End Navbar Header-->
+
+    <div class="collapse navbar-collapse" id="dropdown">
+        <ul class="nav navbar-nav navbar-right" role="navigation">
+                    <li><a href="./index.html">Home</a></li>
+                    <li><a class="selected" href="./about.html">About</a></li>
+              <!--      <li><a href="https://ctox.indianabiosciences.org/login/">Login</a></li>
+                    <li><a href="https://ctox.indianabiosciences.org/signup/">Sign Up</a></li> -->
+        </ul>
+
+    </div><!-- End Nav Contents -->
+</div><!-- End Container -->
+</header>
+
+<body>
+
+  <div id="header-image">
+    <img src="./imgs/image_1.jpg"
+    alt="Exposing industrial experience to advance adoption and extension of new methods"
+    width="100%">
+  </div>
+
+<div id="content" style="padding: 10px; background-color: rgb(255,255,255);">
+
+  <div class="notice">
+    The IBRI's ctox platform has been decommissioned. <br>The platform can still be installed/run from the GitHub repository
+    <A target="_blank" href="https://github.com/IndianaBiosciences/toxapp">github.com/IndianaBiosciences/toxapp</a>.<br>
+    For assistance contact the IBRI at <a href="https://www.indianabiosciences.org/contact">Contact Us</a> <br>
+    or message <a target="_blank" href="https://www.linkedin.com/in/danielhrobertson/"> Daniel H. Robertson</a> on LinkedIn.
+  </div>
+
+  <div id="content">
+    <div class="about-h2">About the IBRI's Collaborative Toxicogenomic ("CTox") Platform</div>
+
+    <div class="about-h3">Accelerating Product Discovery and Development</div>
+
+    <p>
+    CTox is a new early risk assessment tool using toxicogenomics. CTox is designed to facilitate
+        sharing both private and public sector expertise and processes to enhance the reproducibility
+        of results and catalyze advances in toxicogenomics.
+        CTox data sources include: GEO, TG-GATEs and DrugMatrix.
+    </p>
+
+    <p>
+    We believe by making CTox widely available to the broader scientific research community
+        that it will ultimately help accelerate product development by enabling timely decisions on the
+        safety of compounds early in the discovery process. CTox can help do this based on shared data sets,
+        development of new toxicogenomic tools and the collective understanding of the molecule's impact
+        on biological pathways.
+    </p>
+
+    <div class="about-h3">Available Data Formats and Analysis Methods</div>
+
+    <p>
+    While there are myriad formats in which transcriptomic data can be stored and analyzed,
+        the platform currently handles standard Affymetrix Microarray and RNAseq file formats for upload.
+        Other formats will be added in the future based on user need.
+    </p>
+
+    <p>
+    CTox also offers three different analysis methods:
+        <ul>
+            <li>Gene Set Enrichment Analysis (GSEA) using Broad Institute MSigDB</li>
+            <li>GSEA using WGCNA (Weighted Gene Co-expression Network Analysis)
+                and transcription factor-centric rat liver gene network modules</li>
+            <li>Transcriptional profile similarity analysis to rate liver reference databases (TG-GATEs, DrugMatrix)</li>
+        </ul>
+    </p>
+
+    <div class="about-h3">The Creation and Evolution of the CTox Platform</div>
+
+    <p>
+        <a target="_blank" style="color: #35b7f0" href="http://lilly.com">Eli Lilly and Company</a>,  <a target="_blank" style="color: #35b7f0" href="http://corteva.us">Corteva Agriscience</a> (formerly Dow AgroSciences)
+        and the  <a target="_blank" style="color: #35b7f0" href="http://indianabiosciences.org">Indiana Biosciences Research Institute (IBRI)</a> partnered to develop a shared data analytics
+        platform for early assessment of the potential effects of different molecules on human health and the environment.
+    </p>
+
+    <p>
+    To learn more about the collaboration announced March 8, 2017,
+    <A target="_blank" style="color: #35b7f0"
+    HREF="https://www.indianabiosciences.org/news/?newsname=ibri-lilly-dow-partnership">click here</A>.
+
+    </p>
+
+    <p>
+    Corteva Agriscience and Eli Lilly and Company both perform predictive safety assessments on a regular basis during
+        discovery research efforts. And, they have engineered their processes in a similar way, despite doing this
+        independently within their respective organizations. This project was an opportunity to work collaboratively to
+        advance the predictive safety science more rapidly.
+    </p>
+
+    <p>
+    CTox has currently gone through many releases with multiple deployments maintained by the IBRI, but also deployed at Eli Lilly and Corteva AgriScience.
+        As detailed in the <A style="color: #35b7f0" href="{% url 'references' %}">References</A> section, a key paper was published in 2019 and the github repository made publiclly available.
+        The platform is being updated on a regular basis using an agile development process. We are continuing to expand this platform as needed.
+    </p>
+    <p>
+        The current focus of the collaboration and team is on expanding the user base, improving the useability, and creating training materials.
+    </p>
+
+  <div class="about-h3">Indiana Biosciences Research Institute's Role with CTox</div>
+
+    <p>
+    The <a target="_blank" style="color: #35b7f0" href="http://indianabiosciences.org">Indiana Biosciences Research Institute (IBRI)</a> is an independent,
+        industry-inspired applied research institute. The IBRI is a catalyst for collaboration and a
+        convener of industry, academia, government and community organizations. It is because of this
+        unique role we play that we can facilitate access and engagement with academic and other research
+        organizations to assist in enhancing CTox.
+    </p>
+
+
+    <div class="about-half-line"></div>
+
+    <p>
+        If you would like to participate as a part of this collaboration and/or become an early adopter. Please email
+        contact the IBRI at <a style="color: #35b7f0" href="https://www.indianabiosciences.org/contact">Contact Us</a>.
+    </p>
+  </div>
+
+
+</div>
+
+<!-- Sticky Footer -->
+<div class="footer_base">
+    <div class="footer">
+        <table width="100%">
+        <tbody><tr>
+            <td><a href="http://indianabiosciences.org/"><i>Indiana Biosciences Research Institute</i></a></td>
+            <td align="right">Copyright © 2022</td>
+        </tr>
+        </tbody></table>
+    </div>
+</div>
+
+
+
+
+
+</body></html>
