@@ -1,0 +1,257 @@
+body {
+    margin-left: 10px;
+    padding-top: 60px;
+    padding-left: 10px;
+    padding-bottom: 30px;
+    background-color: #f9f9f9
+}
+
+.navbar-inverse {
+    background-color: #003f3f
+}
+.cardinality{
+margin-left:10px;
+}
+.container {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.carousel-inner > .item > img {
+    margin: 0 auto;
+    width: 100%;
+}
+
+.footer_base {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    line-height: 30px;
+    background-color: #e0e0e0;
+}
+
+.footer {
+    margin-right: 10px;
+    margin-left: 10px;
+    width: 95%;
+    height: 30px;
+}
+
+.footer a:link, a:visited {
+    color: #003f3f;
+}
+
+.fillWidth {
+  width: 100%;
+}
+a.button_large {
+  padding: 10px 15px;
+}
+
+/* css for login page */
+
+.card-container.card {
+    width: 350px;
+    padding: 40px 40px;
+}
+
+.btn {
+    font-weight: 700;
+    height: 36px;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+
+/*
+ * Card component
+ */
+.card {
+    background-color: #F0F0F0;
+    /* just in case there no content*/
+    padding: 20px 25px 30px;
+    margin: 0 auto 25px;
+    margin-top: 50px;
+    /* shadows and rounded borders */
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    border-radius: 2px;
+    -moz-box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.3);
+    -webkit-box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.3);
+}
+
+.profile-img-card {
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 10px;
+    display: block;
+    -moz-border-radius: 50%;
+    -webkit-border-radius: 50%;
+    border-radius: 50%;
+}
+
+.profile-name-card {
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    margin: 10px 0 0;
+    min-height: 1em;
+}
+
+.form-signin .form-control:focus {
+    border-color: rgb(104, 145, 162);
+    outline: 0;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgb(104, 145, 162);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgb(104, 145, 162);
+}
+
+.btn.btn-signin {
+    /*background-color: #4d90fe; */
+    background-color: rgb(104, 145, 162);
+    /* background-color: linear-gradient(rgb(104, 145, 162), rgb(12, 97, 33));*/
+    padding: 0px;
+    font-weight: 700;
+    font-size: 14px;
+    height: 36px;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    border: none;
+    -o-transition: all 0.218s;
+    -moz-transition: all 0.218s;
+    -webkit-transition: all 0.218s;
+    transition: all 0.218s;
+}
+
+.btn.btn-signin:focus,
+.btn.btn-signin:hover {
+    border-color: black;
+}
+
+.label-profile {
+    padding-top: 10px;
+}
+
+.forgot-password {
+    color: rgb(104, 145, 162);
+}
+
+.forgot-password:hover,
+.forgot-password:active,
+.forgot-password:focus{
+    color: rgb(12, 97, 33);
+}
+
+/* experiments list table */
+
+.custab {
+    border: 1px solid #ccc;
+    background-color: #ffffff;
+    padding: 5px;
+    margin: auto;
+    box-shadow: 3px 3px 2px #ccc;
+    transition: 0.5s;
+    }
+
+.custab td{
+    white-space: nowrap;
+}
+
+.custab:hover{
+    box-shadow: 3px 3px 0px transparent;
+    transition: 0.5s;
+}
+/* taller multiple select box on sample selection */
+.tallfield select[multiple]{
+    height: 200px;
+}
+
+/*Sample Upload Panel tabs*/
+.panel-heading {
+    background-color: #eeeeee;
+    border-color: #ffffff;
+}
+
+.panel-tabs {
+    position: relative;
+    bottom: 30px;
+    clear:both;
+    border-bottom: 1px solid transparent;
+}
+
+.panel-tabs > li {
+    float: left;
+    margin-bottom: -1px;
+}
+
+.panel-tabs > li > a {
+    margin-right: 2px;
+    margin-top: 4px;
+    line-height: .85;
+    border: 1px solid transparent;
+    border-radius: 4px 4px 0 0;
+    color: #ffffff;
+}
+
+.panel-tabs > li > a:hover {
+    border-color: transparent;
+    color: #ffffff;
+    background-color: transparent;
+}
+
+.panel-tabs > li.active > a,
+.panel-tabs > li.active > a:hover,
+.panel-tabs > li.active > a:focus {
+    color: #fff;
+    cursor: default;
+    -webkit-border-radius: 2px;
+    -moz-border-radius: 2px;
+    border-radius: 2px;
+    background-color: rgba(255,255,255, .23);
+    border-bottom-color: transparent;
+}
+
+/* spinning wheel inside upload button for tech measurement */
+.loader {
+    border: 16px solid #f3f3f3; /* Light grey */
+    border-top: 16px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 2s linear infinite;
+    margin-bottom: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.table-nonfluid {
+   width: auto !important;
+   margin-right:auto;
+   margin-left:0px;
+   margin-bottom: 20px;
+}
+
+.viz_container {
+    min-width: 350px;
+    min-height: 700px;
+    margin: 0 auto;
+}
+/* prevent django-bootstrap3 horizontal forms with the django-filter module from showing some inline, some horizontal
+when screen around a transition where it switches from having labels inline vs. above
+ */
+.control-label {
+    clear: both;
+}
+/* the buttons are sometimes to the right of the form; same issue as above; and the buttons can touch the bottom
+of form created with django-filter
+ */
+.button-section {
+    clear: both;
+    padding-top: 10px;
+}
